@@ -11,6 +11,8 @@ categories = ["command-line-utilities", "development-tools"]
 [dependencies]
 log = { version = "0.4", features = ["std"] }
 structopt = { version = "0.3", default-features = false }
+regex = "1.5"
+lazy_static = "1.4"
 
 [dev-dependencies]
 assert_cmd = "1.0"

@@ -1,4 +1,9 @@
+use regex::Regex;
 use std::fmt;
+
+lazy_static! {
+    static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
+}
 
 #[derive(Debug)]
 pub struct Commit {
@@ -237,6 +242,9 @@ impl Commit {
             let line = raw_line.trim();
             let length = line.len();
             if length > 72 {
+                if URL_REGEX.is_match(line) {
+                    continue;
+                }
                 return Some((
                     RuleType::MessageLineTooLong,
                     "One or more lines in the message are longer than 72 characters.".to_string(),
@@ -560,6 +568,39 @@ mod tests {
         let commit2 = validated_commit("Subject".to_string(), message2);
         assert!(has_validation(
             &commit2.validations,
+            RuleType::MessageLineTooLong
+        ));
+
+        let message3 = [
+            "This message is accepted.".to_string(),
+            "This a long line with a link https://tomdebruijn.com/posts/git-is-about-communication/".to_string()
+        ].join("\n");
+        let commit3 = validated_commit("Subject".to_string(), message3);
+        assert!(!has_validation(
+            &commit3.validations,
+            RuleType::MessageLineTooLong
+        ));
+
+        let message4 = [
+            "This message is accepted.".to_string(),
+            "This a long line with a link http://tomdebruijn.com/posts/git-is-about-communication/"
+                .to_string(),
+        ]
+        .join("\n");
+        let commit4 = validated_commit("Subject".to_string(), message4);
+        assert!(!has_validation(
+            &commit4.validations,
+            RuleType::MessageLineTooLong
+        ));
+
+        let message5 = [
+            "This a too long line with only protocols http:// https:// which is not accepted."
+                .to_string(),
+        ]
+        .join("\n");
+        let commit5 = validated_commit("Subject".to_string(), message5);
+        assert!(has_validation(
+            &commit5.validations,
             RuleType::MessageLineTooLong
         ));
 
