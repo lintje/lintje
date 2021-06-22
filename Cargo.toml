@@ -1,0 +1,17 @@
+[package]
+name = "gitlint"
+version = "0.1.0"
+authors = ["Tom de Bruijn <tom@tomdebruijn.com>"]
+edition = "2018"
+repository = "https://github.com/tombruijn/gitlint"
+license = "MIT"
+keywords = ["git", "linter"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+log = { version = "0.4", features = ["std"] }
+structopt = { version = "0.3", default-features = false }
+
+[dev-dependencies]
+assert_cmd = "1.0"
+predicates = "1.0"

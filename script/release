@@ -1,0 +1,45 @@
+#!/bin/bash
+
+set -eu
+
+echo "Preparing to release new version."
+
+if [ ! which gh &>/dev/null ]; then
+  echo "The GitHub CLI could not be found. Please install it before continuing."
+  echo "https://cli.github.com/manual/"
+  echo "And run `gh auth login`"
+  exit 1
+fi
+
+version=$(ruby -e "print File.read('Cargo.toml').scan(/version = \"(.*)\"/).first.first")
+if git tag | grep v$version &>/dev/null; then
+  echo "Tag $version already exists. Exiting."
+  echo "Please make sure to first update the version in the Cargo.toml file."
+  echo "Also don't forget to update the CHANGELOG.md file."
+  exit 1
+fi
+
+script/build
+
+function archive() {
+  target=$1
+  echo "Archiving release $target"
+  (
+    cd dist/$target
+    tar -cvzf "../$target.tar.gz" gitlint
+  )
+}
+
+echo
+archive x86_64-apple-darwin
+echo
+archive aarch64-apple-darwin
+echo
+archive x86_64-unknown-linux-gnu
+echo
+archive aarch64-unknown-linux-gnu
+
+git tag v$version
+git push origin main v$version
+echo "Creating release on GitHub. Please follow the prompts."
+gh release create v$version dist/*.tar.gz --title "Release $version"

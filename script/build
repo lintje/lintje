@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -eu
+
+which cross > /dev/null 2>&1 || cargo install cross
+
+rm -rf dist
+mkdir -p dist
+build_for() {
+    builder="$1"
+    target="$2"
+    echo "Building $target"
+    rm -rf dist/$target
+    mkdir -p dist/$target
+    rustup target add $target
+    $builder build --release --target $target
+    cp target/$target/release/gitlint dist/$target/
+}
+
+echo
+build_for cargo x86_64-apple-darwin
+echo
+build_for cargo aarch64-apple-darwin
+echo
+build_for cross x86_64-unknown-linux-gnu
+echo
+build_for cross aarch64-unknown-linux-gnu
