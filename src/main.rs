@@ -86,7 +86,8 @@ fn lint(options: Options) -> Result<(), String> {
                         ));
                     }
                 };
-                match parse_commit_file_format(&contents) {
+                match parse_commit_file_format(&contents, git::cleanup_mode(), git::comment_char())
+                {
                     Some(commit) => vec![commit],
                     None => vec![],
                 }
