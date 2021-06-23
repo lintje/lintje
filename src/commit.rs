@@ -2,6 +2,9 @@ use regex::Regex;
 use std::fmt;
 
 lazy_static! {
+    static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]+-\d+").unwrap();
+    // Match all GitHub and GitLab keywords
+    static ref SUBJECT_WITH_FIX_TICKET: Regex = Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?#\d+").unwrap();
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
 }
 
@@ -41,6 +44,7 @@ impl Commit {
                     "SubjectMood" => Some(RuleType::SubjectMood),
                     "SubjectCapitalization" => Some(RuleType::SubjectCapitalization),
                     "SubjectPunctuation" => Some(RuleType::SubjectPunctuation),
+                    "SubjectTicketNumber" => Some(RuleType::SubjectTicketNumber),
                     "SubjectCliche" => Some(RuleType::SubjectCliche),
                     "MessagePresence" => Some(RuleType::MessagePresence),
                     "MessageLineTooLong" => Some(RuleType::MessageLineTooLong),
@@ -73,6 +77,7 @@ impl Commit {
         self.validate_subject_mood();
         self.validate_subject_capitalization();
         self.validate_subject_punctuation();
+        self.validate_subject_ticket_numbers();
         self.validate_subject_cliches();
         self.validate_message_presence();
         self.validate_message_line_length();
@@ -183,6 +188,25 @@ impl Commit {
         }
     }
 
+    fn validate_subject_ticket_numbers(&mut self) {
+        if self.rule_ignored(RuleType::SubjectTicketNumber) {
+            return;
+        }
+
+        let subject = &self.subject;
+        if SUBJECT_WITH_TICKET.is_match(subject) {
+            self.add_error(
+                RuleType::SubjectTicketNumber,
+                format!("Subject includes a ticket number."),
+            )
+        } else if SUBJECT_WITH_FIX_TICKET.is_match(subject) {
+            self.add_error(
+                RuleType::SubjectTicketNumber,
+                format!("Subject includes a ticket number."),
+            )
+        }
+    }
+
     fn validate_subject_cliches(&mut self) {
         if self.rule_ignored(RuleType::SubjectCliche) {
             return;
@@ -273,6 +297,7 @@ pub enum RuleType {
     SubjectMood,
     SubjectCapitalization,
     SubjectPunctuation,
+    SubjectTicketNumber,
     SubjectCliche,
     MessagePresence,
     MessageLineTooLong,
@@ -288,6 +313,7 @@ impl fmt::Display for RuleType {
             RuleType::SubjectMood => "SubjectMood",
             RuleType::SubjectCapitalization => "SubjectCapitalization",
             RuleType::SubjectPunctuation => "SubjectPunctuation",
+            RuleType::SubjectTicketNumber => "SubjectTicketNumber",
             RuleType::SubjectCliche => "SubjectCliche",
             RuleType::MessagePresence => "MessagePresence",
             RuleType::MessageLineTooLong => "MessageLineTooLong",
@@ -478,6 +504,70 @@ mod tests {
         );
         let validations = ignore_commit.validations;
         assert!(!has_validation(&validations, RuleType::SubjectPunctuation));
+    }
+
+    #[test]
+    fn test_validate_subject_ticket() {
+        let invalid_subjects = vec![
+            "JIRA-1234",
+            "Fix JIRA-1234 lorem",
+            "Fix #1234",
+            "Fixed #1234",
+            "Fixes #1234",
+            "Fixing #1234",
+            "Fix #1234 lorem",
+            "Fix: #1234 lorem",
+            "Fix my-org/repo#1234 lorem",
+            "Fix https://examplegithosting.com/my-org/repo#1234 lorem",
+            "Commit fixes #1234",
+            "Close #1234",
+            "Closed #1234",
+            "Closes #1234",
+            "Closing #1234",
+            "Close #1234 lorem",
+            "Close: #1234 lorem",
+            "Commit closes #1234",
+            "Resolve #1234",
+            "Resolved #1234",
+            "Resolves #1234",
+            "Resolving #1234",
+            "Resolve #1234 lorem",
+            "Resolve: #1234 lorem",
+            "Commit resolves #1234",
+            "Implement #1234",
+            "Implemented #1234",
+            "Implements #1234",
+            "Implementing #1234",
+            "Implement #1234 lorem",
+            "Implement: #1234 lorem",
+            "Commit implements #1234",
+        ];
+        for subject in invalid_subjects {
+            let commit = validated_commit(subject.to_string(), "".to_string());
+            assert!(
+                has_validation(&commit.validations, RuleType::SubjectTicketNumber),
+                "Subject was not considered invalid: {}",
+                subject
+            );
+        }
+
+        let ignore_ticket_number = validated_commit(
+            "Fix bug with 'JIRA-1234' type commits".to_string(),
+            "gitlint:disable SubjectTicketNumber".to_string(),
+        );
+        assert!(!has_validation(
+            &ignore_ticket_number.validations,
+            RuleType::SubjectPunctuation
+        ));
+
+        let ignore_issue_number = validated_commit(
+            "Fix bug with 'Fix #1234' type commits".to_string(),
+            "gitlint:disable SubjectTicketNumber".to_string(),
+        );
+        assert!(!has_validation(
+            &ignore_issue_number.validations,
+            RuleType::SubjectPunctuation
+        ));
     }
 
     #[test]

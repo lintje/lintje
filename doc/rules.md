@@ -62,6 +62,20 @@ to start your subject.
 The commit's subject ends with punctuation. Subjects don't need to end with
 punctuation.
 
+## SubjectTicketNumber
+
+The commit's subject includes a reference to a ticker or issue. Move this to
+the message body.
+
+Invalid subject examples:
+
+```
+Fix #123
+I have fixed #123
+JIRA-123
+Fix JIRA-123 for good
+```
+
 ## SubjectCliche
 
 The commit's subject is considered to be a cliché, it's overused and adds
