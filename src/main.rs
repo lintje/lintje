@@ -7,13 +7,16 @@ extern crate lazy_static;
 extern crate predicates;
 
 use log::LevelFilter;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod commit;
 mod git;
 mod logger;
 
-use git::fetch_and_parse_commits;
+use git::{fetch_and_parse_commits, parse_commit_file_format};
 use logger::Logger;
 
 #[derive(StructOpt, Debug)]
@@ -45,9 +48,11 @@ enum Command {
 
 #[derive(Debug, StructOpt)]
 struct Options {
+    /// Lint the contents of a specific file. Useful for the commit-msg Git hook.
+    #[structopt(long, parse(from_os_str))]
+    file: Option<PathBuf>,
     /// Lint only commits in the specified revision range. When no <revision range> is specified,
     /// it defaults to only linting the latest commit.
-    // #[structopt(parse(from_os_str))]
     #[structopt(name = "revision range")]
     revision_range: Option<String>,
 }
@@ -56,32 +61,72 @@ fn main() {
     let args = GitLint::from_args();
     init_logger(args.debug);
     match args.command {
-        Command::Lint(command) => {
-            lint(command);
-        }
+        Command::Lint(command) => match lint(command) {
+            Ok(_) => (),
+            Err(e) => {
+                error!("An error occurred: {}", e);
+                std::process::exit(1)
+            }
+        },
     }
 }
 
-fn lint(options: Options) {
-    let commit_result = fetch_and_parse_commits(options.revision_range);
-    debug!("Commits: {:?}", commit_result);
-    match commit_result {
-        Ok(commits) => {
-            let mut valid = true;
-            for commit in commits {
-                if !commit.is_valid() {
-                    println!("{}: {}", commit.short_sha, commit.subject);
-                    for validation in commit.validations {
-                        valid = false;
-                        println!("  {}: {}", validation.kind, validation.message);
+fn lint(options: Options) -> Result<(), String> {
+    let commits = match options.file {
+        Some(filename) => match File::open(&filename) {
+            Ok(mut file) => {
+                let mut contents = String::new();
+                match file.read_to_string(&mut contents) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        return Err(format!(
+                            "Unable to read commit message file contents: {}\n{}",
+                            filename.to_str().unwrap(),
+                            e
+                        ));
                     }
+                };
+                match parse_commit_file_format(&contents) {
+                    Some(commit) => vec![commit],
+                    None => vec![],
                 }
             }
-            if !valid {
-                std::process::exit(1)
+            Err(e) => {
+                return Err(format!(
+                    "Unable to open commit message file: {}\n{}",
+                    filename.to_str().unwrap(),
+                    e
+                ));
+            }
+        },
+        None => {
+            let commit_result = fetch_and_parse_commits(options.revision_range);
+            match commit_result {
+                Ok(commits) => commits,
+                Err(e) => return Err(e),
             }
         }
-        Err(e) => error!("{}", e),
+    };
+
+    let mut valid = true;
+    debug!("Commits: {:?}", commits);
+    for commit in commits {
+        if !commit.is_valid() {
+            match commit.short_sha {
+                Some(sha) => println!("{}: {}", sha, commit.subject),
+                None => println!("{}", commit.subject),
+            }
+
+            for validation in commit.validations {
+                valid = false;
+                println!("  {}: {}", validation.kind, validation.message);
+            }
+        }
+    }
+    if valid {
+        Ok(())
+    } else {
+        std::process::exit(1)
     }
 }
 
@@ -109,6 +154,8 @@ fn init_logger(debug: bool) {
 mod tests {
     use predicates::prelude::*;
     use std::fs;
+    use std::fs::File;
+    use std::io::Write;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
 
@@ -238,5 +285,49 @@ mod tests {
                 \x20\x20SubjectMood: Subject is not imperative mood.\n\
                 \x20\x20MessagePresence: Message is not present.",
             ));
+    }
+
+    #[test]
+    fn test_file_option() {
+        compile_bin();
+        let dir = test_dir("commit_file_option");
+        create_test_repo(&dir, &[]);
+        let filename = "commit_message_file";
+        let commit_file = dir.join(filename);
+        let mut file = File::create(&commit_file).unwrap();
+        file.write_all(b"added some code\n\nThis is a message.")
+            .unwrap();
+
+        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let assert = cmd
+            .args(&["lint", &format!("--file={}", filename)])
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
+        assert.stdout(predicate::str::contains(
+            "added some code\n\
+                \x20\x20SubjectMood: Subject is not imperative mood.\n\
+                \x20\x20SubjectCapitalization: Subject does not start with a capital letter.",
+        ));
+    }
+
+    #[test]
+    fn test_file_option_without_file() {
+        compile_bin();
+        let dir = test_dir("commit_file_option_without_file");
+        create_test_repo(&dir, &[]);
+        let filename = "commit_message_file";
+
+        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let assert = cmd
+            .args(&["lint", &format!("--file={}", filename)])
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
+        assert.stdout(predicate::str::contains(
+            "Unable to open commit message file: commit_message_file",
+        ));
     }
 }

@@ -10,8 +10,8 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct Commit {
-    pub long_sha: String,
-    pub short_sha: String,
+    pub long_sha: Option<String>,
+    pub short_sha: Option<String>,
     pub subject: String,
     pub message: String,
     pub validations: Vec<Validation>,
@@ -19,7 +19,12 @@ pub struct Commit {
 }
 
 impl Commit {
-    pub fn new(long_sha: String, short_sha: String, subject: String, message: String) -> Self {
+    pub fn new(
+        long_sha: Option<String>,
+        short_sha: Option<String>,
+        subject: String,
+        message: String,
+    ) -> Self {
         let ignored_rules = Self::find_ignored_rules(&message);
         Self {
             long_sha,
@@ -334,8 +339,8 @@ mod tests {
 
     fn commit(subject: String, message: String) -> Commit {
         Commit::new(
-            "SHA LONG".to_string(),
-            "SHA SHORT".to_string(),
+            Some("SHA LONG".to_string()),
+            Some("SHA SHORT".to_string()),
             subject,
             message,
         )

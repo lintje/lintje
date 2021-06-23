@@ -2,9 +2,7 @@ use std::process::Command;
 
 use crate::commit::Commit;
 
-pub fn fetch_and_parse_commits(
-    revision_range: Option<String>,
-) -> Result<Vec<Commit>, std::io::Error> {
+pub fn fetch_and_parse_commits(revision_range: Option<String>) -> Result<Vec<Commit>, String> {
     let mut commits = Vec::<Commit>::new();
     let mut command = Command::new("git");
     let range = match revision_range {
@@ -36,8 +34,10 @@ pub fn fetch_and_parse_commits(
             }
         }
         Err(e) => {
-            error!("{}", e);
-            std::process::exit(1);
+            return Err(format!(
+                "Unable to fetch commits from Git: {}\n{:?}",
+                range, e
+            ))
         }
     };
     Ok(commits)
@@ -59,8 +59,8 @@ fn parse_commit(message: &str) -> Option<Commit> {
     match (long_sha, short_sha, subject) {
         (Some(long_sha), Some(short_sha), Some(subject)) => {
             let mut commit = Commit::new(
-                long_sha.to_string(),
-                short_sha.to_string(),
+                Some(long_sha.to_string()),
+                Some(short_sha.to_string()),
                 subject.to_string(),
                 message_lines.join("\n"),
             );
@@ -74,6 +74,33 @@ fn parse_commit(message: &str) -> Option<Commit> {
         }
         _ => {
             debug!("Commit SHA or subject not present: {}", message);
+            None
+        }
+    }
+}
+
+pub fn parse_commit_file_format(message: &str) -> Option<Commit> {
+    let mut subject = None;
+    let mut message_lines = Vec::<&str>::new();
+    for (index, line) in message.lines().enumerate() {
+        match index {
+            0 => subject = Some(line),
+            _ => message_lines.push(line),
+        }
+    }
+    match subject {
+        Some(subject) => {
+            let mut commit = Commit::new(None, None, subject.to_string(), message_lines.join("\n"));
+            if !ignored(&commit) {
+                commit.validate();
+                Some(commit)
+            } else {
+                debug!("Commit is ignored: {:?}", commit);
+                None
+            }
+        }
+        _ => {
+            debug!("No subject found in commit file: {}", message);
             None
         }
     }
@@ -93,7 +120,7 @@ fn ignored(commit: &Commit) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_commit;
+    use super::{parse_commit, parse_commit_file_format};
 
     #[test]
     fn test_parse_commit() {
@@ -108,8 +135,11 @@ mod tests {
 
         assert!(result.is_some());
         let commit = result.unwrap();
-        assert_eq!(commit.long_sha, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        assert_eq!(commit.short_sha, "aaaaaaa");
+        assert_eq!(
+            commit.long_sha,
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
+        );
+        assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "This is my multi line message.\nLine 2.");
         assert!(commit.validations.is_empty());
@@ -125,8 +155,11 @@ mod tests {
 
         assert!(result.is_some());
         let commit = result.unwrap();
-        assert_eq!(commit.long_sha, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        assert_eq!(commit.short_sha, "aaaaaaa");
+        assert_eq!(
+            commit.long_sha,
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
+        );
+        assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
         assert!(!commit.validations.is_empty());
@@ -160,5 +193,29 @@ mod tests {
         );
 
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_commit_file_format() {
+        let result = parse_commit_file_format("This is a subject\n\nThis is a message.");
+
+        assert!(result.is_some());
+        let commit = result.unwrap();
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(commit.message, "This is a message.");
+    }
+
+    #[test]
+    fn test_parse_commit_file_format_without_message() {
+        let result = parse_commit_file_format("This is a subject");
+
+        assert!(result.is_some());
+        let commit = result.unwrap();
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(commit.message, "");
     }
 }

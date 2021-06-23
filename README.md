@@ -33,6 +33,19 @@ gitlint lint HEAD~5..HEAD
 gitlint lint main..develop
 ```
 
+It's recommended to add Git Lint to your CI setup to lint the range of commits
+added by a Pull Request or job.
+
+### Git hook
+
+To lint the commit locally immediately after writing the commit message, use a
+Git hook. To add it, run the following:
+
+```
+echo "gitlint lint --file=$1" > .git/hooks/commit-msg
+chmod +x .git/hooks/pre-commit
+```
+
 ## Rules
 
 For more information on which rules are linted on, see the [rules docs
