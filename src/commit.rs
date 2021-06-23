@@ -189,7 +189,12 @@ impl Commit {
         }
 
         let subject = &self.subject;
-        if subject.starts_with("WIP") {
+        if subject.to_lowercase().starts_with("wip ") {
+            self.add_error(
+                RuleType::SubjectCliche,
+                format!("Subject is a 'Work in Progress' commit."),
+            )
+        } else if subject.to_lowercase() == "wip".to_string() {
             self.add_error(
                 RuleType::SubjectCliche,
                 format!("Subject is a 'Work in Progress' commit."),
@@ -483,9 +488,27 @@ mod tests {
             RuleType::SubjectCliche
         ));
 
-        let commit2 = validated_commit("WIP".to_string(), "".to_string());
+        let wip_prefix_uppercase = validated_commit("WIP something".to_string(), "".to_string());
         assert!(has_validation(
-            &commit2.validations,
+            &wip_prefix_uppercase.validations,
+            RuleType::SubjectCliche
+        ));
+
+        let wip_prefix_lowercase = validated_commit("wip something".to_string(), "".to_string());
+        assert!(has_validation(
+            &wip_prefix_lowercase.validations,
+            RuleType::SubjectCliche
+        ));
+
+        let wip_only_uppercase = validated_commit("WIP".to_string(), "".to_string());
+        assert!(has_validation(
+            &wip_only_uppercase.validations,
+            RuleType::SubjectCliche
+        ));
+
+        let wip_only_lowercase = validated_commit("wip".to_string(), "".to_string());
+        assert!(has_validation(
+            &wip_only_lowercase.validations,
             RuleType::SubjectCliche
         ));
 
