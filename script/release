@@ -7,7 +7,7 @@ echo "Preparing to release new version."
 if [ ! which gh &>/dev/null ]; then
   echo "The GitHub CLI could not be found. Please install it before continuing."
   echo "https://cli.github.com/manual/"
-  echo "And run `gh auth login`"
+  echo "And run 'gh auth login'"
   exit 1
 fi
 
@@ -19,7 +19,44 @@ if git tag | grep v$version &>/dev/null; then
   exit 1
 fi
 
+read -p "This will publish v$version. Are you sure? [y/n] " choice
+case "$choice" in
+  y|Y)
+    echo "Publishing v$version!"
+    ;;
+  *)
+    echo "Exiting..."
+    exit 1
+    ;;
+esac
+
+# Build releases for all targets
 script/build
+
+function strip_local() {
+  target=$1
+  echo "Stripping release $target"
+  (
+    cd dist/$target
+    strip gitlint
+  )
+}
+
+function strip_in_container() {
+  target=$1
+  image=$2
+  options=$3
+  echo "Stripping release $target"
+  (
+    cd dist/$target
+    docker run --rm -it \
+      -v "$(pwd):/dist" \
+      -w "/dist" \
+      $options \
+      tombruijn/gitlint-$image:build \
+      strip gitlint
+  )
+}
 
 function archive() {
   target=$1
@@ -30,13 +67,32 @@ function archive() {
   )
 }
 
+function build_docker_image() {
+  image=$1
+  options=$2
+  (
+    cd support/docker/
+    docker build \
+      $options \
+      -f Dockerfile.$image \
+      -t tombruijn/gitlint-$image:build \
+      .
+  )
+}
+
 echo
+strip_local x86_64-apple-darwin
 archive x86_64-apple-darwin
 echo
+strip_local aarch64-apple-darwin
 archive aarch64-apple-darwin
 echo
+build_docker_image ubuntu-x86_64-development "--platform linux/amd64"
+strip_in_container x86_64-unknown-linux-gnu ubuntu-x86_64-development "--platform linux/amd64"
 archive x86_64-unknown-linux-gnu
 echo
+build_docker_image ubuntu-aarch64-development "--platform linux/arm64/v8"
+strip_in_container aarch64-unknown-linux-gnu ubuntu-aarch64-development "--platform linux/arm64/v8"
 archive aarch64-unknown-linux-gnu
 
 git tag v$version
