@@ -54,8 +54,8 @@ pub struct Commit {
     pub short_sha: Option<String>,
     pub subject: String,
     pub message: String,
-    pub validations: Vec<Validation>,
-    pub ignored_rules: Vec<RuleType>,
+    pub violations: Vec<Violation>,
+    pub ignored_rules: Vec<Rule>,
 }
 
 impl Commit {
@@ -72,27 +72,27 @@ impl Commit {
             subject: subject.trim().to_string(),
             message: message.trim().to_string(),
             ignored_rules,
-            validations: Vec::<Validation>::new(),
+            violations: Vec::<Violation>::new(),
         }
     }
 
-    pub fn find_ignored_rules(message: &String) -> Vec<RuleType> {
+    pub fn find_ignored_rules(message: &String) -> Vec<Rule> {
         let disable_prefix = "gitlint:disable ";
         let mut ignored = vec![];
         for (_index, line) in message.lines().enumerate() {
             if line.starts_with(disable_prefix) {
                 let rule = match &line[disable_prefix.len()..] {
-                    "MergeCommit" => Some(RuleType::MergeCommit),
-                    "NeedsRebase" => Some(RuleType::NeedsRebase),
-                    "SubjectTooLong" => Some(RuleType::SubjectTooLong),
-                    "SubjectTooShort" => Some(RuleType::SubjectTooShort),
-                    "SubjectMood" => Some(RuleType::SubjectMood),
-                    "SubjectCapitalization" => Some(RuleType::SubjectCapitalization),
-                    "SubjectPunctuation" => Some(RuleType::SubjectPunctuation),
-                    "SubjectTicketNumber" => Some(RuleType::SubjectTicketNumber),
-                    "SubjectCliche" => Some(RuleType::SubjectCliche),
-                    "MessagePresence" => Some(RuleType::MessagePresence),
-                    "MessageLineTooLong" => Some(RuleType::MessageLineTooLong),
+                    "MergeCommit" => Some(Rule::MergeCommit),
+                    "NeedsRebase" => Some(Rule::NeedsRebase),
+                    "SubjectTooLong" => Some(Rule::SubjectTooLong),
+                    "SubjectTooShort" => Some(Rule::SubjectTooShort),
+                    "SubjectMood" => Some(Rule::SubjectMood),
+                    "SubjectCapitalization" => Some(Rule::SubjectCapitalization),
+                    "SubjectPunctuation" => Some(Rule::SubjectPunctuation),
+                    "SubjectTicketNumber" => Some(Rule::SubjectTicketNumber),
+                    "SubjectCliche" => Some(Rule::SubjectCliche),
+                    "MessagePresence" => Some(Rule::MessagePresence),
+                    "MessageLineTooLong" => Some(Rule::MessageLineTooLong),
                     unknown => {
                         warn!("Unknown rule disabled: {}", unknown);
                         None
@@ -107,12 +107,12 @@ impl Commit {
         ignored
     }
 
-    fn rule_ignored(&self, rule: RuleType) -> bool {
+    fn rule_ignored(&self, rule: Rule) -> bool {
         self.ignored_rules.contains(&rule)
     }
 
     pub fn is_valid(&self) -> bool {
-        self.validations.is_empty()
+        self.violations.is_empty()
     }
 
     pub fn validate(&mut self) {
@@ -129,58 +129,55 @@ impl Commit {
     }
 
     fn validate_merge_commit(&mut self) {
-        if self.rule_ignored(RuleType::MergeCommit) {
+        if self.rule_ignored(Rule::MergeCommit) {
             return;
         }
 
         let subject = &self.subject;
         if subject.starts_with("Merge branch") {
-            self.add_error(RuleType::MergeCommit, format!("Commit is a merge commit."))
+            self.add_violation(Rule::MergeCommit, format!("Commit is a merge commit."))
         }
     }
 
     fn validate_needs_rebase(&mut self) {
-        if self.rule_ignored(RuleType::NeedsRebase) {
+        if self.rule_ignored(Rule::NeedsRebase) {
             return;
         }
 
         let subject = &self.subject;
         if subject.starts_with("fixup! ") {
-            self.add_error(RuleType::NeedsRebase, format!("Subject is a fixup commit."))
+            self.add_violation(Rule::NeedsRebase, format!("Subject is a fixup commit."))
         } else if subject.starts_with("squash! ") {
-            self.add_error(
-                RuleType::NeedsRebase,
-                format!("Subject is a squash commit."),
-            )
+            self.add_violation(Rule::NeedsRebase, format!("Subject is a squash commit."))
         }
     }
 
     fn validate_subject_line_length(&mut self) {
         let length = self.subject.len();
         if length > 50 {
-            if self.rule_ignored(RuleType::SubjectTooLong) {
+            if self.rule_ignored(Rule::SubjectTooLong) {
                 return;
             }
 
-            self.add_error(
-                RuleType::SubjectTooLong,
+            self.add_violation(
+                Rule::SubjectTooLong,
                 format!("Subject length is too long: {} characters.", length),
             )
         }
         if length < 5 {
-            if self.rule_ignored(RuleType::SubjectTooShort) {
+            if self.rule_ignored(Rule::SubjectTooShort) {
                 return;
             }
 
-            self.add_error(
-                RuleType::SubjectTooShort,
+            self.add_violation(
+                Rule::SubjectTooShort,
                 format!("Subject length is too short: {} characters.", length),
             )
         }
     }
 
     fn validate_subject_mood(&mut self) {
-        if self.rule_ignored(RuleType::SubjectMood) {
+        if self.rule_ignored(Rule::SubjectMood) {
             return;
         }
 
@@ -188,8 +185,8 @@ impl Commit {
             Some(raw_word) => {
                 let word = raw_word.to_lowercase();
                 if MOOD_WORDS.contains(&word.as_str()) {
-                    self.add_error(
-                        RuleType::SubjectMood,
+                    self.add_violation(
+                        Rule::SubjectMood,
                         "Subject is not imperative mood.".to_string(),
                     )
                 }
@@ -199,15 +196,15 @@ impl Commit {
     }
 
     fn validate_subject_capitalization(&mut self) {
-        if self.rule_ignored(RuleType::SubjectCapitalization) {
+        if self.rule_ignored(Rule::SubjectCapitalization) {
             return;
         }
 
         match self.subject.chars().nth(0) {
             Some(character) => {
                 if !character.is_uppercase() {
-                    self.add_error(
-                        RuleType::SubjectCapitalization,
+                    self.add_violation(
+                        Rule::SubjectCapitalization,
                         "Subject does not start with a capital letter.".to_string(),
                     )
                 }
@@ -217,15 +214,15 @@ impl Commit {
     }
 
     fn validate_subject_punctuation(&mut self) {
-        if self.rule_ignored(RuleType::SubjectPunctuation) {
+        if self.rule_ignored(Rule::SubjectPunctuation) {
             return;
         }
 
         match self.subject.chars().last() {
             Some(character) => {
                 if character.is_ascii_punctuation() {
-                    self.add_error(
-                        RuleType::SubjectPunctuation,
+                    self.add_violation(
+                        Rule::SubjectPunctuation,
                         format!("Subject ends with punctuation: {}", character),
                     )
                 }
@@ -235,84 +232,81 @@ impl Commit {
     }
 
     fn validate_subject_ticket_numbers(&mut self) {
-        if self.rule_ignored(RuleType::SubjectTicketNumber) {
+        if self.rule_ignored(Rule::SubjectTicketNumber) {
             return;
         }
 
         let subject = &self.subject;
         if SUBJECT_WITH_TICKET.is_match(subject) {
-            self.add_error(
-                RuleType::SubjectTicketNumber,
+            self.add_violation(
+                Rule::SubjectTicketNumber,
                 format!("Subject includes a ticket number."),
             )
         } else if SUBJECT_WITH_FIX_TICKET.is_match(subject) {
-            self.add_error(
-                RuleType::SubjectTicketNumber,
+            self.add_violation(
+                Rule::SubjectTicketNumber,
                 format!("Subject includes a ticket number."),
             )
         }
     }
 
     fn validate_subject_cliches(&mut self) {
-        if self.rule_ignored(RuleType::SubjectCliche) {
+        if self.rule_ignored(Rule::SubjectCliche) {
             return;
         }
 
         let subject = &self.subject;
         if subject.to_lowercase().starts_with("wip ") {
-            self.add_error(
-                RuleType::SubjectCliche,
+            self.add_violation(
+                Rule::SubjectCliche,
                 format!("Subject is a 'Work in Progress' commit."),
             )
         } else if subject.to_lowercase() == "wip".to_string() {
-            self.add_error(
-                RuleType::SubjectCliche,
+            self.add_violation(
+                Rule::SubjectCliche,
                 format!("Subject is a 'Work in Progress' commit."),
             )
         } else if subject == &"Fix test".to_string() {
-            self.add_error(
-                RuleType::SubjectCliche,
+            self.add_violation(
+                Rule::SubjectCliche,
                 format!("Subject is a 'Fix test' commit."),
             )
         } else if subject == &"Fix bug".to_string() {
-            self.add_error(
-                RuleType::SubjectCliche,
+            self.add_violation(
+                Rule::SubjectCliche,
                 format!("Subject is a 'Fix bug' commit."),
             )
         }
     }
 
     fn validate_message_presence(&mut self) {
-        if self.rule_ignored(RuleType::MessagePresence) {
+        if self.rule_ignored(Rule::MessagePresence) {
             return;
         }
 
         let length = self.message.len();
         if length == 0 {
-            self.add_error(
-                RuleType::MessagePresence,
-                "Message is not present.".to_string(),
-            )
+            self.add_violation(Rule::MessagePresence, "Message is not present.".to_string())
         } else if length < 10 {
-            self.add_error(
-                RuleType::MessagePresence,
+            self.add_violation(
+                Rule::MessagePresence,
                 "Message body is less than 10 characters long.".to_string(),
             )
         }
     }
 
     fn validate_message_line_length(&mut self) {
-        if self.rule_ignored(RuleType::MessageLineTooLong) {
+        if self.rule_ignored(Rule::MessageLineTooLong) {
             return;
         }
 
         match Self::check_line_lengths(self.message.lines()) {
-            Some((kind, message)) => self.add_error(kind, message),
+            Some((rule, message)) => self.add_violation(rule, message),
             None => {}
         }
     }
 
-    fn check_line_lengths(lines: std::str::Lines) -> Option<(RuleType, String)> {
+    fn check_line_lengths(lines: std::str::Lines) -> Option<(Rule, String)> {
         for (_index, raw_line) in lines.enumerate() {
             let line = raw_line.trim();
             let length = line.len();
@@ -321,7 +315,7 @@ impl Commit {
                     continue;
                 }
                 return Some((
-                    RuleType::MessageLineTooLong,
+                    Rule::MessageLineTooLong,
                     "One or more lines in the message are longer than 72 characters.".to_string(),
                 ));
             }
@@ -329,13 +323,13 @@ impl Commit {
         None
     }
 
-    fn add_error(&mut self, kind: RuleType, message: String) {
-        self.validations.push(Validation { kind, message })
+    fn add_violation(&mut self, rule: Rule, message: String) {
+        self.violations.push(Violation { rule, message })
     }
 }
 
 #[derive(Debug, PartialEq)]
-pub enum RuleType {
+pub enum Rule {
     MergeCommit,
     NeedsRebase,
     SubjectTooLong,
@@ -349,34 +343,34 @@ pub enum RuleType {
     MessageLineTooLong,
 }
 
-impl fmt::Display for RuleType {
+impl fmt::Display for Rule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let label = match self {
-            RuleType::MergeCommit => "MergeCommit",
-            RuleType::NeedsRebase => "NeedsRebase",
-            RuleType::SubjectTooLong => "SubjectTooLong",
-            RuleType::SubjectTooShort => "SubjectTooShort",
-            RuleType::SubjectMood => "SubjectMood",
-            RuleType::SubjectCapitalization => "SubjectCapitalization",
-            RuleType::SubjectPunctuation => "SubjectPunctuation",
-            RuleType::SubjectTicketNumber => "SubjectTicketNumber",
-            RuleType::SubjectCliche => "SubjectCliche",
-            RuleType::MessagePresence => "MessagePresence",
-            RuleType::MessageLineTooLong => "MessageLineTooLong",
+            Rule::MergeCommit => "MergeCommit",
+            Rule::NeedsRebase => "NeedsRebase",
+            Rule::SubjectTooLong => "SubjectTooLong",
+            Rule::SubjectTooShort => "SubjectTooShort",
+            Rule::SubjectMood => "SubjectMood",
+            Rule::SubjectCapitalization => "SubjectCapitalization",
+            Rule::SubjectPunctuation => "SubjectPunctuation",
+            Rule::SubjectTicketNumber => "SubjectTicketNumber",
+            Rule::SubjectCliche => "SubjectCliche",
+            Rule::MessagePresence => "MessagePresence",
+            Rule::MessageLineTooLong => "MessageLineTooLong",
         };
         write!(f, "{}", label)
     }
 }
 
 #[derive(Debug)]
-pub struct Validation {
-    pub kind: RuleType,
+pub struct Violation {
+    pub rule: Rule,
     pub message: String,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Commit, RuleType, Validation, MOOD_WORDS};
+    use super::{Commit, Rule, Violation, MOOD_WORDS};
 
     fn commit(subject: String, message: String) -> Commit {
         Commit::new(
@@ -393,85 +387,82 @@ mod tests {
         commit
     }
 
-    fn has_validation(validations: &Vec<Validation>, validation: RuleType) -> bool {
-        validations.iter().find(|&v| v.kind == validation).is_some()
+    fn has_violation(violations: &Vec<Violation>, rule: Rule) -> bool {
+        violations.iter().find(|&v| v.rule == rule).is_some()
     }
 
     #[test]
     fn test_validate_subject_merge_commit() {
         let commit1 = validated_commit("I am not a merge commit".to_string(), "".to_string());
-        assert!(!has_validation(&commit1.validations, RuleType::MergeCommit));
+        assert!(!has_violation(&commit1.violations, Rule::MergeCommit));
 
         let commit2 = validated_commit(
             "Merge pull request #123 from repo".to_string(),
             "".to_string(),
         );
-        assert!(!has_validation(&commit2.validations, RuleType::MergeCommit));
+        assert!(!has_violation(&commit2.violations, Rule::MergeCommit));
 
         let commit3 = validated_commit(
             "Merge branch 'main' into develop".to_string(),
             "".to_string(),
         );
-        assert!(has_validation(&commit3.validations, RuleType::MergeCommit));
+        assert!(has_violation(&commit3.violations, Rule::MergeCommit));
 
         let ignore_commit = validated_commit(
             "Merge branch 'main' into develop".to_string(),
             "gitlint:disable MergeCommit".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::MergeCommit));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::MergeCommit));
     }
 
     #[test]
     fn test_validate_needs_rebase() {
         let commit1 = validated_commit("I don't need to be rebased".to_string(), "".to_string());
-        assert!(!has_validation(&commit1.validations, RuleType::NeedsRebase));
+        assert!(!has_violation(&commit1.violations, Rule::NeedsRebase));
 
         let commit2 = validated_commit(
             "fixup! I don't need to be rebased".to_string(),
             "".to_string(),
         );
-        assert!(has_validation(&commit2.validations, RuleType::NeedsRebase));
+        assert!(has_violation(&commit2.violations, Rule::NeedsRebase));
 
         let commit3 = validated_commit(
             "squash! I don't need to be rebased".to_string(),
             "".to_string(),
         );
-        assert!(has_validation(&commit3.validations, RuleType::NeedsRebase));
+        assert!(has_violation(&commit3.violations, Rule::NeedsRebase));
 
         let ignore_commit = validated_commit(
             "fixup! I don't need to be rebased".to_string(),
             "gitlint:disable NeedsRebase".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::NeedsRebase));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::NeedsRebase));
     }
 
     #[test]
     fn test_validate_subject_line_length() {
         let commit = validated_commit("a".repeat(50).to_string(), "".to_string());
-        let validations = commit.validations;
-        assert!(!has_validation(&validations, RuleType::SubjectTooShort));
-        assert!(!has_validation(&validations, RuleType::SubjectTooLong));
+        let violations = commit.violations;
+        assert!(!has_violation(&violations, Rule::SubjectTooShort));
+        assert!(!has_violation(&violations, Rule::SubjectTooLong));
 
         let short_commit = validated_commit("a".repeat(4).to_string(), "".to_string());
-        assert!(has_validation(
-            &short_commit.validations,
-            RuleType::SubjectTooShort
+        assert!(has_violation(
+            &short_commit.violations,
+            Rule::SubjectTooShort
         ));
 
         let long_commit = validated_commit("a".repeat(51).to_string(), "".to_string());
-        assert!(has_validation(
-            &long_commit.validations,
-            RuleType::SubjectTooLong
-        ));
+        assert!(has_violation(&long_commit.violations, Rule::SubjectTooLong));
 
         let ignore_commit = validated_commit(
             "a".repeat(51).to_string(),
             "gitlint:disable SubjectTooLong".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::SubjectTooLong));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::SubjectTooLong));
     }
 
     #[test]
@@ -489,7 +480,7 @@ mod tests {
         for subject in invalid_subjects {
             let commit = validated_commit(subject.to_string(), "".to_string());
             assert!(
-                has_validation(&commit.validations, RuleType::SubjectMood),
+                has_violation(&commit.violations, Rule::SubjectMood),
                 "Subject was not considered invalid: {}",
                 subject
             );
@@ -499,67 +490,55 @@ mod tests {
             "Fixed test".to_string(),
             "gitlint:disable SubjectMood".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::SubjectMood));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::SubjectMood));
     }
 
     #[test]
     fn test_validate_subject_capitalization() {
         let commit1 = validated_commit("Fix test".to_string(), "".to_string());
-        assert!(!has_validation(
-            &commit1.validations,
-            RuleType::SubjectCapitalization
+        assert!(!has_violation(
+            &commit1.violations,
+            Rule::SubjectCapitalization
         ));
 
         let commit2 = validated_commit("fix test".to_string(), "".to_string());
-        assert!(has_validation(
-            &commit2.validations,
-            RuleType::SubjectCapitalization
+        assert!(has_violation(
+            &commit2.violations,
+            Rule::SubjectCapitalization
         ));
 
         let ignore_commit = validated_commit(
             "fix test".to_string(),
             "gitlint:disable SubjectCapitalization".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(
-            &validations,
-            RuleType::SubjectCapitalization
-        ));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::SubjectCapitalization));
     }
 
     #[test]
     fn test_validate_subject_punctuation() {
         let commit1 = validated_commit("Fix test".to_string(), "".to_string());
-        assert!(!has_validation(
-            &commit1.validations,
-            RuleType::SubjectPunctuation
+        assert!(!has_violation(
+            &commit1.violations,
+            Rule::SubjectPunctuation
         ));
 
         let commit2 = validated_commit("Fix test.".to_string(), "".to_string());
-        assert!(has_validation(
-            &commit2.validations,
-            RuleType::SubjectPunctuation
-        ));
+        assert!(has_violation(&commit2.violations, Rule::SubjectPunctuation));
 
         let commit3 = validated_commit("Fix test!".to_string(), "".to_string());
-        assert!(has_validation(
-            &commit3.validations,
-            RuleType::SubjectPunctuation
-        ));
+        assert!(has_violation(&commit3.violations, Rule::SubjectPunctuation));
 
         let commit4 = validated_commit("Fix test?".to_string(), "".to_string());
-        assert!(has_validation(
-            &commit4.validations,
-            RuleType::SubjectPunctuation
-        ));
+        assert!(has_violation(&commit4.violations, Rule::SubjectPunctuation));
 
         let ignore_commit = validated_commit(
             "Fix test.".to_string(),
             "gitlint:disable SubjectPunctuation".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::SubjectPunctuation));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::SubjectPunctuation));
     }
 
     #[test]
@@ -601,7 +580,7 @@ mod tests {
         for subject in invalid_subjects {
             let commit = validated_commit(subject.to_string(), "".to_string());
             assert!(
-                has_validation(&commit.validations, RuleType::SubjectTicketNumber),
+                has_violation(&commit.violations, Rule::SubjectTicketNumber),
                 "Subject was not considered invalid: {}",
                 subject
             );
@@ -611,143 +590,113 @@ mod tests {
             "Fix bug with 'JIRA-1234' type commits".to_string(),
             "gitlint:disable SubjectTicketNumber".to_string(),
         );
-        assert!(!has_validation(
-            &ignore_ticket_number.validations,
-            RuleType::SubjectPunctuation
+        assert!(!has_violation(
+            &ignore_ticket_number.violations,
+            Rule::SubjectPunctuation
         ));
 
         let ignore_issue_number = validated_commit(
             "Fix bug with 'Fix #1234' type commits".to_string(),
             "gitlint:disable SubjectTicketNumber".to_string(),
         );
-        assert!(!has_validation(
-            &ignore_issue_number.validations,
-            RuleType::SubjectPunctuation
+        assert!(!has_violation(
+            &ignore_issue_number.violations,
+            Rule::SubjectPunctuation
         ));
     }
 
     #[test]
     fn test_validate_subject_cliches() {
         let commit1 = validated_commit("I am not a cliche".to_string(), "".to_string());
-        assert!(!has_validation(
-            &commit1.validations,
-            RuleType::SubjectCliche
-        ));
+        assert!(!has_violation(&commit1.violations, Rule::SubjectCliche));
 
         let wip_prefix_uppercase = validated_commit("WIP something".to_string(), "".to_string());
-        assert!(has_validation(
-            &wip_prefix_uppercase.validations,
-            RuleType::SubjectCliche
+        assert!(has_violation(
+            &wip_prefix_uppercase.violations,
+            Rule::SubjectCliche
         ));
 
         let wip_prefix_lowercase = validated_commit("wip something".to_string(), "".to_string());
-        assert!(has_validation(
-            &wip_prefix_lowercase.validations,
-            RuleType::SubjectCliche
+        assert!(has_violation(
+            &wip_prefix_lowercase.violations,
+            Rule::SubjectCliche
         ));
 
         let wip_only_uppercase = validated_commit("WIP".to_string(), "".to_string());
-        assert!(has_validation(
-            &wip_only_uppercase.validations,
-            RuleType::SubjectCliche
+        assert!(has_violation(
+            &wip_only_uppercase.violations,
+            Rule::SubjectCliche
         ));
 
         let wip_only_lowercase = validated_commit("wip".to_string(), "".to_string());
-        assert!(has_validation(
-            &wip_only_lowercase.validations,
-            RuleType::SubjectCliche
+        assert!(has_violation(
+            &wip_only_lowercase.violations,
+            Rule::SubjectCliche
         ));
 
         let commit3 = validated_commit("Fix test".to_string(), "".to_string());
-        assert!(has_validation(
-            &commit3.validations,
-            RuleType::SubjectCliche
-        ));
+        assert!(has_violation(&commit3.violations, Rule::SubjectCliche));
 
         let commit4 = validated_commit("Fix test for some feature".to_string(), "".to_string());
-        assert!(!has_validation(
-            &commit4.validations,
-            RuleType::SubjectCliche
-        ));
+        assert!(!has_violation(&commit4.violations, Rule::SubjectCliche));
 
         let commit5 = validated_commit("Fix bug".to_string(), "".to_string());
-        assert!(has_validation(
-            &commit5.validations,
-            RuleType::SubjectCliche
-        ));
+        assert!(has_violation(&commit5.violations, Rule::SubjectCliche));
 
         let commit6 = validated_commit("Fix bug for some feature".to_string(), "".to_string());
-        assert!(!has_validation(
-            &commit6.validations,
-            RuleType::SubjectCliche
-        ));
+        assert!(!has_violation(&commit6.violations, Rule::SubjectCliche));
 
         let ignore_commit = validated_commit(
             "WIP".to_string(),
             "gitlint:disable SubjectCliche".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::SubjectCliche));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::SubjectCliche));
     }
 
     #[test]
     fn test_validate_message_presence() {
         let commit1 = validated_commit("Subject".to_string(), "Hello I am a message.".to_string());
-        assert!(!has_validation(
-            &commit1.validations,
-            RuleType::MessagePresence
-        ));
+        assert!(!has_violation(&commit1.violations, Rule::MessagePresence));
 
         let commit2 = validated_commit("Subject".to_string(), "".to_string());
-        assert!(has_validation(
-            &commit2.validations,
-            RuleType::MessagePresence
-        ));
+        assert!(has_violation(&commit2.violations, Rule::MessagePresence));
 
         let commit3 = validated_commit("Subject".to_string(), "Short.".to_string());
-        assert!(has_validation(
-            &commit3.validations,
-            RuleType::MessagePresence
-        ));
+        assert!(has_violation(&commit3.violations, Rule::MessagePresence));
 
         let commit4 = validated_commit("Subject".to_string(), "...".to_string());
-        assert!(has_validation(
-            &commit4.validations,
-            RuleType::MessagePresence
-        ));
+        assert!(has_violation(&commit4.violations, Rule::MessagePresence));
 
         let ignore_commit = validated_commit(
             "Subject".to_string(),
             "gitlint:disable MessagePresence".to_string(),
         );
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::MessagePresence));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::MessagePresence));
     }
 
     #[test]
     fn test_validate_message_line_length() {
         let message1 = ["Hello I am a message.", "Line 2.", &"a".repeat(72)].join("\n");
         let commit1 = validated_commit("Subject".to_string(), message1);
-        assert!(!has_validation(
-            &commit1.validations,
-            RuleType::MessageLineTooLong
+        assert!(!has_violation(
+            &commit1.violations,
+            Rule::MessageLineTooLong
         ));
 
         let message2 = ["a".repeat(72), "a".repeat(73)].join("\n");
         let commit2 = validated_commit("Subject".to_string(), message2);
-        assert!(has_validation(
-            &commit2.validations,
-            RuleType::MessageLineTooLong
-        ));
+        assert!(has_violation(&commit2.violations, Rule::MessageLineTooLong));
 
         let message3 = [
             "This message is accepted.".to_string(),
             "This a long line with a link https://tomdebruijn.com/posts/git-is-about-communication/".to_string()
         ].join("\n");
         let commit3 = validated_commit("Subject".to_string(), message3);
-        assert!(!has_validation(
-            &commit3.validations,
-            RuleType::MessageLineTooLong
+        assert!(!has_violation(
+            &commit3.violations,
+            Rule::MessageLineTooLong
         ));
 
         let message4 = [
@@ -757,9 +706,9 @@ mod tests {
         ]
         .join("\n");
         let commit4 = validated_commit("Subject".to_string(), message4);
-        assert!(!has_validation(
-            &commit4.validations,
-            RuleType::MessageLineTooLong
+        assert!(!has_violation(
+            &commit4.violations,
+            Rule::MessageLineTooLong
         ));
 
         let message5 = [
@@ -768,10 +717,7 @@ mod tests {
         ]
         .join("\n");
         let commit5 = validated_commit("Subject".to_string(), message5);
-        assert!(has_validation(
-            &commit5.validations,
-            RuleType::MessageLineTooLong
-        ));
+        assert!(has_violation(&commit5.violations, Rule::MessageLineTooLong));
 
         let ignore_message = [
             "a".repeat(72),
@@ -780,7 +726,7 @@ mod tests {
         ]
         .join("\n");
         let ignore_commit = validated_commit("Subject".to_string(), ignore_message);
-        let validations = ignore_commit.validations;
-        assert!(!has_validation(&validations, RuleType::MessageLineTooLong));
+        let violations = ignore_commit.violations;
+        assert!(!has_violation(&violations, Rule::MessageLineTooLong));
     }
 }

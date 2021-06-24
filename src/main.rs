@@ -118,9 +118,9 @@ fn lint(options: Options) -> Result<(), String> {
                 None => println!("{}", commit.subject),
             }
 
-            for validation in commit.validations {
+            for violation in commit.violations {
                 valid = false;
-                println!("  {}: {}", validation.kind, validation.message);
+                println!("  {}: {}", violation.rule, violation.message);
             }
         }
     }

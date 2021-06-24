@@ -222,7 +222,7 @@ mod tests {
         assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "This is my multi line message.\nLine 2.");
-        assert!(commit.validations.is_empty());
+        assert!(commit.violations.is_empty());
     }
 
     #[test]
@@ -242,7 +242,7 @@ mod tests {
         assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
-        assert!(!commit.validations.is_empty());
+        assert!(!commit.violations.is_empty());
     }
 
     #[test]
