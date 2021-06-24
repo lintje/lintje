@@ -6,6 +6,46 @@ lazy_static! {
     // Match all GitHub and GitLab keywords
     static ref SUBJECT_WITH_FIX_TICKET: Regex = Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?#\d+").unwrap();
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
+    static ref MOOD_WORDS: Vec<&'static str> = vec![
+        "fixed",
+        "fixes",
+        "fixing",
+        "solved",
+        "solves",
+        "solving",
+        "resolved",
+        "resolves",
+        "resolving",
+        "closed",
+        "closes",
+        "closing",
+        "added",
+        "adding",
+        "updated",
+        "updates",
+        "updating",
+        "removed",
+        "removes",
+        "removing",
+        "deleted",
+        "deletes",
+        "deleting",
+        "changed",
+        "changes",
+        "changing",
+        "moved",
+        "moves",
+        "moving",
+        "refactored",
+        "refactors",
+        "refactoring",
+        "checked",
+        "checks",
+        "checking",
+        "adjusted",
+        "adjusts",
+        "adjusting",
+    ];
 }
 
 #[derive(Debug)]
@@ -145,8 +185,9 @@ impl Commit {
         }
 
         match self.subject.split(" ").nth(0) {
-            Some(word) => {
-                if word.ends_with("ed") || word.ends_with("ing") {
+            Some(raw_word) => {
+                let word = raw_word.to_lowercase();
+                if MOOD_WORDS.contains(&word.as_str()) {
                     self.add_error(
                         RuleType::SubjectMood,
                         "Subject is not imperative mood.".to_string(),
@@ -335,7 +376,7 @@ pub struct Validation {
 
 #[cfg(test)]
 mod tests {
-    use super::{Commit, RuleType, Validation};
+    use super::{Commit, RuleType, Validation, MOOD_WORDS};
 
     fn commit(subject: String, message: String) -> Commit {
         Commit::new(
@@ -435,14 +476,24 @@ mod tests {
 
     #[test]
     fn test_validate_subject_mood() {
-        let commit1 = validated_commit("Fix test".to_string(), "".to_string());
-        assert!(!has_validation(&commit1.validations, RuleType::SubjectMood));
-
-        let commit2 = validated_commit("Fixed test".to_string(), "".to_string());
-        assert!(has_validation(&commit2.validations, RuleType::SubjectMood));
-
-        let commit3 = validated_commit("Fixing test".to_string(), "".to_string());
-        assert!(has_validation(&commit3.validations, RuleType::SubjectMood));
+        let mut invalid_subjects = vec![];
+        for word in MOOD_WORDS.iter() {
+            invalid_subjects.push(format!("{} test", word));
+            let mut chars = word.chars();
+            let capitalized_word = match chars.next() {
+                None => panic!("Could not capitalize word: {}", word),
+                Some(letter) => letter.to_uppercase().collect::<String>() + chars.as_str(),
+            };
+            invalid_subjects.push(format!("{} test", capitalized_word));
+        }
+        for subject in invalid_subjects {
+            let commit = validated_commit(subject.to_string(), "".to_string());
+            assert!(
+                has_validation(&commit.validations, RuleType::SubjectMood),
+                "Subject was not considered invalid: {}",
+                subject
+            );
+        }
 
         let ignore_commit = validated_commit(
             "Fixed test".to_string(),
