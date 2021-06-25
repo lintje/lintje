@@ -109,8 +109,9 @@ fn lint(options: Options) -> Result<(), String> {
         }
     };
 
-    let mut valid = true;
     debug!("Commits: {:?}", commits);
+    let commit_count = commits.len();
+    let mut violation_count = 0;
     for commit in commits {
         if !commit.is_valid() {
             match commit.short_sha {
@@ -119,12 +120,21 @@ fn lint(options: Options) -> Result<(), String> {
             }
 
             for violation in commit.violations {
-                valid = false;
+                violation_count += 1;
                 println!("  {}: {}", violation.rule, violation.message);
             }
         }
     }
-    if valid {
+
+    if violation_count > 0 {
+        println!("");
+    }
+    let plural = if commit_count != 1 { "s" } else { "" };
+    println!(
+        "{} commit{} inspected, {} violations detected",
+        commit_count, plural, violation_count
+    );
+    if violation_count == 0 {
         Ok(())
     } else {
         std::process::exit(1)
@@ -239,7 +249,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd.arg("lint").current_dir(dir).assert().success();
-        assert.stdout("");
+        assert.stdout("1 commit inspected, 0 violations detected\n");
     }
 
     #[test]
@@ -250,11 +260,15 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd.arg("lint").current_dir(dir).assert().failure().code(1);
-        assert.stdout(predicate::str::contains(
-            "Fixing tests\n\
-            \x20\x20SubjectMood: Subject is not imperative mood.\n\
-            \x20\x20MessagePresence: Message is not present.",
-        ));
+        assert
+            .stdout(predicate::str::contains(
+                "Fixing tests\n\
+                \x20\x20SubjectMood: Subject is not imperative mood.\n\
+                \x20\x20MessagePresence: Message is not present.",
+            ))
+            .stdout(predicate::str::contains(
+                "1 commit inspected, 2 violations detected\n",
+            ));
     }
 
     #[test]
@@ -286,6 +300,9 @@ mod tests {
                 "Fixing tests\n\
                 \x20\x20SubjectMood: Subject is not imperative mood.\n\
                 \x20\x20MessagePresence: Message is not present.",
+            ))
+            .stdout(predicate::str::contains(
+                "2 commits inspected, 4 violations detected\n",
             ));
     }
 

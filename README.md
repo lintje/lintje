@@ -2,8 +2,29 @@
 
 Git Lint is an opinionated linter for Git.
 
+- [Rules documentation][rules]
+
 Git Lint is primarily focussed on the English languages, other languages may
 not be compatible with every [rule][rules].
+
+## Example
+
+Given the last commit in a project is this:
+
+```
+Fix bug
+```
+
+When running `gitlint lint` to lint the last commit, the output will be:
+
+```
+$ gitlint lint
+6962010: Fix bug
+  SubjectCliche: Subject is a 'Fix bug' commit.
+  MessagePresence: Message is not present.
+
+1 commit inspected, 2 violations detected
+```
 
 ## Installation
 
@@ -121,3 +142,4 @@ script/release
 The release will be pushed to GitHub.
 
 [rules]: doc/rules.md
+[issues]: https://github.com/tombruijn/gitlint-private/issues
