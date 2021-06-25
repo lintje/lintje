@@ -179,7 +179,7 @@ mod tests {
             .expect("Could not init test repo!");
         if !output.status.success() {
             panic!(
-                "Failed to make commit!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
+                "Failed to initialize repo!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
                 output.status.code().expect("foo"),
                 String::from_utf8(output.stdout).unwrap(),
                 String::from_utf8(output.stderr).unwrap()
