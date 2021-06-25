@@ -1,10 +1,11 @@
+use crate::rule::{rule_by_name, Rule, Violation};
 use regex::Regex;
-use std::fmt;
 
 lazy_static! {
     static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]+-\d+").unwrap();
     // Match all GitHub and GitLab keywords
-    static ref SUBJECT_WITH_FIX_TICKET: Regex = Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?#\d+").unwrap();
+    static ref SUBJECT_WITH_FIX_TICKET: Regex =
+        Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?#\d+").unwrap();
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref MOOD_WORDS: Vec<&'static str> = vec![
         "fixed",
@@ -79,27 +80,12 @@ impl Commit {
     pub fn find_ignored_rules(message: &String) -> Vec<Rule> {
         let disable_prefix = "gitlint:disable ";
         let mut ignored = vec![];
-        for (_index, line) in message.lines().enumerate() {
+        for line in message.lines().into_iter() {
             if line.starts_with(disable_prefix) {
-                let rule = match &line[disable_prefix.len()..] {
-                    "MergeCommit" => Some(Rule::MergeCommit),
-                    "NeedsRebase" => Some(Rule::NeedsRebase),
-                    "SubjectLength" => Some(Rule::SubjectLength),
-                    "SubjectMood" => Some(Rule::SubjectMood),
-                    "SubjectCapitalization" => Some(Rule::SubjectCapitalization),
-                    "SubjectPunctuation" => Some(Rule::SubjectPunctuation),
-                    "SubjectTicketNumber" => Some(Rule::SubjectTicketNumber),
-                    "SubjectCliche" => Some(Rule::SubjectCliche),
-                    "MessagePresence" => Some(Rule::MessagePresence),
-                    "MessageLineLength" => Some(Rule::MessageLineLength),
-                    unknown => {
-                        warn!("Unknown rule disabled: {}", unknown);
-                        None
-                    }
-                };
-                match rule {
-                    Some(r) => ignored.push(r),
-                    None => (),
+                let name = &line[disable_prefix.len()..];
+                match rule_by_name(name) {
+                    Some(rule) => ignored.push(rule),
+                    None => warn!("Attempted to ignore unknown rule: {}", name),
                 }
             }
         }
@@ -325,44 +311,6 @@ impl Commit {
     fn add_violation(&mut self, rule: Rule, message: String) {
         self.violations.push(Violation { rule, message })
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Rule {
-    MergeCommit,
-    NeedsRebase,
-    SubjectLength,
-    SubjectMood,
-    SubjectCapitalization,
-    SubjectPunctuation,
-    SubjectTicketNumber,
-    SubjectCliche,
-    MessagePresence,
-    MessageLineLength,
-}
-
-impl fmt::Display for Rule {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let label = match self {
-            Rule::MergeCommit => "MergeCommit",
-            Rule::NeedsRebase => "NeedsRebase",
-            Rule::SubjectLength => "SubjectLength",
-            Rule::SubjectMood => "SubjectMood",
-            Rule::SubjectCapitalization => "SubjectCapitalization",
-            Rule::SubjectPunctuation => "SubjectPunctuation",
-            Rule::SubjectTicketNumber => "SubjectTicketNumber",
-            Rule::SubjectCliche => "SubjectCliche",
-            Rule::MessagePresence => "MessagePresence",
-            Rule::MessageLineLength => "MessageLineLength",
-        };
-        write!(f, "{}", label)
-    }
-}
-
-#[derive(Debug)]
-pub struct Violation {
-    pub rule: Rule,
-    pub message: String,
 }
 
 #[cfg(test)]

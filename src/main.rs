@@ -15,6 +15,7 @@ use structopt::StructOpt;
 mod commit;
 mod git;
 mod logger;
+mod rule;
 
 use git::{fetch_and_parse_commits, parse_commit_file_format};
 use logger::Logger;
