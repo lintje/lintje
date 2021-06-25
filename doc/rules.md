@@ -93,7 +93,7 @@ The commit's message body is empty or too short. Add a message body to the
 commit to elaborate on _why_ the change was necessary, what alternatives you
 considered and why you chose this particular implementation as a solution.
 
-## MessageLineTooLong
+## MessageLineLength
 
 The commit's message body has one or more lines that are too long. The maximum
 line length in a message body is 72 characters. Split sentences and paragraph

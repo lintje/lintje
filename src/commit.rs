@@ -91,7 +91,7 @@ impl Commit {
                     "SubjectTicketNumber" => Some(Rule::SubjectTicketNumber),
                     "SubjectCliche" => Some(Rule::SubjectCliche),
                     "MessagePresence" => Some(Rule::MessagePresence),
-                    "MessageLineTooLong" => Some(Rule::MessageLineTooLong),
+                    "MessageLineLength" => Some(Rule::MessageLineLength),
                     unknown => {
                         warn!("Unknown rule disabled: {}", unknown);
                         None
@@ -295,7 +295,7 @@ impl Commit {
     }
 
     fn validate_message_line_length(&mut self) {
-        if self.rule_ignored(Rule::MessageLineTooLong) {
+        if self.rule_ignored(Rule::MessageLineLength) {
             return;
         }
 
@@ -314,7 +314,7 @@ impl Commit {
                     continue;
                 }
                 return Some((
-                    Rule::MessageLineTooLong,
+                    Rule::MessageLineLength,
                     "One or more lines in the message are longer than 72 characters.".to_string(),
                 ));
             }
@@ -338,7 +338,7 @@ pub enum Rule {
     SubjectTicketNumber,
     SubjectCliche,
     MessagePresence,
-    MessageLineTooLong,
+    MessageLineLength,
 }
 
 impl fmt::Display for Rule {
@@ -353,7 +353,7 @@ impl fmt::Display for Rule {
             Rule::SubjectTicketNumber => "SubjectTicketNumber",
             Rule::SubjectCliche => "SubjectCliche",
             Rule::MessagePresence => "MessagePresence",
-            Rule::MessageLineTooLong => "MessageLineTooLong",
+            Rule::MessageLineLength => "MessageLineLength",
         };
         write!(f, "{}", label)
     }
@@ -631,18 +631,18 @@ mod tests {
     fn test_validate_message_line_length() {
         let message1 = ["Hello I am a message.", "Line 2.", &"a".repeat(72)].join("\n");
         let commit1 = validated_commit("Subject".to_string(), message1);
-        assert_commit_valid_for(commit1, &Rule::MessageLineTooLong);
+        assert_commit_valid_for(commit1, &Rule::MessageLineLength);
 
         let message2 = ["a".repeat(72), "a".repeat(73)].join("\n");
         let commit2 = validated_commit("Subject".to_string(), message2);
-        assert_commit_invalid_for(commit2, &Rule::MessageLineTooLong);
+        assert_commit_invalid_for(commit2, &Rule::MessageLineLength);
 
         let message3 = [
             "This message is accepted.".to_string(),
             "This a long line with a link https://tomdebruijn.com/posts/git-is-about-communication/".to_string()
         ].join("\n");
         let commit3 = validated_commit("Subject".to_string(), message3);
-        assert_commit_valid_for(commit3, &Rule::MessageLineTooLong);
+        assert_commit_valid_for(commit3, &Rule::MessageLineLength);
 
         let message4 = [
             "This message is accepted.".to_string(),
@@ -651,7 +651,7 @@ mod tests {
         ]
         .join("\n");
         let commit4 = validated_commit("Subject".to_string(), message4);
-        assert_commit_valid_for(commit4, &Rule::MessageLineTooLong);
+        assert_commit_valid_for(commit4, &Rule::MessageLineLength);
 
         let message5 = [
             "This a too long line with only protocols http:// https:// which is not accepted."
@@ -659,15 +659,15 @@ mod tests {
         ]
         .join("\n");
         let commit5 = validated_commit("Subject".to_string(), message5);
-        assert_commit_invalid_for(commit5, &Rule::MessageLineTooLong);
+        assert_commit_invalid_for(commit5, &Rule::MessageLineLength);
 
         let ignore_message = [
             "a".repeat(72),
             "a".repeat(73),
-            "gitlint:disable MessageLineTooLong".to_string(),
+            "gitlint:disable MessageLineLength".to_string(),
         ]
         .join("\n");
         let ignore_commit = validated_commit("Subject".to_string(), ignore_message);
-        assert_commit_valid_for(ignore_commit, &Rule::MessageLineTooLong);
+        assert_commit_valid_for(ignore_commit, &Rule::MessageLineLength);
     }
 }
