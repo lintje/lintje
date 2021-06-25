@@ -38,16 +38,15 @@ git checkout feature-branch
 git rebase --interactive --autosquash main
 ```
 
-## SubjectTooShort
+## SubjectLength
 
-The commit's subject is considered too short to be meaningful. Commit subjects
-like "WIP" and "Fix" don't explain the change well enough. Don't be afraid to
-dive into a little bit more detail to explain the change.
+The commit's subject is considered too short or too long.
 
-## SubjectTooLong
+Short commit subjects like "WIP" and "Fix" don't explain the change well enough.
+Don't be afraid to dive into a little bit more detail to explain the change.
 
-The commit's subject should be a maximum of 50 characters. If the subject is
-longer than 50 characters, reword the subject to fit in the maximum subject
+The commit's subject should be a maximum of 50 characters long. If the subject
+is longer than 50 characters, reword the subject to fit in the maximum subject
 length. Use the commit's message body to explain the change in greater detail.
 
 ## SubjectMood

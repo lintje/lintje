@@ -84,8 +84,7 @@ impl Commit {
                 let rule = match &line[disable_prefix.len()..] {
                     "MergeCommit" => Some(Rule::MergeCommit),
                     "NeedsRebase" => Some(Rule::NeedsRebase),
-                    "SubjectTooLong" => Some(Rule::SubjectTooLong),
-                    "SubjectTooShort" => Some(Rule::SubjectTooShort),
+                    "SubjectLength" => Some(Rule::SubjectLength),
                     "SubjectMood" => Some(Rule::SubjectMood),
                     "SubjectCapitalization" => Some(Rule::SubjectCapitalization),
                     "SubjectPunctuation" => Some(Rule::SubjectPunctuation),
@@ -155,22 +154,22 @@ impl Commit {
     fn validate_subject_line_length(&mut self) {
         let length = self.subject.len();
         if length > 50 {
-            if self.rule_ignored(Rule::SubjectTooLong) {
+            if self.rule_ignored(Rule::SubjectLength) {
                 return;
             }
 
             self.add_violation(
-                Rule::SubjectTooLong,
+                Rule::SubjectLength,
                 format!("Subject length is too long: {} characters.", length),
             )
         }
         if length < 5 {
-            if self.rule_ignored(Rule::SubjectTooShort) {
+            if self.rule_ignored(Rule::SubjectLength) {
                 return;
             }
 
             self.add_violation(
-                Rule::SubjectTooShort,
+                Rule::SubjectLength,
                 format!("Subject length is too short: {} characters.", length),
             )
         }
@@ -332,8 +331,7 @@ impl Commit {
 pub enum Rule {
     MergeCommit,
     NeedsRebase,
-    SubjectTooLong,
-    SubjectTooShort,
+    SubjectLength,
     SubjectMood,
     SubjectCapitalization,
     SubjectPunctuation,
@@ -348,8 +346,7 @@ impl fmt::Display for Rule {
         let label = match self {
             Rule::MergeCommit => "MergeCommit",
             Rule::NeedsRebase => "NeedsRebase",
-            Rule::SubjectTooLong => "SubjectTooLong",
-            Rule::SubjectTooShort => "SubjectTooShort",
+            Rule::SubjectLength => "SubjectLength",
             Rule::SubjectMood => "SubjectMood",
             Rule::SubjectCapitalization => "SubjectCapitalization",
             Rule::SubjectPunctuation => "SubjectPunctuation",
@@ -458,22 +455,19 @@ mod tests {
     #[test]
     fn test_validate_subject_line_length() {
         let subject = "a".repeat(50);
-        assert_commit_subject_as_valid(subject.as_str(), &Rule::SubjectTooShort);
-        assert_commit_subject_as_valid(subject.as_str(), &Rule::SubjectTooLong);
+        assert_commit_subject_as_valid(subject.as_str(), &Rule::SubjectLength);
 
         let short_subject = "a".repeat(4);
-        assert_commit_subject_as_invalid(short_subject.as_str(), &Rule::SubjectTooShort);
-        assert_commit_subject_as_valid(short_subject.as_str(), &Rule::SubjectTooLong);
+        assert_commit_subject_as_invalid(short_subject.as_str(), &Rule::SubjectLength);
 
         let long_subject = "a".repeat(51);
-        assert_commit_subject_as_valid(long_subject.as_str(), &Rule::SubjectTooShort);
-        assert_commit_subject_as_invalid(long_subject.as_str(), &Rule::SubjectTooLong);
+        assert_commit_subject_as_invalid(long_subject.as_str(), &Rule::SubjectLength);
 
         let ignore_commit = validated_commit(
             "a".repeat(51).to_string(),
-            "gitlint:disable SubjectTooLong".to_string(),
+            "gitlint:disable SubjectLength".to_string(),
         );
-        assert_commit_valid_for(ignore_commit, &Rule::SubjectTooLong);
+        assert_commit_valid_for(ignore_commit, &Rule::SubjectLength);
     }
 
     #[test]
