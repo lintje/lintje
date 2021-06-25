@@ -57,6 +57,16 @@ gitlint lint main..develop
 It's recommended to add Git Lint to your CI setup to lint the range of commits
 added by a Pull Request or job.
 
+### Exit codes
+
+Git Lint will exit with the following status codes in these situations:
+
+- `0` (Success) - No violations have been found. The commit is accepted.
+- `1` (Failure) - One or more violations have been found. The commit is not
+  accepted.
+- `2` (Error) - An internal error occurred and the program had to exit. This is
+  probably a bug, please report it in the [issue tracker][issues].
+
 ### Git hook
 
 To lint the commit locally immediately after writing the commit message, use a

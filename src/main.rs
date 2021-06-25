@@ -65,7 +65,7 @@ fn main() {
             Ok(_) => (),
             Err(e) => {
                 error!("An error occurred: {}", e);
-                std::process::exit(1)
+                std::process::exit(2)
             }
         },
     }
@@ -156,7 +156,7 @@ fn init_logger(debug: bool) {
                 Cannot continue.\n{:?}",
                 error
             );
-            std::process::exit(1)
+            std::process::exit(2)
         }
     }
 }
@@ -344,7 +344,7 @@ mod tests {
             .current_dir(dir)
             .assert()
             .failure()
-            .code(1);
+            .code(2);
         assert.stdout(predicate::str::contains(
             "Unable to open commit message file: commit_message_file",
         ));
