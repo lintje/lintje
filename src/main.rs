@@ -194,6 +194,7 @@ mod tests {
     fn create_commit(dir: &PathBuf, subject: &str, message: &str) {
         let mut args = vec![
             "commit".to_string(),
+            "--no-gpg-sign".to_string(),
             "--allow-empty".to_string(),
             format!("-m {}", subject),
         ];
