@@ -46,6 +46,9 @@ lazy_static! {
         "adjusted",
         "adjusts",
         "adjusting",
+        "tests",
+        "tested",
+        "testing",
     ];
 }
 

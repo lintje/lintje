@@ -1,6 +1,8 @@
 # Rules
 
-All the rules Git Lint follows are documented on this page. The heading name matches the rule name, and can be used to [ignore specific rules per commit](../README.md#ignoring-rules-per-commit)
+All the rules Git Lint follows are documented on this page. The heading name
+matches the rule name, and can be used to [ignore specific rules per
+commit](../README.md#ignoring-rules-per-commit)
 
 ## MergeCommit
 
@@ -50,6 +52,30 @@ is longer than 50 characters, reword the subject to fit in the maximum subject
 length. Use the commit's message body to explain the change in greater detail.
 
 ## SubjectMood
+
+Write commit subjects in the imperative mood. The commit is not actively
+"fixing" an issue, but it is a "fix" for an issue or it does "add" a feature.
+
+Start your subject with something like "Fix ...", but not "Fixes ...", "Fixed
+..." or "Fixing ...".
+
+```
+# Bad
+Fixes ...
+Fixed ...
+Fixing ...
+Tests ...
+Tested ...
+Testing ...
+Changes ...
+Changed ...
+Changing ...
+
+# Good
+Fix ...
+Test ...
+Change ...
+```
 
 ## SubjectCapitalization
 
