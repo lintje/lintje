@@ -44,12 +44,26 @@ git rebase --interactive --autosquash main
 
 The commit's subject is considered too short or too long.
 
-Short commit subjects like "WIP" and "Fix" don't explain the change well enough.
-Don't be afraid to dive into a little bit more detail to explain the change.
+Short commit subjects like "WIP" and "Fix" don't explain the change well
+enough. Don't be afraid to dive into a little bit more detail to explain the
+change.
 
 The commit's subject should be a maximum of 50 characters long. If the subject
 is longer than 50 characters, reword the subject to fit in the maximum subject
 length. Use the commit's message body to explain the change in greater detail.
+
+```
+# Good
+Fix incorrect email validation
+
+# Bad - too short
+WIP
+wip
+Fix
+
+# Bad - too long
+One day I woke up and found the solution to this year old bug, the solution...
+```
 
 ## SubjectMood
 
@@ -60,6 +74,11 @@ Start your subject with something like "Fix ...", but not "Fixes ...", "Fixed
 ..." or "Fixing ...".
 
 ```
+# Good
+Fix ...
+Test ...
+Change ...
+
 # Bad
 Fixes ...
 Fixed ...
@@ -70,27 +89,52 @@ Testing ...
 Changes ...
 Changed ...
 Changing ...
-
-# Good
-Fix ...
-Test ...
-Change ...
 ```
 
-## SubjectCapitalization
+(_Where `...` describes the change in more detail._)
+
+## SubjectWhitespace
 
 The commit's subject starts with a whitespace (space, tab, etc). Remove this
 leading whitespace from the subject.
+
+```
+# Good
+Fix incorrect email validation
+
+# Bad
+ Fix incorrect email validation
+  Fix incorrect email validation
+<TAB>Fix incorrect email validation
+```
 
 ## SubjectCapitalization
 
 The commit's subject doesn't start with a capital letter. Use a capital letter
 to start your subject.
 
+```
+# Good
+Fix incorrect email validation
+
+# Bad
+fix incorrect email validation
+```
+
 ## SubjectPunctuation
 
 The commit's subject ends with punctuation. Subjects don't need to end with
 punctuation.
+
+```
+# Good
+Fix incorrect email validation
+
+# Bad
+Fix incorrect email validation.
+Fix incorrect email validation!
+Fix incorrect email validation?
+```
 
 ## SubjectTicketNumber
 
@@ -100,8 +144,11 @@ the message body.
 Invalid subject examples:
 
 ```
+# Bad
 Fix #123
 I have fixed #123
+I have fixed org/repo#123
+I have fixed https://github.com/org/repo#123
 JIRA-123
 Fix JIRA-123 for good
 ```
@@ -111,12 +158,15 @@ Fix JIRA-123 for good
 The commit's subject is considered to be a cliché, it's overused and adds
 little meaning. Expand the subject to be more descriptive.
 
-Some examples:
-
-- WIP
-- Fix bug
-- Fix test
-- ...
+```
+# Bad
+WIP
+Fix bug
+Fix test
+Fix issue
+Fix build
+...
+```
 
 ## MessagePresence
 
@@ -129,3 +179,22 @@ considered and why you chose this particular implementation as a solution.
 The commit's message body has one or more lines that are too long. The maximum
 line length in a message body is 72 characters. Split sentences and paragraph
 across multiples lines.
+
+Lines that include URLs that start with `http://` or `https://` are excluded
+from this rule.
+
+```
+# Good - max 72 characters per line
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam
+nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat,
+sed diam voluptua.
+
+# Good - the only too long line includes URL
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam.
+Source:
+https://url-to-page-that-is-very-long.org/but-still-valid-for-this-rule.html
+
+# Bad - lines are too long
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod
+tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
+```
