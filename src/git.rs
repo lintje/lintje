@@ -37,7 +37,7 @@ pub fn fetch_and_parse_commits(revision_range: Option<String>) -> Result<Vec<Com
     ]);
     match command.output() {
         Ok(raw_output) => {
-            let output = format!("{}", String::from_utf8_lossy(&raw_output.stdout));
+            let output = String::from_utf8_lossy(&raw_output.stdout);
             let messages = output.split(COMMIT_DELIMITER);
             for message in messages {
                 let trimmed_message = message.trim();
