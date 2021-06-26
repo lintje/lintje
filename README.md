@@ -21,7 +21,8 @@ When running `gitlint lint` to lint the last commit, the output will be:
 $ gitlint lint
 6962010: Fix bug
   SubjectCliche: Subject is a 'Fix bug' commit.
-  MessagePresence: Message is not present.
+  MessagePresence: Add a message body to provide more context about the change
+    and why it was made.
 
 1 commit inspected, 2 violations detected
 ```
