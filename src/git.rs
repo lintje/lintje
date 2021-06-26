@@ -103,6 +103,8 @@ pub fn parse_commit_file_format(
     let mut subject = None;
     let mut message_lines = Vec::<&str>::new();
     let scissor_line = format!("{} {}", comment_char, SCISSORS);
+    debug!("Using clean up mode: {:?}", cleanup_mode);
+    debug!("Using config core.commentChar: {:?}", comment_char);
     for (index, mut line) in message.lines().enumerate() {
         match index {
             0 => subject = Some(line),
@@ -110,6 +112,7 @@ pub fn parse_commit_file_format(
                 match cleanup_mode {
                     CleanupMode::Scissors => {
                         if line == scissor_line {
+                            debug!("Found scissors line. Stop parsing message.");
                             break;
                         }
                     }
@@ -186,11 +189,19 @@ pub fn cleanup_mode() -> CleanupMode {
 
 pub fn comment_char() -> String {
     let mut command = Command::new("git");
-    command.args(&["config", "commit.cleanup"]);
+    command.args(&["config", "core.commentChar"]);
     match command.output() {
-        Ok(raw_output) => String::from_utf8_lossy(&raw_output.stdout)
-            .trim()
-            .to_string(),
+        Ok(raw_output) => {
+            let character = String::from_utf8_lossy(&raw_output.stdout)
+                .trim()
+                .to_string();
+            if character.len() == 0 {
+                debug!("No Git core.commentChar config found. Using default `#` character.");
+                "#".to_string()
+            } else {
+                character
+            }
+        }
         Err(e) => {
             error!("Unable to determine Git's core.commentChar config: {}", e);
             "#".to_string()

@@ -191,7 +191,10 @@ mod tests {
         if !output.status.success() {
             panic!(
                 "Failed to initialize repo!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
-                output.status.code().expect("foo"),
+                output
+                    .status
+                    .code()
+                    .expect("Could not fetch status code of git init"),
                 String::from_utf8(output.stdout).unwrap(),
                 String::from_utf8(output.stderr).unwrap()
             )
@@ -222,7 +225,53 @@ mod tests {
         if !output.status.success() {
             panic!(
                 "Failed to make commit!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
-                output.status.code().expect("foo"),
+                output
+                    .status
+                    .code()
+                    .expect("Could not fetch status code of git commit"),
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            )
+        }
+    }
+
+    fn configure_git_cleanup_mode(dir: &PathBuf, mode: &str) {
+        let output = Command::new("git")
+            .args(&["config", "commit.cleanup", mode])
+            .current_dir(&dir)
+            .stdin(Stdio::null())
+            .output()
+            .expect(&format!("Failed to configure Git commit.cleanup: {}", mode));
+        if !output.status.success() {
+            panic!(
+                "Failed to configure Git commit.cleanup!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
+                output
+                    .status
+                    .code()
+                    .expect("Could not fetch status code of git config"),
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            )
+        }
+    }
+
+    fn configure_git_comment_char(dir: &PathBuf, character: &str) {
+        let output = Command::new("git")
+            .args(&["config", "core.commentChar", character])
+            .current_dir(&dir)
+            .stdin(Stdio::null())
+            .output()
+            .expect(&format!(
+                "Failed to configure Git core.commentChar: {}",
+                character
+            ));
+        if !output.status.success() {
+            panic!(
+                "Failed to configure Git core.commentChar!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
+                output
+                    .status
+                    .code()
+                    .expect("Could not fetch status code of git config"),
                 String::from_utf8(output.stdout).unwrap(),
                 String::from_utf8(output.stderr).unwrap()
             )
@@ -330,6 +379,61 @@ mod tests {
              \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
              \x20\x20SubjectCapitalization: Start the commit subject a capital letter.",
         ));
+    }
+
+    #[test]
+    fn test_file_option_with_scissors_cleanup() {
+        compile_bin();
+        let dir = test_dir("commit_file_option_with_scissors_cleanup_default_comment_char");
+        create_test_repo(&dir, &[]);
+        configure_git_cleanup_mode(&dir, "scissors");
+        let filename = "commit_message_file";
+        let commit_file = dir.join(filename);
+        let mut file = File::create(&commit_file).unwrap();
+        file.write_all(
+            b"This is a subject\n\n\
+            # ------------------------ >8 ------------------------
+            # This is part of the comment that will be ignored
+            ",
+        )
+        .unwrap();
+
+        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let assert = cmd
+            .args(&["lint", &format!("--file={}", filename)])
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
+        assert.stdout(predicate::str::contains("  MessagePresence: "));
+    }
+
+    #[test]
+    fn test_file_option_with_scissors_cleanup_custom_comment_char() {
+        compile_bin();
+        let dir = test_dir("commit_file_option_with_scissors_cleanup_custom_comment_char");
+        create_test_repo(&dir, &[]);
+        configure_git_cleanup_mode(&dir, "scissors");
+        configure_git_comment_char(&dir, "-");
+        let filename = "commit_message_file";
+        let commit_file = dir.join(filename);
+        let mut file = File::create(&commit_file).unwrap();
+        file.write_all(
+            b"This is a subject\n\n\
+            - ------------------------ >8 ------------------------
+            - This is part of the comment that will be ignored
+            ",
+        )
+        .unwrap();
+
+        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let assert = cmd
+            .args(&["lint", &format!("--file={}", filename)])
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
+        assert.stdout(predicate::str::contains("  MessagePresence: "));
     }
 
     #[test]
