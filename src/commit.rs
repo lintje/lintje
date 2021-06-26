@@ -346,7 +346,7 @@ impl Commit {
     }
 
     fn check_line_lengths(lines: std::str::Lines) -> Option<(Rule, String)> {
-        for (_index, raw_line) in lines.enumerate() {
+        for raw_line in lines.into_iter() {
             let line = raw_line.trim();
             let length = line.len();
             if length > 72 {
