@@ -348,14 +348,35 @@ impl Commit {
     }
 
     fn check_line_lengths(lines: std::str::Lines) -> Option<(Rule, String)> {
-        let mut in_code_block = false;
+        let mut code_block_style = CodeBlockStyle::None;
+        let mut previous_line_was_empty_line = false;
         for raw_line in lines.into_iter() {
-            let line = raw_line.trim();
+            let line = raw_line.trim_end();
             let length = line.len();
-            if line == CODE_BLOCK_LINE {
-                in_code_block = !in_code_block;
+            match code_block_style {
+                CodeBlockStyle::Fenced => {
+                    if line == CODE_BLOCK_LINE {
+                        code_block_style = CodeBlockStyle::None
+                    }
+                }
+                CodeBlockStyle::Indenting => {
+                    if !line.starts_with("    ") {
+                        code_block_style = CodeBlockStyle::None;
+                    }
+                }
+                CodeBlockStyle::None => {
+                    if line == CODE_BLOCK_LINE {
+                        code_block_style = CodeBlockStyle::Fenced
+                    } else if line.starts_with("    ") && previous_line_was_empty_line {
+                        code_block_style = CodeBlockStyle::Indenting
+                    }
+                }
             }
-            if length > 72 && !in_code_block {
+            if code_block_style != CodeBlockStyle::None {
+                // When in a code block, skip line length validation
+                continue;
+            }
+            if length > 72 {
                 if URL_REGEX.is_match(line) {
                     continue;
                 }
@@ -364,6 +385,7 @@ impl Commit {
                     "One or more lines in the message are longer than 72 characters.".to_string(),
                 ));
             }
+            previous_line_was_empty_line = line.trim() == "";
         }
         None
     }
@@ -371,6 +393,13 @@ impl Commit {
     fn add_violation(&mut self, rule: Rule, message: String) {
         self.violations.push(Violation { rule, message })
     }
+}
+
+#[derive(PartialEq)]
+enum CodeBlockStyle {
+    None,
+    Fenced,
+    Indenting,
 }
 
 #[cfg(test)]
@@ -700,6 +729,8 @@ mod tests {
             "Beginning of message.",
             "```",
             &"a".repeat(73),
+            &"b".repeat(73),
+            &"c".repeat(73),
             "```",
             "End of message",
         ]
@@ -718,5 +749,36 @@ mod tests {
         .join("\n");
         let commit2 = validated_commit("Subject".to_string(), message2);
         assert_commit_invalid_for(commit2, &Rule::MessageLineLength);
+
+        let message3 = [
+            "Beginning of message.",
+            "",
+            "    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "",
+            "    ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "    ",
+            "    ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "",
+            "End of message",
+        ]
+        .join("\n");
+        let commit3 = validated_commit("Subject".to_string(), message3);
+        assert_commit_valid_for(commit3, &Rule::MessageLineLength);
+
+        let message4 = [
+            "Beginning of message.",
+            "",
+            "    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "    bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "",
+            "    ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "",
+            "End of message",
+            &"a".repeat(73), // Long line outside code block is invalid
+        ]
+        .join("\n");
+        let commit4 = validated_commit("Subject".to_string(), message4);
+        assert_commit_invalid_for(commit4, &Rule::MessageLineLength);
     }
 }

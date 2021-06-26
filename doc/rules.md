@@ -193,12 +193,17 @@ from this rule. Lines that are too long inside code blocks are also ignored.
     Source:
     https://url-to-page-that-is-very-long.org/but-still-valid-for-this-rule.html
 
-    # Good - the only too long line includes URL
+    # Good - the only long line is in a code block
     Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam.
 
     ```
-    Example code block
+    Example code block with a very long line that will consider valid!!!!!!!!
     ```
+
+    # Good - the only long line is in a code block
+    Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam.
+
+        Example code block with a very long line that will consider valid!!!!
 
     # Bad - lines are too long
     Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod
