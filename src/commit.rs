@@ -52,6 +52,8 @@ lazy_static! {
     ];
 }
 
+const CODE_BLOCK_LINE: &str = "```";
+
 #[derive(Debug)]
 pub struct Commit {
     pub long_sha: Option<String>,
@@ -346,10 +348,14 @@ impl Commit {
     }
 
     fn check_line_lengths(lines: std::str::Lines) -> Option<(Rule, String)> {
+        let mut in_code_block = false;
         for raw_line in lines.into_iter() {
             let line = raw_line.trim();
             let length = line.len();
-            if length > 72 {
+            if line == CODE_BLOCK_LINE {
+                in_code_block = !in_code_block;
+            }
+            if length > 72 && !in_code_block {
                 if URL_REGEX.is_match(line) {
                     continue;
                 }
@@ -686,5 +692,31 @@ mod tests {
         .join("\n");
         let ignore_commit = validated_commit("Subject".to_string(), ignore_message);
         assert_commit_valid_for(ignore_commit, &Rule::MessageLineLength);
+    }
+
+    #[test]
+    fn test_validate_message_line_length_in_code_block() {
+        let message1 = [
+            "Beginning of message.",
+            "```",
+            &"a".repeat(73),
+            "```",
+            "End of message",
+        ]
+        .join("\n");
+        let commit1 = validated_commit("Subject".to_string(), message1);
+        assert_commit_valid_for(commit1, &Rule::MessageLineLength);
+
+        let message2 = [
+            "Beginning of message.",
+            "```",
+            &"a".repeat(73),
+            "```",
+            &"a".repeat(73), // Long line outside code block is invalid
+            "End of message",
+        ]
+        .join("\n");
+        let commit2 = validated_commit("Subject".to_string(), message2);
+        assert_commit_invalid_for(commit2, &Rule::MessageLineLength);
     }
 }
