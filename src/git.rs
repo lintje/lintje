@@ -206,8 +206,8 @@ mod tests {
     fn test_parse_commit() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa
-        This is a subject
+        aaaaaaa\n\
+        This is a subject\n\
         \n\
         This is my multi line message.\n\
         Line 2.",
@@ -229,7 +229,7 @@ mod tests {
     fn test_parse_commit_with_errors() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa
+        aaaaaaa\n\
         This is a subject",
         );
 
@@ -249,7 +249,7 @@ mod tests {
     fn test_parse_commit_ignore_merge_commit_pull_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa
+        aaaaaaa\n\
         Merge pull request #123 from tombruijn/repo\n\
         \n\
         This is my multi line message.\n\
@@ -263,8 +263,8 @@ mod tests {
     fn test_parse_commit_ignore_merge_commits_merge_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa
-         Merge branch 'branch' into 'main' \n\
+        aaaaaaa\n\
+        Merge branch 'branch' into 'main'\n\
         \n\
         This is my multi line message.\n\
         Line 2.

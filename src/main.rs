@@ -207,7 +207,7 @@ mod tests {
             "commit".to_string(),
             "--no-gpg-sign".to_string(),
             "--allow-empty".to_string(),
-            format!("-m {}", subject),
+            format!("-m{}", subject),
         ];
         if !message.is_empty() {
             let message_arg = format!("-m {}", message);

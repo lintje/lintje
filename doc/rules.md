@@ -53,6 +53,11 @@ length. Use the commit's message body to explain the change in greater detail.
 
 ## SubjectCapitalization
 
+The commit's subject starts with a whitespace (space, tab, etc). Remove this
+leading whitespace from the subject.
+
+## SubjectCapitalization
+
 The commit's subject doesn't start with a capital letter. Use a capital letter
 to start your subject.
 

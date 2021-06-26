@@ -70,7 +70,7 @@ impl Commit {
         Self {
             long_sha,
             short_sha,
-            subject: subject.trim().to_string(),
+            subject: subject.trim_end().to_string(),
             message: message.trim().to_string(),
             ignored_rules,
             violations: Vec::<Violation>::new(),
@@ -105,6 +105,7 @@ impl Commit {
         self.validate_needs_rebase();
         self.validate_subject_line_length();
         self.validate_subject_mood();
+        self.validate_subject_whitespace();
         self.validate_subject_capitalization();
         self.validate_subject_punctuation();
         self.validate_subject_ticket_numbers();
@@ -195,7 +196,27 @@ impl Commit {
             }
             None => {
                 error!("SubjectMood validation failure: No first word found of commit subject.")
-            },
+            }
+        }
+    }
+
+    fn validate_subject_whitespace(&mut self) {
+        if self.rule_ignored(Rule::SubjectWhitespace) {
+            return;
+        }
+
+        match self.subject.chars().nth(0) {
+            Some(character) => {
+                if character.is_whitespace() {
+                    self.add_violation(
+                        Rule::SubjectWhitespace,
+                        "Remove leading whitespace from the commit subject.".to_string(),
+                    )
+                }
+            }
+            None => {
+                error!("SubjectWhitespace validation failure: No first character found of subject.")
+            }
         }
     }
 
@@ -215,7 +236,7 @@ impl Commit {
             }
             None => {
                 error!("SubjectCapitalization validation failure: No first character found of subject.")
-            },
+            }
         }
     }
 
@@ -236,7 +257,9 @@ impl Commit {
                     )
                 }
             }
-            None => error!("SubjectPunctuation validation failure: No last character found of subject."),
+            None => {
+                error!("SubjectPunctuation validation failure: No last character found of subject.")
+            }
         }
     }
 
@@ -470,6 +493,21 @@ mod tests {
             "gitlint:disable SubjectMood".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectMood);
+    }
+
+    #[test]
+    fn test_validate_subject_whitespace() {
+        let subjects = vec!["Fix test"];
+        assert_commit_subjects_as_valid(subjects, &Rule::SubjectWhitespace);
+
+        let invalid_subjects = vec![" Fix test", "\tFix test", "\x20Fix test"];
+        assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectWhitespace);
+
+        let ignore_commit = validated_commit(
+            " Fix test".to_string(),
+            "gitlint:disable SubjectWhitespace".to_string(),
+        );
+        assert_commit_valid_for(ignore_commit, &Rule::SubjectWhitespace);
     }
 
     #[test]
