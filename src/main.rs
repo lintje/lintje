@@ -264,8 +264,8 @@ mod tests {
         assert
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
-                \x20\x20SubjectMood: Subject is not imperative mood.\n\
-                \x20\x20MessagePresence: Message is not present.",
+                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
+                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(
                 "1 commit inspected, 2 violations detected\n",
@@ -294,13 +294,13 @@ mod tests {
         assert
             .stdout(predicate::str::contains(
                 "added some code\n\
-                \x20\x20SubjectMood: Subject is not imperative mood.\n\
-                \x20\x20SubjectCapitalization: Subject does not start with a capital letter.",
+                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
+                \x20\x20SubjectCapitalization: Start the commit subject a capital letter.",
             ))
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
-                \x20\x20SubjectMood: Subject is not imperative mood.\n\
-                \x20\x20MessagePresence: Message is not present.",
+                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
+                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(
                 "2 commits inspected, 4 violations detected\n",
@@ -327,8 +327,8 @@ mod tests {
             .code(1);
         assert.stdout(predicate::str::contains(
             "added some code\n\
-                \x20\x20SubjectMood: Subject is not imperative mood.\n\
-                \x20\x20SubjectCapitalization: Subject does not start with a capital letter.",
+             \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
+             \x20\x20SubjectCapitalization: Start the commit subject a capital letter.",
         ));
     }
 

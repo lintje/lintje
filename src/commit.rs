@@ -113,6 +113,8 @@ impl Commit {
         self.validate_message_line_length();
     }
 
+    // Note: Some merge commits are ignored in git.rs and won't be validated here, because they are
+    // Pull/Merge Requests, which are valid.
     fn validate_merge_commit(&mut self) {
         if self.rule_ignored(Rule::MergeCommit) {
             return;
@@ -120,7 +122,10 @@ impl Commit {
 
         let subject = &self.subject;
         if subject.starts_with("Merge branch") {
-            self.add_violation(Rule::MergeCommit, format!("Commit is a merge commit."))
+            self.add_violation(
+                Rule::MergeCommit,
+                format!("Rebase branches on the base branch, rather than merging the base branch with a merge commit.")
+            )
         }
     }
 
@@ -131,9 +136,15 @@ impl Commit {
 
         let subject = &self.subject;
         if subject.starts_with("fixup! ") {
-            self.add_violation(Rule::NeedsRebase, format!("Subject is a fixup commit."))
+            self.add_violation(
+                Rule::NeedsRebase,
+                format!("Squash fixup commits before merging."),
+            )
         } else if subject.starts_with("squash! ") {
-            self.add_violation(Rule::NeedsRebase, format!("Subject is a squash commit."))
+            self.add_violation(
+                Rule::NeedsRebase,
+                format!("Squash squash commits before merging."),
+            )
         }
     }
 
@@ -146,7 +157,10 @@ impl Commit {
 
             self.add_violation(
                 Rule::SubjectLength,
-                format!("Subject length is too long: {} characters.", length),
+                format!(
+                    "Subject is too long: {} characters. Shorten the subject to max 50 characters.",
+                    length
+                ),
             )
         }
         if length < 5 {
@@ -156,7 +170,10 @@ impl Commit {
 
             self.add_violation(
                 Rule::SubjectLength,
-                format!("Subject length is too short: {} characters.", length),
+                format!(
+                    "Subject is too short: {} characters. Describe the change in more detail.",
+                    length
+                ),
             )
         }
     }
@@ -172,11 +189,13 @@ impl Commit {
                 if MOOD_WORDS.contains(&word.as_str()) {
                     self.add_violation(
                         Rule::SubjectMood,
-                        "Subject is not imperative mood.".to_string(),
+                        "Use the imperative mood for the commit subject.".to_string(),
                     )
                 }
             }
-            None => error!("No first word found of subject."),
+            None => {
+                error!("SubjectMood validation failure: No first word found of commit subject.")
+            },
         }
     }
 
@@ -187,14 +206,16 @@ impl Commit {
 
         match self.subject.chars().nth(0) {
             Some(character) => {
-                if !character.is_uppercase() {
+                if character.is_lowercase() {
                     self.add_violation(
                         Rule::SubjectCapitalization,
-                        "Subject does not start with a capital letter.".to_string(),
+                        "Start the commit subject a capital letter.".to_string(),
                     )
                 }
             }
-            None => error!("No first character found of subject."),
+            None => {
+                error!("SubjectCapitalization validation failure: No first character found of subject.")
+            },
         }
     }
 
@@ -208,11 +229,14 @@ impl Commit {
                 if character.is_ascii_punctuation() {
                     self.add_violation(
                         Rule::SubjectPunctuation,
-                        format!("Subject ends with punctuation: {}", character),
+                        format!(
+                            "Remove punctuation from the end of the commit subject: {}",
+                            character
+                        ),
                     )
                 }
             }
-            None => error!("No first character found of subject."),
+            None => error!("SubjectPunctuation validation failure: No last character found of subject."),
         }
     }
 
@@ -225,12 +249,12 @@ impl Commit {
         if SUBJECT_WITH_TICKET.is_match(subject) {
             self.add_violation(
                 Rule::SubjectTicketNumber,
-                format!("Subject includes a ticket number."),
+                format!("Remove the ticket number from the commit subject. Move it to the message body."),
             )
         } else if SUBJECT_WITH_FIX_TICKET.is_match(subject) {
             self.add_violation(
                 Rule::SubjectTicketNumber,
-                format!("Subject includes a ticket number."),
+                format!("Remove the ticket number from the commit subject. Move it to the message body."),
             )
         }
     }
@@ -271,11 +295,15 @@ impl Commit {
 
         let length = self.message.len();
         if length == 0 {
-            self.add_violation(Rule::MessagePresence, "Message is not present.".to_string())
+            self.add_violation(
+                Rule::MessagePresence,
+                "Add a message body to provide more context about the change and why it was made."
+                    .to_string(),
+            )
         } else if length < 10 {
             self.add_violation(
                 Rule::MessagePresence,
-                "Message body is less than 10 characters long.".to_string(),
+                "Add a longer message body to provide more context about the change and why it was made.".to_string(),
             )
         }
     }
