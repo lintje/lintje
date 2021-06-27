@@ -7,6 +7,8 @@ lazy_static! {
     static ref SUBJECT_WITH_FIX_TICKET: Regex =
         Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?#\d+").unwrap();
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
+    static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
+    static ref CODE_BLOCK_LINE_END: Regex = Regex::new(r"^\s*```$").unwrap();
     static ref MOOD_WORDS: Vec<&'static str> = vec![
         "fixed",
         "fixes",
@@ -51,8 +53,6 @@ lazy_static! {
         "testing",
     ];
 }
-
-const CODE_BLOCK_LINE: &str = "```";
 
 #[derive(Debug)]
 pub struct Commit {
@@ -355,7 +355,7 @@ impl Commit {
             let length = line.len();
             match code_block_style {
                 CodeBlockStyle::Fenced => {
-                    if line == CODE_BLOCK_LINE {
+                    if CODE_BLOCK_LINE_END.is_match(line) {
                         code_block_style = CodeBlockStyle::None
                     }
                 }
@@ -365,7 +365,7 @@ impl Commit {
                     }
                 }
                 CodeBlockStyle::None => {
-                    if line == CODE_BLOCK_LINE {
+                    if CODE_BLOCK_LINE_WITH_LANGUAGE.is_match(line) {
                         code_block_style = CodeBlockStyle::Fenced
                     } else if line.starts_with("    ") && previous_line_was_empty_line {
                         code_block_style = CodeBlockStyle::Indenting
@@ -725,20 +725,42 @@ mod tests {
 
     #[test]
     fn test_validate_message_line_length_in_code_block() {
-        let message1 = [
+        let valid_fenced_code_blocks = [
             "Beginning of message.",
             "```",
-            &"a".repeat(73),
+            &"a".repeat(73), // Valid, inside code block
             &"b".repeat(73),
             &"c".repeat(73),
             "```",
+            "Normal line",
+            "```md",
+            &"I am markdown",
+            &"d".repeat(73), // Valid, inside code block
+            "```",
+            "Normal line",
+            "``` yaml",
+            &"I am yaml",
+            &"d".repeat(73), // Valid, inside code block
+            "```",
+            "Normal line",
+            "```  elixir ",
+            &"I am elixir",
+            &"d".repeat(73), // Valid, inside code block
+            "```",
+            "",
+            "  ```",
+            &"  I am elixir",
+            &"  d".repeat(73), // Valid, inside fenced indented code block
+            "  ```",
             "End of message",
         ]
         .join("\n");
-        let commit1 = validated_commit("Subject".to_string(), message1);
-        assert_commit_valid_for(commit1, &Rule::MessageLineLength);
+        assert_commit_valid_for(
+            validated_commit("Subject".to_string(), valid_fenced_code_blocks),
+            &Rule::MessageLineLength,
+        );
 
-        let message2 = [
+        let invalid_long_line_outside_fenced_code_block = [
             "Beginning of message.",
             "```",
             &"a".repeat(73),
@@ -747,10 +769,31 @@ mod tests {
             "End of message",
         ]
         .join("\n");
-        let commit2 = validated_commit("Subject".to_string(), message2);
-        assert_commit_invalid_for(commit2, &Rule::MessageLineLength);
+        assert_commit_invalid_for(
+            validated_commit(
+                "Subject".to_string(),
+                invalid_long_line_outside_fenced_code_block,
+            ),
+            &Rule::MessageLineLength,
+        );
 
-        let message3 = [
+        let invalid_fenced_code_block_language_identifier = [
+            "Beginning of message.",
+            "``` m d", // Invald language identifier
+            &"a".repeat(73),
+            "```",
+            "End of message",
+        ]
+        .join("\n");
+        assert_commit_invalid_for(
+            validated_commit(
+                "Subject".to_string(),
+                invalid_fenced_code_block_language_identifier,
+            ),
+            &Rule::MessageLineLength,
+        );
+
+        let valid_indented_code_blocks = [
             "Beginning of message.",
             "",
             "    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -763,10 +806,12 @@ mod tests {
             "End of message",
         ]
         .join("\n");
-        let commit3 = validated_commit("Subject".to_string(), message3);
-        assert_commit_valid_for(commit3, &Rule::MessageLineLength);
+        assert_commit_valid_for(
+            validated_commit("Subject".to_string(), valid_indented_code_blocks),
+            &Rule::MessageLineLength,
+        );
 
-        let message4 = [
+        let invalid_long_ling_outside_indended_code_block = [
             "Beginning of message.",
             "",
             "    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -778,7 +823,12 @@ mod tests {
             &"a".repeat(73), // Long line outside code block is invalid
         ]
         .join("\n");
-        let commit4 = validated_commit("Subject".to_string(), message4);
-        assert_commit_invalid_for(commit4, &Rule::MessageLineLength);
+        assert_commit_invalid_for(
+            validated_commit(
+                "Subject".to_string(),
+                invalid_long_ling_outside_indended_code_block,
+            ),
+            &Rule::MessageLineLength,
+        );
     }
 }

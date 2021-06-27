@@ -200,6 +200,19 @@ from this rule. Lines that are too long inside code blocks are also ignored.
     Example code block with a very long line that will consider valid!!!!!!!!
     ```
 
+    ```md
+    Example code block with a very long line that will consider valid!!!!!!!!
+    ```
+
+    ``` md
+    Example code block with a very long line that will consider valid!!!!!!!!
+    ```
+
+    - Valid indented fenced code block inside a list
+      ```
+      Example code block with a very long line that will consider valid!!!!!!
+      ```
+
     # Good - the only long line is in a code block
     Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam.
 
