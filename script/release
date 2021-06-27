@@ -67,6 +67,15 @@ function archive() {
   )
 }
 
+function add_checksum() {
+  target=$1
+  echo "Generating checksum for $target"
+  (
+    cd dist
+    shasum -a 256 $target.tar.gz >> checksums_256.txt
+  )
+}
+
 function build_docker_image() {
   image=$1
   options=$2
@@ -80,22 +89,28 @@ function build_docker_image() {
   )
 }
 
+rm -f dist/checksums_256.txt
+touch dist/checksums_256.txt
 echo
 strip_local x86_64-apple-darwin
 archive x86_64-apple-darwin
+add_checksum x86_64-apple-darwin
 echo
 strip_local aarch64-apple-darwin
 archive aarch64-apple-darwin
+add_checksum aarch64-apple-darwin
 echo
 build_docker_image ubuntu-x86_64-development "--platform linux/amd64"
 strip_in_container x86_64-unknown-linux-gnu ubuntu-x86_64-development "--platform linux/amd64"
 archive x86_64-unknown-linux-gnu
+add_checksum x86_64-unknown-linux-gnu
 echo
 build_docker_image ubuntu-aarch64-development "--platform linux/arm64/v8"
 strip_in_container aarch64-unknown-linux-gnu ubuntu-aarch64-development "--platform linux/arm64/v8"
 archive aarch64-unknown-linux-gnu
+add_checksum aarch64-unknown-linux-gnu
 
 git tag v$version
 git push origin main v$version
 echo "Creating release on GitHub. Please follow the prompts."
-gh release create v$version dist/*.tar.gz --title "Release $version"
+gh release create v$version dist/*.tar.gz dist/checksums_256.txt --title "Release $version"
