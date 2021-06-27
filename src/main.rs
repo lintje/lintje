@@ -17,7 +17,8 @@ mod git;
 mod logger;
 mod rule;
 
-use git::{fetch_and_parse_commits, parse_commit_file_format};
+use commit::Commit;
+use git::{fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
 
 #[derive(StructOpt, Debug)]
@@ -44,72 +45,93 @@ enum Command {
     ///       Validate the last 5 commits.
     ///
     #[structopt(name = "lint", verbatim_doc_comment)]
-    Lint(Options),
+    Lint(LintOptions),
+    /// Lint commit-msg hook commit message
+    ///
+    /// Usage examples
+    ///
+    ///     gitlint lint-hook --file=.git/COMMIT_EDITMSG
+    ///       Lints the given commit message file from the commit-msg hook.
+    ///
+    #[structopt(name = "lint-hook", verbatim_doc_comment)]
+    LintHook(LintHookOptions),
 }
 
 #[derive(Debug, StructOpt)]
-struct Options {
-    /// Lint the contents of a specific file. Useful for the commit-msg Git hook.
-    #[structopt(long, parse(from_os_str))]
-    file: Option<PathBuf>,
+struct LintOptions {
     /// Lint only commits in the specified revision range. When no <revision range> is specified,
     /// it defaults to only linting the latest commit.
     #[structopt(name = "revision range")]
     revision_range: Option<String>,
 }
 
+#[derive(Debug, StructOpt)]
+struct LintHookOptions {
+    /// Lint the contents the Git hook commit-msg commit message file.
+    #[structopt(long = "message-file", parse(from_os_str))]
+    msg_file: PathBuf,
+}
+
 fn main() {
     let args = GitLint::from_args();
     init_logger(args.debug);
-    match args.command {
-        Command::Lint(command) => match lint(command) {
-            Ok(_) => (),
-            Err(e) => {
-                error!("An error occurred: {}", e);
-                std::process::exit(2)
-            }
-        },
+    let result = match args.command {
+        Command::Lint(command) => lint(command),
+        Command::LintHook(command) => lint_hook(command),
+    };
+    match result {
+        Ok(_) => (),
+        Err(e) => {
+            error!("An error occurred: {}", e);
+            std::process::exit(2)
+        }
     }
 }
 
-fn lint(options: Options) -> Result<(), String> {
-    let commits = match options.file {
-        Some(filename) => match File::open(&filename) {
-            Ok(mut file) => {
-                let mut contents = String::new();
-                match file.read_to_string(&mut contents) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        return Err(format!(
-                            "Unable to read commit message file contents: {}\n{}",
-                            filename.to_str().unwrap(),
-                            e
-                        ));
-                    }
-                };
-                match parse_commit_file_format(&contents, git::cleanup_mode(), git::comment_char())
-                {
-                    Some(commit) => vec![commit],
-                    None => vec![],
-                }
-            }
-            Err(e) => {
-                return Err(format!(
-                    "Unable to open commit message file: {}\n{}",
-                    filename.to_str().unwrap(),
-                    e
-                ));
-            }
-        },
-        None => {
-            let commit_result = fetch_and_parse_commits(options.revision_range);
-            match commit_result {
-                Ok(commits) => commits,
-                Err(e) => return Err(e),
-            }
-        }
+fn lint(options: LintOptions) -> Result<(), String> {
+    let commit_result = fetch_and_parse_commits(options.revision_range);
+    let commits = match commit_result {
+        Ok(commits) => commits,
+        Err(e) => return Err(e),
     };
 
+    handle_lint_result(commits);
+    Ok(())
+}
+
+fn lint_hook(options: LintHookOptions) -> Result<(), String> {
+    let filename = &options.msg_file;
+    let commits = match File::open(filename) {
+        Ok(mut file) => {
+            let mut contents = String::new();
+            match file.read_to_string(&mut contents) {
+                Ok(_) => {}
+                Err(e) => {
+                    return Err(format!(
+                        "Unable to read commit message file contents: {}\n{}",
+                        filename.to_str().unwrap(),
+                        e
+                    ));
+                }
+            };
+            match parse_commit_hook_format(&contents, git::cleanup_mode(), git::comment_char()) {
+                Some(commit) => vec![commit],
+                None => vec![],
+            }
+        }
+        Err(e) => {
+            return Err(format!(
+                "Unable to open commit message file: {}\n{}",
+                filename.to_str().unwrap(),
+                e
+            ));
+        }
+    };
+    handle_lint_result(commits);
+    Ok(())
+}
+
+fn handle_lint_result(commits: Vec<Commit>) {
     debug!("Commits: {:?}", commits);
     let commit_count = commits.len();
     let mut violation_count = 0;
@@ -135,9 +157,7 @@ fn lint(options: Options) -> Result<(), String> {
         "{} commit{} inspected, {} violations detected",
         commit_count, plural, violation_count
     );
-    if violation_count == 0 {
-        Ok(())
-    } else {
+    if violation_count > 0 {
         std::process::exit(1)
     }
 }
@@ -357,7 +377,7 @@ mod tests {
     }
 
     #[test]
-    fn test_file_option() {
+    fn test_lint_hook() {
         compile_bin();
         let dir = test_dir("commit_file_option");
         create_test_repo(&dir, &[]);
@@ -369,7 +389,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint", &format!("--file={}", filename)])
+            .args(&["lint-hook", &format!("--message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()
@@ -400,7 +420,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint", &format!("--file={}", filename)])
+            .args(&["lint-hook", &format!("--message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()
@@ -428,7 +448,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint", &format!("--file={}", filename)])
+            .args(&["lint-hook", &format!("--message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()
@@ -445,7 +465,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint", &format!("--file={}", filename)])
+            .args(&["lint-hook", &format!("--message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()

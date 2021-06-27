@@ -74,7 +74,7 @@ To lint the commit locally immediately after writing the commit message, use a
 Git hook. To add it, run the following:
 
 ```
-echo "gitlint lint --file=$1" > .git/hooks/commit-msg
+echo "gitlint lint-hook --message-file=\$1" >> .git/hooks/commit-msg
 chmod +x .git/hooks/pre-commit
 ```
 

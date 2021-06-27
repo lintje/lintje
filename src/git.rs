@@ -95,7 +95,7 @@ fn parse_commit(message: &str) -> Option<Commit> {
     }
 }
 
-pub fn parse_commit_file_format(
+pub fn parse_commit_hook_format(
     message: &str,
     cleanup_mode: CleanupMode,
     comment_char: String,
@@ -211,7 +211,7 @@ pub fn comment_char() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_commit, parse_commit_file_format, CleanupMode};
+    use super::{parse_commit, parse_commit_hook_format, CleanupMode};
 
     #[test]
     fn test_parse_commit() {
@@ -287,8 +287,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_commit_file_format() {
-        let result = parse_commit_file_format(
+    fn test_parse_commit_hook_format() {
+        let result = parse_commit_hook_format(
             "This is a subject\n\nThis is a message.",
             CleanupMode::Default,
             "#".to_string(),
@@ -303,9 +303,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_commit_file_format_without_message() {
+    fn test_parse_commit_hook_format_without_message() {
         let result =
-            parse_commit_file_format("This is a subject", CleanupMode::Default, "#".to_string());
+            parse_commit_hook_format("This is a subject", CleanupMode::Default, "#".to_string());
 
         assert!(result.is_some());
         let commit = result.unwrap();
@@ -317,8 +317,8 @@ mod tests {
 
     // Same as Default
     #[test]
-    fn test_parse_commit_file_format_with_strip() {
-        let result = parse_commit_file_format(
+    fn test_parse_commit_hook_format_with_strip() {
+        let result = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.  \n\
@@ -341,8 +341,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_commit_file_format_with_strip_custom_comment_char() {
-        let result = parse_commit_file_format(
+    fn test_parse_commit_hook_format_with_strip_custom_comment_char() {
+        let result = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.  \n\
@@ -365,8 +365,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_commit_file_format_with_scissors() {
-        let result = parse_commit_file_format(
+    fn test_parse_commit_hook_format_with_scissors() {
+        let result = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.\n\
@@ -391,8 +391,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_commit_file_format_with_verbatim() {
-        let result = parse_commit_file_format(
+    fn test_parse_commit_hook_format_with_verbatim() {
+        let result = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.\n\
@@ -420,8 +420,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_commit_file_format_with_whitespace() {
-        let result = parse_commit_file_format(
+    fn test_parse_commit_hook_format_with_whitespace() {
+        let result = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.  \n\
