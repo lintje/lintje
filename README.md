@@ -46,7 +46,9 @@ TODO
 # Lint the most recent commit on the current branch
 gitlint lint
 # Is the same as:
-gitlint lint HEAD~1..HEAD
+gitlint lint HEAD
+# Lint a specific commit
+gitlint lint 3a561ef766c2acfe5da478697d91758110b8b24c
 
 # Select a range of commits
 # Lint the last 5 commits:

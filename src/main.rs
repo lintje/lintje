@@ -41,8 +41,17 @@ enum Command {
     ///     gitlint lint
     ///       Validate the latest commit.
     ///
+    ///     gitlint lint HEAD
+    ///       Validate the latest commit.
+    ///
+    ///     gitlint lint 3a561ef766c2acfe5da478697d91758110b8b24c
+    ///       Validate a single specific commit.
+    ///
     ///     gitlint lint HEAD~5..HEAD
     ///       Validate the last 5 commits.
+    ///
+    ///     gitlint lint main..develop
+    ///       Validate the difference between the main and develop branch.
     ///
     #[structopt(name = "lint", verbatim_doc_comment)]
     Lint(LintOptions),
@@ -59,10 +68,10 @@ enum Command {
 
 #[derive(Debug, StructOpt)]
 struct LintOptions {
-    /// Lint only commits in the specified revision range. When no <revision range> is specified,
-    /// it defaults to only linting the latest commit.
-    #[structopt(name = "revision range")]
-    revision_range: Option<String>,
+    /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
+    /// defaults to linting the latest commit.
+    #[structopt(name = "commit (range)")]
+    selection: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -89,7 +98,7 @@ fn main() {
 }
 
 fn lint(options: LintOptions) -> Result<(), String> {
-    let commit_result = fetch_and_parse_commits(options.revision_range);
+    let commit_result = fetch_and_parse_commits(options.selection);
     let commits = match commit_result {
         Ok(commits) => commits,
         Err(e) => return Err(e),
@@ -306,6 +315,29 @@ mod tests {
             .stderr(Stdio::null())
             .status()
             .expect("Could not compile debug target!");
+    }
+
+    #[test]
+    fn test_commit_by_sha() {
+        compile_bin();
+        let dir = test_dir("commit_by_sha");
+        create_test_repo(&dir, &[("Test commit", "")]);
+        let output = Command::new("git")
+            .args(&["log", "--pretty=%H", "-n 1"])
+            .current_dir(&dir)
+            .output()
+            .expect("Failed to fetch commit SHA.");
+        let sha = String::from_utf8_lossy(&output.stdout);
+        let short_sha = sha.get(0..7).expect("Unable to build short commit SHA");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let assert = cmd.args(["lint", &sha]).current_dir(dir).assert().failure();
+        assert
+            .stdout(predicate::str::contains(&format!(
+                "{}: Test commit",
+                short_sha
+            )))
+            .stdout(predicate::str::contains("1 commit inspected"));
     }
 
     #[test]

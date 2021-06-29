@@ -15,13 +15,9 @@ pub enum CleanupMode {
     Default,
 }
 
-pub fn fetch_and_parse_commits(revision_range: Option<String>) -> Result<Vec<Commit>, String> {
+pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, String> {
     let mut commits = Vec::<Commit>::new();
     let mut command = Command::new("git");
-    let range = match revision_range {
-        Some(s) => s,
-        None => "HEAD~1..HEAD".to_string(),
-    };
 
     // Format definition per commit
     // Line 1: Commit SHA in long form
@@ -29,12 +25,24 @@ pub fn fetch_and_parse_commits(revision_range: Option<String>) -> Result<Vec<Com
     // Line 3 to second to last: Commit subject and message
     // Line last: Delimiter to tell commits apart
     let format = "%H%n%h%n%B";
+    let mut args = vec![
+        "log".to_string(),
+        format!("--pretty={}{}", format, COMMIT_DELIMITER),
+    ];
+    match selector {
+        Some(selection) => {
+            let selection = selection.trim().to_string();
+            if selection.contains("..") {
+                args.push(selection);
+            } else {
+                args.push("-n 1".to_string());
+                args.push(selection);
+            }
+        }
+        None => args.push("HEAD~1..HEAD".to_string()),
+    };
 
-    command.args(&[
-        "log",
-        &format!("--pretty={}{}", format, COMMIT_DELIMITER),
-        &range,
-    ]);
+    command.args(&args);
     match command.output() {
         Ok(raw_output) => {
             let output = String::from_utf8_lossy(&raw_output.stdout);
@@ -51,8 +59,8 @@ pub fn fetch_and_parse_commits(revision_range: Option<String>) -> Result<Vec<Com
         }
         Err(e) => {
             return Err(format!(
-                "Unable to fetch commits from Git: {}\n{:?}",
-                range, e
+                "Unable to fetch commits from Git: {:?}\n{}",
+                args, e
             ))
         }
     };
