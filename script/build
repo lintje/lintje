@@ -14,7 +14,7 @@ build_for() {
     mkdir -p dist/$target
     rustup target add $target
     $builder build --release --target $target
-    cp target/$target/release/gitlint dist/$target/
+    cp target/$target/release/lintje dist/$target/
 }
 
 echo

@@ -1,8 +1,11 @@
 # Rules
 
-All the rules Git Lint follows are documented on this page. The heading name
+All the rules Lintje follows are documented on this page. The heading name
 matches the rule name, and can be used to [ignore specific rules per
 commit](../README.md#ignoring-rules-per-commit)
+
+_Lintje is primarily focussed on supporting the English language, other
+languages may not be compatible with every rule._
 
 ## MergeCommit
 

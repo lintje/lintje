@@ -87,18 +87,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gitlint"
-version = "0.1.0"
-dependencies = [
- "assert_cmd",
- "lazy_static",
- "log",
- "predicates",
- "regex",
- "structopt",
-]
-
-[[package]]
 name = "heck"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -118,6 +106,18 @@ name = "libc"
 version = "0.2.97"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12b8adadd720df158f4d70dfe7ccc6adb0472d7c55ca83445f6a5ab3e36f8fb6"
+
+[[package]]
+name = "lintje"
+version = "0.1.0"
+dependencies = [
+ "assert_cmd",
+ "lazy_static",
+ "log",
+ "predicates",
+ "regex",
+ "structopt",
+]
 
 [[package]]
 name = "log"

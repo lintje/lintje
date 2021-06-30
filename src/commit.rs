@@ -83,7 +83,7 @@ impl Commit {
     }
 
     pub fn find_ignored_rules(message: &str) -> Vec<Rule> {
-        let disable_prefix = "gitlint:disable ";
+        let disable_prefix = "lintje:disable ";
         let mut ignored = vec![];
         for line in message.lines().into_iter() {
             if let Some(name) = line.strip_prefix(disable_prefix) {
@@ -460,7 +460,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             "Merge branch 'main' into develop".to_string(),
-            "gitlint:disable MergeCommit".to_string(),
+            "lintje:disable MergeCommit".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::MergeCommit);
     }
@@ -473,7 +473,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             "fixup! I don't need to be rebased".to_string(),
-            "gitlint:disable NeedsRebase".to_string(),
+            "lintje:disable NeedsRebase".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::NeedsRebase);
     }
@@ -498,8 +498,10 @@ mod tests {
         let hiragana_long_subject = "あ".repeat(51);
         assert_commit_subject_as_invalid(hiragana_long_subject.as_str(), &Rule::SubjectLength);
 
-        let ignore_commit =
-            validated_commit("a".repeat(51), "gitlint:disable SubjectLength".to_string());
+        let ignore_commit = validated_commit(
+            "a".repeat(51).to_string(),
+            "lintje:disable SubjectLength".to_string(),
+        );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectLength);
     }
 
@@ -524,7 +526,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             "Fixed test".to_string(),
-            "gitlint:disable SubjectMood".to_string(),
+            "lintje:disable SubjectMood".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectMood);
     }
@@ -539,7 +541,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             " Fix test".to_string(),
-            "gitlint:disable SubjectWhitespace".to_string(),
+            "lintje:disable SubjectWhitespace".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectWhitespace);
     }
@@ -554,7 +556,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             "fix test".to_string(),
-            "gitlint:disable SubjectCapitalization".to_string(),
+            "lintje:disable SubjectCapitalization".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectCapitalization);
     }
@@ -569,7 +571,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             "Fix test.".to_string(),
-            "gitlint:disable SubjectPunctuation".to_string(),
+            "lintje:disable SubjectPunctuation".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectPunctuation);
     }
@@ -616,13 +618,13 @@ mod tests {
 
         let ignore_ticket_number = validated_commit(
             "Fix bug with 'JIRA-1234' type commits".to_string(),
-            "gitlint:disable SubjectTicketNumber".to_string(),
+            "lintje:disable SubjectTicketNumber".to_string(),
         );
         assert_commit_valid_for(ignore_ticket_number, &Rule::SubjectTicketNumber);
 
         let ignore_issue_number = validated_commit(
             "Fix bug with 'Fix #1234' type commits".to_string(),
-            "gitlint:disable SubjectTicketNumber".to_string(),
+            "lintje:disable SubjectTicketNumber".to_string(),
         );
         assert_commit_valid_for(ignore_issue_number, &Rule::SubjectTicketNumber);
     }
@@ -649,7 +651,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             "WIP".to_string(),
-            "gitlint:disable SubjectCliche".to_string(),
+            "lintje:disable SubjectCliche".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectCliche);
     }
@@ -670,7 +672,7 @@ mod tests {
 
         let ignore_commit = validated_commit(
             "Subject".to_string(),
-            "gitlint:disable MessagePresence".to_string(),
+            "lintje:disable MessagePresence".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::MessagePresence);
     }
@@ -720,7 +722,7 @@ mod tests {
         let ignore_message = [
             "a".repeat(72),
             "a".repeat(73),
-            "gitlint:disable MessageLineLength".to_string(),
+            "lintje:disable MessageLineLength".to_string(),
         ]
         .join("\n");
         let ignore_commit = validated_commit("Subject".to_string(), ignore_message);

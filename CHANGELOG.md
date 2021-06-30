@@ -1,1 +1,1 @@
-# Git Lint changelog
+# Lintje changelog

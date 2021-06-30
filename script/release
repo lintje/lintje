@@ -38,7 +38,7 @@ function strip_local() {
   echo "Stripping release $target"
   (
     cd dist/$target
-    strip gitlint
+    strip lintje
   )
 }
 
@@ -53,8 +53,8 @@ function strip_in_container() {
       -v "$(pwd):/dist" \
       -w "/dist" \
       $options \
-      tombruijn/gitlint-$image:build \
-      strip gitlint
+      tombruijn/lintje-$image:build \
+      strip lintje
   )
 }
 
@@ -63,7 +63,7 @@ function archive() {
   echo "Archiving release $target"
   (
     cd dist/$target
-    tar -cvzf "../$target.tar.gz" gitlint
+    tar -cvzf "../$target.tar.gz" lintje
   )
 }
 
@@ -84,7 +84,7 @@ function build_docker_image() {
     docker build \
       $options \
       -f Dockerfile.$image \
-      -t tombruijn/gitlint-$image:build \
+      -t tombruijn/lintje-$image:build \
       .
   )
 }

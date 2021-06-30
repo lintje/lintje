@@ -1,9 +1,9 @@
 [package]
-name = "gitlint"
+name = "lintje"
 version = "0.1.0"
 authors = ["Tom de Bruijn <tom@tomdebruijn.com>"]
 edition = "2018"
-repository = "https://github.com/tombruijn/gitlint"
+repository = "https://github.com/tombruijn/lintje"
 license = "MIT"
 keywords = ["git", "linter"]
 categories = ["command-line-utilities", "development-tools"]

@@ -1,5 +1,5 @@
 version: v1.0
-name: GitLint
+name: Lintje
 
 agent:
   machine:
@@ -34,13 +34,13 @@ blocks:
           - cache restore v1-cargo-$(checksum Cargo.lock)
           - cargo test
           - cache store v1-cargo-$(checksum Cargo.lock) $CARGO_HOME
-          - artifact push workflow target/debug/gitlint --expire-in 1w
+          - artifact push workflow target/debug/lintje --expire-in 1w
   - name: Test run the project
     dependencies: ["Build"]
     task:
       jobs:
       - name: Run project to lint
         commands:
-          - artifact pull workflow gitlint
-          - chmod +x gitlint
-          - ./gitlint $SEMAPHORE_GIT_COMMIT_RANGE
+          - artifact pull workflow lintje
+          - chmod +x lintje
+          - ./lintje $SEMAPHORE_GIT_COMMIT_RANGE

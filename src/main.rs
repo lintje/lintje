@@ -22,31 +22,31 @@ use git::{fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "gitlint", verbatim_doc_comment)]
+#[structopt(name = "lintje", verbatim_doc_comment)]
 /**
 Lint Git commits
 
 ## Usage examples
 
-    gitlint
+    lintje
       Validate the latest commit.
 
-    gitlint HEAD
+    lintje HEAD
       Validate the latest commit.
 
-    gitlint 3a561ef766c2acfe5da478697d91758110b8b24c
+    lintje 3a561ef766c2acfe5da478697d91758110b8b24c
       Validate a single specific commit.
 
-    gitlint HEAD~5..HEAD
+    lintje HEAD~5..HEAD
       Validate the last 5 commits.
 
-    gitlint main..develop
+    lintje main..develop
       Validate the difference between the main and develop branch.
 
-    gitlint --hook-message-file=.git/COMMIT_EDITMSG
+    lintje --hook-message-file=.git/COMMIT_EDITMSG
       Lints the given commit message file from the commit-msg hook.
 */
-struct GitLint {
+struct Lint {
     /// Prints debug information
     #[structopt(long)]
     debug: bool,
@@ -62,7 +62,7 @@ struct GitLint {
 }
 
 fn main() {
-    let args = GitLint::from_args();
+    let args = Lint::from_args();
     init_logger(args.debug);
     let result = match args.hook_message_file {
         Some(hook_message_file) => lint_hook(&hook_message_file),
@@ -77,7 +77,7 @@ fn main() {
     }
 }
 
-fn lint(options: GitLint) -> Result<(), String> {
+fn lint(options: Lint) -> Result<(), String> {
     let commit_result = fetch_and_parse_commits(options.selection);
     let commits = match commit_result {
         Ok(commits) => commits,
@@ -306,7 +306,7 @@ mod tests {
         let sha = String::from_utf8_lossy(&output.stdout);
         let short_sha = sha.get(0..7).expect("Unable to build short commit SHA");
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg(sha.to_string()).current_dir(dir).assert().failure();
         assert
             .stdout(predicate::str::contains(&format!(
@@ -325,7 +325,7 @@ mod tests {
             &[("Test commit", "I am a test commit, short but valid.")],
         );
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
         assert.stdout("1 commit inspected, 0 violations detected\n");
     }
@@ -336,7 +336,7 @@ mod tests {
         let dir = test_dir("single_commit_invalid");
         create_test_repo(&dir, &[("added some code", ""), ("Fixing tests", "")]);
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().failure().code(1);
         assert
             .stdout(predicate::str::contains(
@@ -361,7 +361,7 @@ mod tests {
             ],
         );
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
             .arg(&"HEAD~2..HEAD")
             .current_dir(dir)
@@ -395,7 +395,7 @@ mod tests {
         file.write_all(b"added some code\n\nThis is a message.")
             .unwrap();
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
             .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)
@@ -426,7 +426,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
             .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)
@@ -454,7 +454,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
             .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)
@@ -471,7 +471,7 @@ mod tests {
         create_test_repo(&dir, &[]);
         let filename = "commit_message_file";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
             .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)

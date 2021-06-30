@@ -1,11 +1,12 @@
-# Git Lint
+# Lintje
 
-Git Lint is an opinionated linter for Git.
+Lintje is an opinionated linter for Git. It lints commit messages based on a
+preconfigured set of [rules][rules].
 
+- [Installation](#installation)
+- [Usage](#usage)
 - [Rules documentation][rules]
-
-Git Lint is primarily focussed on the English languages, other languages may
-not be compatible with every [rule][rules].
+- [Configuration](#configuration)
 
 ## Example
 
@@ -15,10 +16,10 @@ Given the last commit in a project is this:
 Fix bug
 ```
 
-When running `gitlint` to lint the last commit, the output will be:
+When running `lintje` to lint the last commit, the output will be:
 
 ```
-$ gitlint
+$ lintje
 6962010: Fix bug
   SubjectCliche: Subject is a 'Fix bug' commit.
   MessagePresence: Add a message body to provide more context about the change
@@ -36,7 +37,7 @@ TODO
 - Apple macOS:
     - x86 64-bit
     - ARM 64-bit (Apple Silicon)
-- Linux:
+- Linux GNU:
     - x86 64-bit
     - ARM 64-bit
 
@@ -44,25 +45,25 @@ TODO
 
 ```
 # Lint the most recent commit on the current branch
-gitlint
+lintje
 # Is the same as:
-gitlint HEAD
+lintje HEAD
 # Lint a specific commit
-gitlint 3a561ef766c2acfe5da478697d91758110b8b24c
+lintje 3a561ef766c2acfe5da478697d91758110b8b24c
 
 # Select a range of commits
 # Lint the last 5 commits:
-gitlint HEAD~5..HEAD
+lintje HEAD~5..HEAD
 # Lint the difference between two branches
-gitlint main..develop
+lintje main..develop
 ```
 
-It's recommended to add Git Lint to your CI setup to lint the range of commits
+It's recommended to add Lintje to your CI setup to lint the range of commits
 added by a Pull Request or job.
 
 ### Exit codes
 
-Git Lint will exit with the following status codes in these situations:
+Lintje will exit with the following status codes in these situations:
 
 - `0` (Success) - No violations have been found. The commit is accepted.
 - `1` (Failure) - One or more violations have been found. The commit is not
@@ -76,30 +77,30 @@ To lint the commit locally immediately after writing the commit message, use a
 Git hook. To add it, run the following:
 
 ```
-echo "gitlint --hook-message-file=\$1" >> .git/hooks/commit-msg
+echo "lintje --hook-message-file=\$1" >> .git/hooks/commit-msg
 chmod +x .git/hooks/pre-commit
 ```
 
 ## Rules
 
-For more information on which rules are linted on, see the [rules docs
+For more information on which rules are validated on, see the [rules docs
 page][rules].
 
 ## Configuration
 
-Git lint does not have a configuration file where you can
-enable/disable/configure certain rules for an entire project.
+Lintje does not have a configuration file where you can enable/disable/configure
+certain rules for an entire project.
 
 Instead it's possible to [ignore specific rules per
 commit](#ignoring-rules-per-commit).
 
 ### Ignoring rules per commit
 
-To ignore a rule in a specific commit, use the magic `gitlint:disable` comment.
+To ignore a rule in a specific commit, use the magic `lintje:disable` comment.
 
 Start a new line (preferably at the end of the commit message) that starts with
-`gitlint:disable` and continue specifying the rule you want to ignore, such as:
-`gitlint:disable SubjectPunctuation`.
+`lintje:disable` and continue specifying the rule you want to ignore, such as:
+`lintje:disable SubjectPunctuation`.
 
 Example commit with multiple ignored rules:
 
@@ -109,8 +110,8 @@ This is a commit subject!!
 This is a commit message line 1.
 Here is some more content of the commit message is very long for valid reasons.
 
-gitlint:disable SubjectPunctuation
-gitlint:disable MessageLineTooLong
+lintje:disable SubjectPunctuation
+lintje:disable MessageLineTooLong
 ```
 
 ## Development
@@ -155,4 +156,4 @@ script/release
 The release will be pushed to GitHub.
 
 [rules]: doc/rules.md
-[issues]: https://github.com/tombruijn/gitlint-private/issues
+[issues]: https://github.com/tombruijn/lintje/issues
