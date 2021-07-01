@@ -6,22 +6,24 @@ agent:
     type: e1-standard-2
   containers:
     - name: main
-      image: "rust:1.53.0"
+      image: 'registry.semaphoreci.com/rust:1.53'
 
 global_job_config:
+  env_vars:
+    - name: CARGO_HOME
+      value: "/root/.cargo"
   prologue:
     commands:
-      # - install-package lftp
       - checkout --use-cache
-      # - cache restore v1-rustup-$(checksum Cargo.lock)
+      - cache restore v1-cargo-$(checksum Cargo.lock)
 
 blocks:
   - name: Build
+    dependencies: []
     task:
       jobs:
       - name: Rust Lint
         commands:
-          - rustup component add rustfmt
           - cargo fmt --all -- --check
       - name: Build & Test
         env_vars:
@@ -31,7 +33,11 @@ blocks:
           - git config --global user.email "test@test.com"
           - git config --global user.name "My Test user"
           - cargo test
-          # - cache store v1-rustup-$(checksum Cargo.lock) $RUSTUP_HOME
-      - name: Lint Lint
+          - cache store v1-cargo-$(checksum Cargo.lock) $CARGO_HOME
+  - name: Test run the project
+    dependencies: ["Build"]
+    task:
+      jobs:
+      - name: Run project to lint
         commands:
           - cargo run -- $SEMAPHORE_GIT_COMMIT_RANGE
