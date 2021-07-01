@@ -15,7 +15,6 @@ global_job_config:
   prologue:
     commands:
       - checkout --use-cache
-      - cache restore v1-cargo-$(checksum Cargo.lock)
 
 blocks:
   - name: Build
@@ -32,12 +31,16 @@ blocks:
         commands:
           - git config --global user.email "test@test.com"
           - git config --global user.name "My Test user"
+          - cache restore v1-cargo-$(checksum Cargo.lock)
           - cargo test
           - cache store v1-cargo-$(checksum Cargo.lock) $CARGO_HOME
+          - artifact push workflow target/debug/gitlint --expire-in 1w
   - name: Test run the project
     dependencies: ["Build"]
     task:
       jobs:
       - name: Run project to lint
         commands:
-          - cargo run -- $SEMAPHORE_GIT_COMMIT_RANGE
+          - artifact pull workflow gitlint
+          - chmod +x gitlint
+          - ./gitlint $SEMAPHORE_GIT_COMMIT_RANGE
