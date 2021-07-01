@@ -15,10 +15,10 @@ Given the last commit in a project is this:
 Fix bug
 ```
 
-When running `gitlint lint` to lint the last commit, the output will be:
+When running `gitlint` to lint the last commit, the output will be:
 
 ```
-$ gitlint lint
+$ gitlint
 6962010: Fix bug
   SubjectCliche: Subject is a 'Fix bug' commit.
   MessagePresence: Add a message body to provide more context about the change
@@ -44,17 +44,17 @@ TODO
 
 ```
 # Lint the most recent commit on the current branch
-gitlint lint
+gitlint
 # Is the same as:
-gitlint lint HEAD
+gitlint HEAD
 # Lint a specific commit
-gitlint lint 3a561ef766c2acfe5da478697d91758110b8b24c
+gitlint 3a561ef766c2acfe5da478697d91758110b8b24c
 
 # Select a range of commits
 # Lint the last 5 commits:
-gitlint lint HEAD~5..HEAD
+gitlint HEAD~5..HEAD
 # Lint the difference between two branches
-gitlint lint main..develop
+gitlint main..develop
 ```
 
 It's recommended to add Git Lint to your CI setup to lint the range of commits
@@ -76,7 +76,7 @@ To lint the commit locally immediately after writing the commit message, use a
 Git hook. To add it, run the following:
 
 ```
-echo "gitlint lint-hook --message-file=\$1" >> .git/hooks/commit-msg
+echo "gitlint --hook-message-file=\$1" >> .git/hooks/commit-msg
 chmod +x .git/hooks/pre-commit
 ```
 

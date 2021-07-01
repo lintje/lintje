@@ -22,71 +22,51 @@ use git::{fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "gitlint")]
+#[structopt(name = "gitlint", verbatim_doc_comment)]
+/**
+Lint Git commits
+
+## Usage examples
+
+    gitlint
+      Validate the latest commit.
+
+    gitlint HEAD
+      Validate the latest commit.
+
+    gitlint 3a561ef766c2acfe5da478697d91758110b8b24c
+      Validate a single specific commit.
+
+    gitlint HEAD~5..HEAD
+      Validate the last 5 commits.
+
+    gitlint main..develop
+      Validate the difference between the main and develop branch.
+
+    gitlint --hook-message-file=.git/COMMIT_EDITMSG
+      Lints the given commit message file from the commit-msg hook.
+*/
 struct GitLint {
     /// Prints debug information
-    #[structopt(short, long)]
+    #[structopt(long)]
     debug: bool,
 
-    #[structopt(subcommand)]
-    command: Command,
-}
+    /// Lint the contents the Git hook commit-msg commit message file.
+    #[structopt(long, parse(from_os_str))]
+    hook_message_file: Option<PathBuf>,
 
-#[derive(Debug, StructOpt)]
-enum Command {
-    /// Lint commits
-    ///
-    /// Usage examples
-    ///
-    ///     gitlint lint
-    ///       Validate the latest commit.
-    ///
-    ///     gitlint lint HEAD
-    ///       Validate the latest commit.
-    ///
-    ///     gitlint lint 3a561ef766c2acfe5da478697d91758110b8b24c
-    ///       Validate a single specific commit.
-    ///
-    ///     gitlint lint HEAD~5..HEAD
-    ///       Validate the last 5 commits.
-    ///
-    ///     gitlint lint main..develop
-    ///       Validate the difference between the main and develop branch.
-    ///
-    #[structopt(name = "lint", verbatim_doc_comment)]
-    Lint(LintOptions),
-    /// Lint commit-msg hook commit message
-    ///
-    /// Usage examples
-    ///
-    ///     gitlint lint-hook --file=.git/COMMIT_EDITMSG
-    ///       Lints the given commit message file from the commit-msg hook.
-    ///
-    #[structopt(name = "lint-hook", verbatim_doc_comment)]
-    LintHook(LintHookOptions),
-}
-
-#[derive(Debug, StructOpt)]
-struct LintOptions {
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.
     #[structopt(name = "commit (range)")]
     selection: Option<String>,
 }
 
-#[derive(Debug, StructOpt)]
-struct LintHookOptions {
-    /// Lint the contents the Git hook commit-msg commit message file.
-    #[structopt(long = "message-file", parse(from_os_str))]
-    msg_file: PathBuf,
-}
-
 fn main() {
     let args = GitLint::from_args();
     init_logger(args.debug);
-    let result = match args.command {
-        Command::Lint(command) => lint(command),
-        Command::LintHook(command) => lint_hook(command),
+    let result = match args.hook_message_file {
+        Some(hook_message_file) => lint_hook(&hook_message_file),
+        None => lint(args),
     };
     match result {
         Ok(_) => (),
@@ -97,7 +77,7 @@ fn main() {
     }
 }
 
-fn lint(options: LintOptions) -> Result<(), String> {
+fn lint(options: GitLint) -> Result<(), String> {
     let commit_result = fetch_and_parse_commits(options.selection);
     let commits = match commit_result {
         Ok(commits) => commits,
@@ -108,8 +88,7 @@ fn lint(options: LintOptions) -> Result<(), String> {
     Ok(())
 }
 
-fn lint_hook(options: LintHookOptions) -> Result<(), String> {
-    let filename = &options.msg_file;
+fn lint_hook(filename: &PathBuf) -> Result<(), String> {
     let commits = match File::open(filename) {
         Ok(mut file) => {
             let mut contents = String::new();
@@ -331,7 +310,7 @@ mod tests {
         let short_sha = sha.get(0..7).expect("Unable to build short commit SHA");
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
-        let assert = cmd.args(["lint", &sha]).current_dir(dir).assert().failure();
+        let assert = cmd.arg(sha.to_string()).current_dir(dir).assert().failure();
         assert
             .stdout(predicate::str::contains(&format!(
                 "{}: Test commit",
@@ -350,7 +329,7 @@ mod tests {
         );
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
-        let assert = cmd.arg("lint").current_dir(dir).assert().success();
+        let assert = cmd.current_dir(dir).assert().success();
         assert.stdout("1 commit inspected, 0 violations detected\n");
     }
 
@@ -361,7 +340,7 @@ mod tests {
         create_test_repo(&dir, &[("added some code", ""), ("Fixing tests", "")]);
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
-        let assert = cmd.arg("lint").current_dir(dir).assert().failure().code(1);
+        let assert = cmd.current_dir(dir).assert().failure().code(1);
         assert
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
@@ -387,7 +366,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint", "HEAD~2..HEAD"])
+            .arg(&"HEAD~2..HEAD")
             .current_dir(dir)
             .assert()
             .failure()
@@ -421,7 +400,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint-hook", &format!("--message-file={}", filename)])
+            .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)
             .assert()
             .failure()
@@ -452,7 +431,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint-hook", &format!("--message-file={}", filename)])
+            .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)
             .assert()
             .failure()
@@ -480,7 +459,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint-hook", &format!("--message-file={}", filename)])
+            .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)
             .assert()
             .failure()
@@ -497,7 +476,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("gitlint").unwrap();
         let assert = cmd
-            .args(&["lint-hook", &format!("--message-file={}", filename)])
+            .arg(&format!("--hook-message-file={}", filename))
             .current_dir(dir)
             .assert()
             .failure()

@@ -34,4 +34,4 @@ blocks:
           # - cache store v1-rustup-$(checksum Cargo.lock) $RUSTUP_HOME
       - name: Lint Lint
         commands:
-          - cargo run lint $SEMAPHORE_GIT_COMMIT_RANGE
+          - cargo run -- $SEMAPHORE_GIT_COMMIT_RANGE
