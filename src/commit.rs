@@ -155,7 +155,7 @@ impl Commit {
     }
 
     fn validate_subject_line_length(&mut self) {
-        let length = self.subject.len();
+        let length = self.subject.chars().count();
         if length > 50 {
             if self.rule_ignored(Rule::SubjectLength) {
                 return;
@@ -321,7 +321,7 @@ impl Commit {
             return;
         }
 
-        let length = self.message.len();
+        let length = self.message.chars().count();
         if length == 0 {
             self.add_violation(
                 Rule::MessagePresence,
@@ -352,7 +352,7 @@ impl Commit {
         let mut previous_line_was_empty_line = false;
         for raw_line in lines.into_iter() {
             let line = raw_line.trim_end();
-            let length = line.len();
+            let length = line.chars().count();
             match code_block_style {
                 CodeBlockStyle::Fenced => {
                     if CODE_BLOCK_LINE_END.is_match(line) {
@@ -499,6 +499,15 @@ mod tests {
 
         let long_subject = "a".repeat(51);
         assert_commit_subject_as_invalid(long_subject.as_str(), &Rule::SubjectLength);
+
+        let emoji_subject = "✨".repeat(50);
+        assert_commit_subject_as_valid(emoji_subject.as_str(), &Rule::SubjectLength);
+
+        let hiragana_short_subject = "あ".repeat(50);
+        assert_commit_subject_as_valid(hiragana_short_subject.as_str(), &Rule::SubjectLength);
+
+        let hiragana_long_subject = "あ".repeat(51);
+        assert_commit_subject_as_invalid(hiragana_long_subject.as_str(), &Rule::SubjectLength);
 
         let ignore_commit = validated_commit(
             "a".repeat(51).to_string(),
@@ -712,6 +721,14 @@ mod tests {
         .join("\n");
         let commit5 = validated_commit("Subject".to_string(), message5);
         assert_commit_invalid_for(commit5, &Rule::MessageLineLength);
+
+        let hiragana_short_message = ["あ".repeat(72)].join("\n");
+        let hiragana_short_commit = validated_commit("Subject".to_string(), hiragana_short_message);
+        assert_commit_valid_for(hiragana_short_commit, &Rule::MessageLineLength);
+
+        let hiragana_long_message = ["あ".repeat(73)].join("\n");
+        let hiragana_long_commit = validated_commit("Subject".to_string(), hiragana_long_message);
+        assert_commit_invalid_for(hiragana_long_commit, &Rule::MessageLineLength);
 
         let ignore_message = [
             "a".repeat(72),
