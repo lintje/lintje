@@ -341,16 +341,10 @@ impl Commit {
             return;
         }
 
-        match Self::check_line_lengths(self.message.lines()) {
-            Some((rule, message)) => self.add_violation(rule, message),
-            None => {}
-        }
-    }
-
-    fn check_line_lengths(lines: std::str::Lines) -> Option<(Rule, String)> {
         let mut code_block_style = CodeBlockStyle::None;
         let mut previous_line_was_empty_line = false;
-        for raw_line in lines.into_iter() {
+        let mut violations = vec![];
+        for (index, raw_line) in self.message.lines().enumerate() {
             let line = raw_line.trim_end();
             let length = line.chars().count();
             match code_block_style {
@@ -380,14 +374,17 @@ impl Commit {
                 if URL_REGEX.is_match(line) {
                     continue;
                 }
-                return Some((
+                violations.push((
                     Rule::MessageLineLength,
-                    "One or more lines in the message are longer than 72 characters.".to_string(),
-                ));
+                    format!("Line {} of the message body is too long. Shorten the line to maximum 72 characters.", index + 1),
+                ))
             }
             previous_line_was_empty_line = line.trim() == "";
         }
-        None
+
+        for (rule, message) in violations {
+            self.add_violation(rule, message);
+        }
     }
 
     fn add_violation(&mut self, rule: Rule, message: String) {
