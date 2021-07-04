@@ -114,3 +114,5 @@ git tag v$version
 git push origin main v$version
 echo "Creating release on GitHub. Please follow the prompts."
 gh release create v$version dist/*.tar.gz dist/checksums_256.txt --title "Release $version"
+
+echo "Please update the Homebrew tap next: https://github.com/tombruijn/homebrew-lintje"

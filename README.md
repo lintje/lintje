@@ -30,7 +30,14 @@ $ lintje
 
 ## Installation
 
-TODO
+### macOS
+
+To install Lintje on macOS use the [Homebrew](https://brew.sh/) tap.
+
+```
+brew tap tombruijn/lintje
+brew install lintje
+```
 
 ### Supported Operating Systems
 
@@ -154,6 +161,9 @@ script/release
 ```
 
 The release will be pushed to GitHub.
+
+Finally update the
+[Lintje Homebrew tap](https://github.com/tombruijn/homebrew-lintje).
 
 [rules]: doc/rules.md
 [issues]: https://github.com/tombruijn/lintje/issues
