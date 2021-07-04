@@ -4,7 +4,7 @@ set -eu
 
 echo "Preparing to release new version."
 
-if [ ! which gh &>/dev/null ]; then
+if ! which gh &>/dev/null; then
   echo "The GitHub CLI could not be found. Please install it before continuing."
   echo "https://cli.github.com/manual/"
   echo "And run 'gh auth login'"
