@@ -327,7 +327,9 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
-        assert.stdout("1 commit inspected, 0 violations detected\n");
+        assert.stdout(predicate::str::contains(
+            "1 commit inspected, 0 violations detected\n",
+        ));
     }
 
     #[test]

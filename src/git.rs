@@ -20,10 +20,9 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
 
     // Format definition per commit
     // Line 1: Commit SHA in long form
-    // Line 2: Commit SHA in abbreviated form
-    // Line 3 to second to last: Commit subject and message
+    // Line 2 to second to last: Commit subject and message
     // Line last: Delimiter to tell commits apart
-    let format = "%H%n%h%n%B";
+    let format = "%H%n%B";
     let mut args = vec![
         "log".to_string(),
         format!("--pretty={}{}", format, COMMIT_DELIMITER),
@@ -65,24 +64,21 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
     Ok(commits)
 }
 
-fn parse_commit(message: &str) -> Option<Commit> {
+pub fn parse_commit(message: &str) -> Option<Commit> {
     let mut long_sha = None;
-    let mut short_sha = None;
     let mut subject = None;
     let mut message_lines = Vec::<&str>::new();
     for (index, line) in message.lines().enumerate() {
         match index {
             0 => long_sha = Some(line),
-            1 => short_sha = Some(line),
-            2 => subject = Some(line),
+            1 => subject = Some(line),
             _ => message_lines.push(line),
         }
     }
-    match (long_sha, short_sha, subject) {
-        (Some(long_sha), Some(short_sha), Some(subject)) => {
+    match (long_sha, subject) {
+        (Some(long_sha), Some(subject)) => {
             let mut commit = Commit::new(
                 Some(long_sha.to_string()),
-                Some(short_sha.to_string()),
                 subject.to_string(),
                 message_lines.join("\n"),
             );
@@ -139,7 +135,7 @@ pub fn parse_commit_hook_format(
     }
     match subject {
         Some(subject) => {
-            let mut commit = Commit::new(None, None, subject.to_string(), message_lines.join("\n"));
+            let mut commit = Commit::new(None, subject.to_string(), message_lines.join("\n"));
             if !ignored(&commit) {
                 commit.validate();
                 Some(commit)
@@ -223,7 +219,6 @@ mod tests {
     fn test_parse_commit() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa\n\
         This is a subject\n\
         \n\
         This is my multi line message.\n\
@@ -246,7 +241,6 @@ mod tests {
     fn test_parse_commit_with_errors() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa\n\
         This is a subject",
         );
 
@@ -266,7 +260,6 @@ mod tests {
     fn test_parse_commit_ignore_merge_commit_pull_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa\n\
         Merge pull request #123 from tombruijn/repo\n\
         \n\
         This is my multi line message.\n\
@@ -280,7 +273,6 @@ mod tests {
     fn test_parse_commit_ignore_merge_commits_merge_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        aaaaaaa\n\
         Merge branch 'branch' into 'main'\n\
         \n\
         This is my multi line message.\n\

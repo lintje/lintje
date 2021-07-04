@@ -65,12 +65,18 @@ pub struct Commit {
 }
 
 impl Commit {
-    pub fn new(
-        long_sha: Option<String>,
-        short_sha: Option<String>,
-        subject: String,
-        message: String,
-    ) -> Self {
+    pub fn new(long_sha: Option<String>, subject: String, message: String) -> Self {
+        // Get first 7 characters of the commit SHA to get the short SHA.
+        let short_sha = match &long_sha {
+            Some(long) => match long.get(0..7) {
+                Some(sha) => Some(sha.to_string()),
+                None => {
+                    debug!("Could not determine abbreviated SHA from SHA");
+                    None
+                }
+            },
+            None => None,
+        };
         let ignored_rules = Self::find_ignored_rules(&message);
         Self {
             long_sha,
@@ -395,10 +401,13 @@ enum CodeBlockStyle {
 mod tests {
     use super::{Commit, Rule, Violation, MOOD_WORDS};
 
+    fn commit_with_sha(sha: Option<String>, subject: String, message: String) -> Commit {
+        Commit::new(sha, subject, message)
+    }
+
     fn commit(subject: String, message: String) -> Commit {
-        Commit::new(
-            Some("SHA LONG".to_string()),
-            Some("SHA SHORT".to_string()),
+        commit_with_sha(
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
             subject,
             message,
         )
@@ -450,6 +459,23 @@ mod tests {
 
     fn has_violation(violations: &Vec<Violation>, rule: &Rule) -> bool {
         violations.iter().any(|v| &v.rule == rule)
+    }
+
+    #[test]
+    fn test_create_short_sha() {
+        let long_sha = Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string());
+        let with_long_sha = commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
+        assert_eq!(
+            with_long_sha.long_sha,
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
+        );
+        assert_eq!(with_long_sha.short_sha, Some("aaaaaaa".to_string()));
+
+        let long_sha = Some("a".to_string());
+        let without_long_sha =
+            commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
+        assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
+        assert_eq!(without_long_sha.short_sha, None);
     }
 
     #[test]
