@@ -31,12 +31,11 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
     match selector {
         Some(selection) => {
             let selection = selection.trim().to_string();
-            if selection.contains("..") {
-                args.push(selection);
-            } else {
+            if !selection.contains("..") {
+                // Only select one commit if no commit range was selected
                 args.push("-n 1".to_string());
-                args.push(selection);
             }
+            args.push(selection);
         }
         None => args.push("HEAD~1..HEAD".to_string()),
     };

@@ -82,7 +82,7 @@ impl Commit {
         }
     }
 
-    pub fn find_ignored_rules(message: &String) -> Vec<Rule> {
+    pub fn find_ignored_rules(message: &str) -> Vec<Rule> {
         let disable_prefix = "gitlint:disable ";
         let mut ignored = vec![];
         for line in message.lines().into_iter() {

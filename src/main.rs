@@ -9,7 +9,7 @@ extern crate predicates;
 use log::LevelFilter;
 use std::fs::File;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 mod commit;
@@ -88,7 +88,7 @@ fn lint(options: GitLint) -> Result<(), String> {
     Ok(())
 }
 
-fn lint_hook(filename: &PathBuf) -> Result<(), String> {
+fn lint_hook(filename: &Path) -> Result<(), String> {
     let commits = match File::open(filename) {
         Ok(mut file) => {
             let mut contents = String::new();
