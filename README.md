@@ -39,14 +39,21 @@ brew tap tombruijn/lintje
 brew install lintje
 ```
 
+### Linux
+
+To install Lintje on Linux download the Linux archive from the latest release
+on the [releases page](https://github.com/tombruijn/lintje/releases). Then
+extract it to a directory in your `$PATH` so the `lintje` executable is
+available in any directory.
+
 ### Supported Operating Systems
 
 - Apple macOS:
-    - x86 64-bit
-    - ARM 64-bit (Apple Silicon)
+    - x86 64-bit (`x86_64-apple-darwin`)
+    - ARM 64-bit (`aarch64-apple-darwin`) (Apple Silicon)
 - Linux GNU:
-    - x86 64-bit
-    - ARM 64-bit
+    - x86 64-bit (`x86_64-unknown-linux-gnu`)
+    - ARM 64-bit (`aarch64-unknown-linux-gnu`)
 
 ## Usage
 
