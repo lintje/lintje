@@ -274,12 +274,7 @@ impl Commit {
         }
 
         let subject = &self.subject;
-        if SUBJECT_WITH_TICKET.is_match(subject) {
-            self.add_violation(
-                Rule::SubjectTicketNumber,
-                format!("Remove the ticket number from the commit subject. Move it to the message body."),
-            )
-        } else if SUBJECT_WITH_FIX_TICKET.is_match(subject) {
+        if SUBJECT_WITH_TICKET.is_match(subject) || SUBJECT_WITH_FIX_TICKET.is_match(subject) {
             self.add_violation(
                 Rule::SubjectTicketNumber,
                 format!("Remove the ticket number from the commit subject. Move it to the message body."),
@@ -293,12 +288,9 @@ impl Commit {
         }
 
         let subject = &self.subject;
-        if subject.to_lowercase().starts_with("wip ") {
-            self.add_violation(
-                Rule::SubjectCliche,
-                format!("Subject is a 'Work in Progress' commit."),
-            )
-        } else if subject.to_lowercase() == "wip".to_string() {
+        let wip_commit = subject.to_lowercase().starts_with("wip ")
+            || subject.to_lowercase() == "wip".to_string();
+        if wip_commit {
             self.add_violation(
                 Rule::SubjectCliche,
                 format!("Subject is a 'Work in Progress' commit."),
