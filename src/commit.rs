@@ -82,7 +82,7 @@ impl Commit {
             long_sha,
             short_sha,
             subject: subject.trim_end().to_string(),
-            message: message.trim().to_string(),
+            message,
             ignored_rules,
             violations: Vec::<Violation>::new(),
         }
@@ -120,6 +120,7 @@ impl Commit {
         self.validate_subject_punctuation();
         self.validate_subject_ticket_numbers();
         self.validate_subject_cliches();
+        self.validate_message_second_line_empty();
         self.validate_message_presence();
         self.validate_message_line_length();
     }
@@ -311,6 +312,21 @@ impl Commit {
                 Rule::SubjectCliche,
                 "Subject is a 'Fix bug' commit.".to_string(),
             )
+        }
+    }
+
+    fn validate_message_second_line_empty(&mut self) {
+        if self.rule_ignored(Rule::MessageEmptyFirstLine) {
+            return;
+        }
+
+        if let Some(line) = self.message.lines().next() {
+            if !line.is_empty() {
+                self.add_violation(
+                    Rule::MessageEmptyFirstLine,
+                    "The line after the subject is not empty.".to_string(),
+                );
+            }
         }
     }
 
@@ -680,6 +696,27 @@ mod tests {
             "lintje:disable SubjectCliche".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectCliche);
+    }
+
+    #[test]
+    fn test_validate_message_first_line_empty() {
+        let with_empty_line = validated_commit(
+            "Subject".to_string(),
+            "\nEmpty line after subject.".to_string(),
+        );
+        assert_commit_valid_for(with_empty_line, &Rule::MessageEmptyFirstLine);
+
+        let without_empty_line = validated_commit(
+            "Subject".to_string(),
+            "No empty line after subject.".to_string(),
+        );
+        assert_commit_invalid_for(without_empty_line, &Rule::MessageEmptyFirstLine);
+
+        let ignore_commit = validated_commit(
+            "Subject".to_string(),
+            "No empty line after subject\nlintje:disable MessageEmptyFirstLine".to_string(),
+        );
+        assert_commit_valid_for(ignore_commit, &Rule::MessageEmptyFirstLine);
     }
 
     #[test]

@@ -169,6 +169,19 @@ Fix build
 ...
 ```
 
+## MessageEmptyFirstLine
+
+The line in the commit message body after the subject is not empty. If the line
+after the subject is not empty, it is considered part of the subject.
+
+This if the preferred format of a Git commit:
+
+```
+Subject line
+
+First message line below an empty line.
+```
+
 ## MessagePresence
 
 The commit's message body is empty or too short. Add a message body to the

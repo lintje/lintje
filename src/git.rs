@@ -233,7 +233,7 @@ mod tests {
         );
         assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
         assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(commit.message, "This is my multi line message.\nLine 2.");
+        assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
         assert!(commit.violations.is_empty());
     }
 
@@ -297,7 +297,7 @@ mod tests {
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(commit.message, "This is a message.");
+        assert_eq!(commit.message, "\nThis is a message.");
     }
 
     #[test]
@@ -335,7 +335,10 @@ mod tests {
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(commit.message, "This is the message body.\n\nAnother line.");
+        assert_eq!(
+            commit.message,
+            "\nThis is the message body.\n\nAnother line.\n"
+        );
     }
 
     #[test]
@@ -359,7 +362,10 @@ mod tests {
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(commit.message, "This is the message body.\n\nAnother line.");
+        assert_eq!(
+            commit.message,
+            "\nThis is the message body.\n\nAnother line.\n"
+        );
     }
 
     #[test]
@@ -384,7 +390,7 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,
-            "This is the message body.\n\nThis is line 2."
+            "\nThis is the message body.\n\nThis is line 2."
         );
     }
 
@@ -409,7 +415,7 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,
-            "This is the message body.\n\
+            "\nThis is the message body.\n\
             # This is a comment\n\
             # Other things that are not part of the message.\n\
             Extra suprise!\
@@ -440,7 +446,7 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,
-            "This is the message body.\n\
+            "\nThis is the message body.\n\
             \n\
             This is line 2.\n\
             # This is a comment\n\

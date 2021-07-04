@@ -11,6 +11,7 @@ pub enum Rule {
     SubjectPunctuation,
     SubjectTicketNumber,
     SubjectCliche,
+    MessageEmptyFirstLine,
     MessagePresence,
     MessageLineLength,
 }
@@ -33,6 +34,7 @@ impl fmt::Display for Rule {
             Rule::SubjectPunctuation => "SubjectPunctuation",
             Rule::SubjectTicketNumber => "SubjectTicketNumber",
             Rule::SubjectCliche => "SubjectCliche",
+            Rule::MessageEmptyFirstLine => "MessageEmptyFirstLine",
             Rule::MessagePresence => "MessagePresence",
             Rule::MessageLineLength => "MessageLineLength",
         };
@@ -51,6 +53,7 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "SubjectPunctuation" => Some(Rule::SubjectPunctuation),
         "SubjectTicketNumber" => Some(Rule::SubjectTicketNumber),
         "SubjectCliche" => Some(Rule::SubjectCliche),
+        "MessageEmptyFirstLine" => Some(Rule::MessageEmptyFirstLine),
         "MessagePresence" => Some(Rule::MessagePresence),
         "MessageLineLength" => Some(Rule::MessageLineLength),
         _ => None,
