@@ -86,8 +86,7 @@ impl Commit {
         let disable_prefix = "gitlint:disable ";
         let mut ignored = vec![];
         for line in message.lines().into_iter() {
-            if line.starts_with(disable_prefix) {
-                let name = &line[disable_prefix.len()..];
+            if let Some(name) = line.strip_prefix(disable_prefix) {
                 match rule_by_name(name) {
                     Some(rule) => ignored.push(rule),
                     None => warn!("Attempted to ignore unknown rule: {}", name),
