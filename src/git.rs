@@ -2,9 +2,8 @@ use std::process::Command;
 
 use crate::commit::Commit;
 
-const SCISSORS: &'static str = "------------------------ >8 ------------------------";
-const COMMIT_DELIMITER: &'static str =
-    "------------------------ COMMIT >! ------------------------";
+const SCISSORS: &str = "------------------------ >8 ------------------------";
+const COMMIT_DELIMITER: &str = "------------------------ COMMIT >! ------------------------";
 
 #[derive(Debug, PartialEq)]
 pub enum CleanupMode {
@@ -166,7 +165,7 @@ fn ignored(commit: &Commit) -> bool {
         return true;
     }
 
-    return false;
+    false
 }
 
 pub fn cleanup_mode() -> CleanupMode {
@@ -203,7 +202,7 @@ pub fn comment_char() -> String {
             let character = String::from_utf8_lossy(&raw_output.stdout)
                 .trim()
                 .to_string();
-            if character.len() == 0 {
+            if character.is_empty() {
                 debug!("No Git core.commentChar config found. Using default `#` character.");
                 "#".to_string()
             } else {

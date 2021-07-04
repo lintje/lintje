@@ -130,7 +130,7 @@ impl Commit {
         if subject.starts_with("Merge branch") {
             self.add_violation(
                 Rule::MergeCommit,
-                format!("Rebase branches on the base branch, rather than merging the base branch with a merge commit.")
+                "Rebase branches on the base branch, rather than merging the base branch with a merge commit.".to_string()
             )
         }
     }
@@ -144,12 +144,12 @@ impl Commit {
         if subject.starts_with("fixup! ") {
             self.add_violation(
                 Rule::NeedsRebase,
-                format!("Squash fixup commits before merging."),
+                "Squash fixup commits before merging.".to_string(),
             )
         } else if subject.starts_with("squash! ") {
             self.add_violation(
                 Rule::NeedsRebase,
-                format!("Squash squash commits before merging."),
+                "Squash squash commits before merging.".to_string(),
             )
         }
     }
@@ -189,7 +189,7 @@ impl Commit {
             return;
         }
 
-        match self.subject.split(" ").nth(0) {
+        match self.subject.split(' ').next() {
             Some(raw_word) => {
                 let word = raw_word.to_lowercase();
                 if MOOD_WORDS.contains(&word.as_str()) {
@@ -210,7 +210,7 @@ impl Commit {
             return;
         }
 
-        match self.subject.chars().nth(0) {
+        match self.subject.chars().next() {
             Some(character) => {
                 if character.is_whitespace() {
                     self.add_violation(
@@ -230,7 +230,7 @@ impl Commit {
             return;
         }
 
-        match self.subject.chars().nth(0) {
+        match self.subject.chars().next() {
             Some(character) => {
                 if character.is_lowercase() {
                     self.add_violation(
@@ -277,7 +277,8 @@ impl Commit {
         if SUBJECT_WITH_TICKET.is_match(subject) || SUBJECT_WITH_FIX_TICKET.is_match(subject) {
             self.add_violation(
                 Rule::SubjectTicketNumber,
-                format!("Remove the ticket number from the commit subject. Move it to the message body."),
+                "Remove the ticket number from the commit subject. Move it to the message body."
+                    .to_string(),
             )
         }
     }
@@ -288,22 +289,22 @@ impl Commit {
         }
 
         let subject = &self.subject;
-        let wip_commit = subject.to_lowercase().starts_with("wip ")
-            || subject.to_lowercase() == "wip".to_string();
+        let wip_commit =
+            subject.to_lowercase().starts_with("wip ") || subject.to_lowercase() == *"wip";
         if wip_commit {
             self.add_violation(
                 Rule::SubjectCliche,
-                format!("Subject is a 'Work in Progress' commit."),
+                "Subject is a 'Work in Progress' commit.".to_string(),
             )
         } else if subject == &"Fix test".to_string() {
             self.add_violation(
                 Rule::SubjectCliche,
-                format!("Subject is a 'Fix test' commit."),
+                "Subject is a 'Fix test' commit.".to_string(),
             )
         } else if subject == &"Fix bug".to_string() {
             self.add_violation(
                 Rule::SubjectCliche,
-                format!("Subject is a 'Fix bug' commit."),
+                "Subject is a 'Fix bug' commit.".to_string(),
             )
         }
     }
@@ -449,7 +450,7 @@ mod tests {
     }
 
     fn has_violation(violations: &Vec<Violation>, rule: &Rule) -> bool {
-        violations.iter().find(|&v| &v.rule == rule).is_some()
+        violations.iter().any(|v| &v.rule == rule)
     }
 
     #[test]
@@ -498,10 +499,8 @@ mod tests {
         let hiragana_long_subject = "あ".repeat(51);
         assert_commit_subject_as_invalid(hiragana_long_subject.as_str(), &Rule::SubjectLength);
 
-        let ignore_commit = validated_commit(
-            "a".repeat(51).to_string(),
-            "gitlint:disable SubjectLength".to_string(),
-        );
+        let ignore_commit =
+            validated_commit("a".repeat(51), "gitlint:disable SubjectLength".to_string());
         assert_commit_valid_for(ignore_commit, &Rule::SubjectLength);
     }
 
@@ -740,22 +739,22 @@ mod tests {
             "```",
             "Normal line",
             "```md",
-            &"I am markdown",
+            "I am markdown",
             &"d".repeat(73), // Valid, inside code block
             "```",
             "Normal line",
             "``` yaml",
-            &"I am yaml",
+            "I am yaml",
             &"d".repeat(73), // Valid, inside code block
             "```",
             "Normal line",
             "```  elixir ",
-            &"I am elixir",
+            "I am elixir",
             &"d".repeat(73), // Valid, inside code block
             "```",
             "",
             "  ```",
-            &"  I am elixir",
+            "  I am elixir",
             &"  d".repeat(73), // Valid, inside fenced indented code block
             "  ```",
             "End of message",

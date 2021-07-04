@@ -138,7 +138,7 @@ fn handle_lint_result(commits: Vec<Commit>) {
     }
 
     if violation_count > 0 {
-        println!("");
+        println!();
     }
     let plural = if commit_count != 1 { "s" } else { "" };
     println!(
@@ -207,9 +207,9 @@ mod tests {
                 String::from_utf8(output.stderr).unwrap()
             )
         }
-        create_commit(&dir, "Initial commit", "");
+        create_commit(dir, "Initial commit", "");
         for (subject, message) in commits {
-            create_commit(&dir, subject, message)
+            create_commit(dir, subject, message)
         }
     }
 
@@ -229,7 +229,7 @@ mod tests {
             .current_dir(dir)
             .stdin(Stdio::null())
             .output()
-            .expect(&format!("Failed to make commit: {}, {}", subject, message));
+            .unwrap_or_else(|_| panic!("Failed to make commit: {}, {}", subject, message));
         if !output.status.success() {
             panic!(
                 "Failed to make commit!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
@@ -249,7 +249,7 @@ mod tests {
             .current_dir(&dir)
             .stdin(Stdio::null())
             .output()
-            .expect(&format!("Failed to configure Git commit.cleanup: {}", mode));
+            .unwrap_or_else(|_| panic!("Failed to configure Git commit.cleanup: {}", mode));
         if !output.status.success() {
             panic!(
                 "Failed to configure Git commit.cleanup!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
@@ -269,10 +269,7 @@ mod tests {
             .current_dir(&dir)
             .stdin(Stdio::null())
             .output()
-            .expect(&format!(
-                "Failed to configure Git core.commentChar: {}",
-                character
-            ));
+            .unwrap_or_else(|_| panic!("Failed to configure Git core.commentChar: {}", character));
         if !output.status.success() {
             panic!(
                 "Failed to configure Git core.commentChar!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
