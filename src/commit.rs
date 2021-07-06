@@ -525,6 +525,8 @@ mod tests {
         let subject = "a".repeat(50);
         assert_commit_subject_as_valid(subject.as_str(), &Rule::SubjectLength);
 
+        assert_commit_subject_as_invalid("", &Rule::SubjectLength);
+
         let short_subject = "a".repeat(4);
         assert_commit_subject_as_invalid(short_subject.as_str(), &Rule::SubjectLength);
 

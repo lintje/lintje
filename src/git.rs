@@ -64,10 +64,10 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
     Ok(commits)
 }
 
-pub fn parse_commit(message: &str) -> Option<Commit> {
+fn parse_commit(message: &str) -> Option<Commit> {
     let mut long_sha = None;
     let mut subject = None;
-    let mut message_lines = Vec::<&str>::new();
+    let mut message_lines = vec![];
     for (index, line) in message.lines().enumerate() {
         match index {
             0 => long_sha = Some(line),
@@ -76,22 +76,19 @@ pub fn parse_commit(message: &str) -> Option<Commit> {
         }
     }
     match (long_sha, subject) {
-        (Some(long_sha), Some(subject)) => {
-            let mut commit = Commit::new(
+        (Some(long_sha), subject) => {
+            let used_subject = subject.unwrap_or_else(|| {
+                debug!("Commit subject not present in message: {:?}", message);
+                ""
+            });
+            commit_or_none(
                 Some(long_sha.to_string()),
-                subject.to_string(),
-                message_lines.join("\n"),
-            );
-            if !ignored(&commit) {
-                commit.validate();
-                Some(commit)
-            } else {
-                debug!("Commit is ignored: {:?}", commit);
-                None
-            }
+                used_subject.to_string(),
+                message_lines,
+            )
         }
         _ => {
-            debug!("Commit SHA or subject not present: {}", message);
+            debug!("Commit ignored: SHA was not present: {}", message);
             None
         }
     }
@@ -133,21 +130,21 @@ pub fn parse_commit_hook_format(
             }
         }
     }
-    match subject {
-        Some(subject) => {
-            let mut commit = Commit::new(None, subject.to_string(), message_lines.join("\n"));
-            if !ignored(&commit) {
-                commit.validate();
-                Some(commit)
-            } else {
-                debug!("Commit is ignored: {:?}", commit);
-                None
-            }
-        }
-        _ => {
-            debug!("No subject found in commit file: {}", message);
-            None
-        }
+    let used_subject = subject.unwrap_or_else(|| {
+        debug!("Commit subject not present in message: {:?}", message);
+        ""
+    });
+    commit_or_none(None, used_subject.to_string(), message_lines)
+}
+
+fn commit_or_none(sha: Option<String>, subject: String, message: Vec<&str>) -> Option<Commit> {
+    let mut commit = Commit::new(sha, subject, message.join("\n"));
+    if !ignored(&commit) {
+        commit.validate();
+        Some(commit)
+    } else {
+        debug!("Commit is ignored: {:?}", commit);
+        None
     }
 }
 
@@ -252,6 +249,22 @@ mod tests {
         );
         assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
         assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(commit.message, "");
+        assert!(!commit.violations.is_empty());
+    }
+
+    #[test]
+    fn test_parse_commit_empty() {
+        let result = parse_commit("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
+
+        assert!(result.is_some());
+        let commit = result.unwrap();
+        assert_eq!(
+            commit.long_sha,
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
+        );
+        assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
+        assert_eq!(commit.subject, "");
         assert_eq!(commit.message, "");
         assert!(!commit.violations.is_empty());
     }
