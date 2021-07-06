@@ -7,6 +7,7 @@
   subject.
 - Validate commits without a subject. Previously these commits would be ignored
   and Lintje would not validate them, missing very undescriptive commits.
+- Add Alpine Linux musl compatible build.
 
 ## 0.1.0
 

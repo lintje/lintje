@@ -65,6 +65,9 @@ available in any directory.
 - Linux GNU:
     - x86 64-bit (`x86_64-unknown-linux-gnu`)
     - ARM 64-bit (`aarch64-unknown-linux-gnu`)
+- Alpine Linux musl:
+    - x86 64-bit (`x86_64-unknown-linux-musl`)
+    - ARM 64-bit (`aarch64-unknown-linux-musl`)
 
 ## Usage
 

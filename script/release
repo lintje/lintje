@@ -109,6 +109,16 @@ build_docker_image ubuntu-aarch64-development "--platform linux/arm64/v8"
 strip_in_container aarch64-unknown-linux-gnu ubuntu-aarch64-development "--platform linux/arm64/v8"
 archive aarch64-unknown-linux-gnu
 add_checksum aarch64-unknown-linux-gnu
+echo
+build_docker_image alpine-x86_64-development "--platform linux/amd64"
+strip_in_container x86_64-unknown-linux-musl alpine-x86_64-development "--platform linux/amd64"
+archive x86_64-unknown-linux-musl
+add_checksum x86_64-unknown-linux-musl
+echo
+build_docker_image alpine-aarch64-development "--platform linux/arm64/v8"
+strip_in_container aarch64-unknown-linux-musl alpine-aarch64-development "--platform linux/arm64/v8"
+archive aarch64-unknown-linux-musl
+add_checksum aarch64-unknown-linux-musl
 
 git tag v$version
 git push origin main v$version

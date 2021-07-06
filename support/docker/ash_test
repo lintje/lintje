@@ -1,0 +1,12 @@
+#!/bin/ash
+
+set -eu
+
+expected_version=$1
+
+if ! /dist/lintje --version | grep "lintje $expected_version"; then
+  echo "Version numbers did not match!"
+  echo "Expected:       lintje $expected_version"
+  echo "Actual version: $(/dist/lintje --version)"
+  exit 1
+fi

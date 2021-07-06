@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -eu
+
+script/build
+
+expected_version=0.1.0
+
+function test_for() {
+  target=$1
+  options=${2-}
+  echo "Testing $target"
+  (
+    cd support/docker
+    docker build \
+      $options \
+      -f Dockerfile.$target \
+      -t tombruijn/lintje-$target:build \
+      .
+  )
+  (
+    cd dist/$target
+    docker run --rm -it \
+      -v "$(pwd):/dist" \
+      -w "/dist" \
+      $options \
+      tombruijn/lintje-$target:build \
+      /project/test $expected_version
+  )
+}
+
+echo
+echo "Testing x86_64-apple-darwin"
+apple_artifact=dist/x86_64-apple-darwin/lintje
+if ! $apple_artifact --version | grep "lintje $expected_version"; then
+  echo "Version numbers did not match!"
+  echo "Expected:       lintje $expected_version"
+  echo "Actual version: $($apple_artifact --version)"
+  exit 1
+fi
+echo
+test_for x86_64-unknown-linux-gnu "--platform linux/amd64"
+echo
+test_for aarch64-unknown-linux-gnu "--platform linux/arm64/v8"
+echo
+test_for x86_64-unknown-linux-musl "--platform linux/amd64"
+echo
+test_for aarch64-unknown-linux-musl "--platform linux/arm64/v8"
