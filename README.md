@@ -229,5 +229,10 @@ The release will be pushed to GitHub.
 Finally update the
 [Lintje Homebrew tap](https://github.com/tombruijn/homebrew-lintje).
 
+## Code of Conduct
+
+This project has a [Code of Conduct](CODE_OF_CONDUCT.md) and contributors are
+expected to adhere to it.
+
 [rules]: doc/rules.md
 [issues]: https://github.com/tombruijn/lintje/issues
