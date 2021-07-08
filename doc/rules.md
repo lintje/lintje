@@ -137,6 +137,13 @@ Fix incorrect email validation!
 Fix incorrect email validation?
 ```
 
+Sometimes commits contain some tag for some machine to parse, like `[ci skip]`
+or `[skip ci]` to avoid building the commit on the CI, and save some resources.
+This rule will trigger if this tag is part of the commit's subject. Instead
+move the tag to the body of the commit message. It's not relevant for the
+subject, and the space can instead be used for describe the change in more
+detail.
+
 ## SubjectTicketNumber
 
 The commit's subject includes a reference to a ticket or issue. Move this to
