@@ -10,6 +10,10 @@ lazy_static! {
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
     static ref CODE_BLOCK_LINE_END: Regex = Regex::new(r"^\s*```$").unwrap();
+    static ref OTHER_PUNCTUATION: Vec<char> = vec![
+        '…',
+        '⋯',
+    ];
     static ref MOOD_WORDS: Vec<&'static str> = vec![
         "fixed",
         "fixes",
@@ -269,7 +273,7 @@ impl Commit {
 
         match self.subject.chars().next() {
             Some(character) => {
-                if character.is_ascii_punctuation() {
+                if is_punctuation(&character) {
                     self.add_violation(
                         Rule::SubjectPunctuation,
                         format!(
@@ -288,7 +292,7 @@ impl Commit {
 
         match self.subject.chars().last() {
             Some(character) => {
-                if character.is_ascii_punctuation() {
+                if is_punctuation(&character) {
                     self.add_violation(
                         Rule::SubjectPunctuation,
                         format!(
@@ -434,6 +438,10 @@ impl Commit {
     fn add_violation(&mut self, rule: Rule, message: String) {
         self.violations.push(Violation { rule, message })
     }
+}
+
+fn is_punctuation(character: &char) -> bool {
+    character.is_ascii_punctuation() || OTHER_PUNCTUATION.contains(&character)
 }
 
 #[derive(PartialEq)]
@@ -645,10 +653,16 @@ mod tests {
             "Fix test!",
             "Fix test?",
             "Fix test:",
+            "Fix test\'",
+            "Fix test\"",
+            "Fix test…",
+            "Fix test⋯",
             ".Fix test",
             "!Fix test",
             "?Fix test",
             ":Fix test",
+            "…Fix test",
+            "⋯Fix test",
             "📺Fix test",
             "👍Fix test",
             "👍🏻Fix test",
@@ -656,6 +670,14 @@ mod tests {
             "[Bug] Fix test",
             "[chore] Fix test",
             "[feat] Fix test",
+            "(feat) Fix test",
+            "{fix} Fix test",
+            "|fix| Fix test",
+            "-fix- Fix test",
+            "+fix+ Fix test",
+            "*fix* Fix test",
+            "%fix% Fix test",
+            "@fix Fix test",
         ];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPunctuation);
 
