@@ -652,6 +652,10 @@ mod tests {
             "📺Fix test",
             "👍Fix test",
             "👍🏻Fix test",
+            "[JIRA-123] Fix test",
+            "[Bug] Fix test",
+            "[chore] Fix test",
+            "[feat] Fix test",
         ];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPunctuation);
 
