@@ -127,6 +127,9 @@ fix incorrect email validation
 The commit's subject starts or ends with punctuation. Subjects don't need to
 end with punctuation.
 
+It may also be that a subject starts with an emoji, subjects also don't need to
+start with an emoji as a prefix of some kind.
+
 ```
 # Good
 Fix incorrect email validation
@@ -138,6 +141,9 @@ Fix incorrect email validation?
 .Fix incorrect email validation
 !Fix incorrect email validation
 ?Fix incorrect email validation
+📺 Fix my television
+👍 All good
+🐞 Fix bug in email validation
 ```
 
 Sometimes commits contain some tag for some machine to parse, like `[ci skip]`

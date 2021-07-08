@@ -2,6 +2,7 @@ use crate::rule::{rule_by_name, Rule, Violation};
 use regex::Regex;
 
 lazy_static! {
+    static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^\p{Emoji}").unwrap();
     static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]+-\d+").unwrap();
     // Match all GitHub and GitLab keywords
     static ref SUBJECT_WITH_FIX_TICKET: Regex =
@@ -254,6 +255,16 @@ impl Commit {
     fn validate_subject_punctuation(&mut self) {
         if self.rule_ignored(Rule::SubjectPunctuation) {
             return;
+        }
+
+        if SUBJECT_STARTS_WITH_EMOJI.is_match(&self.subject) {
+            self.add_violation(
+                Rule::SubjectPunctuation,
+                format!(
+                    "Remove emoji from the start of the commit subject: {}",
+                    self.subject
+                ),
+            )
         }
 
         match self.subject.chars().next() {
@@ -638,6 +649,9 @@ mod tests {
             "!Fix test",
             "?Fix test",
             ":Fix test",
+            "📺Fix test",
+            "👍Fix test",
+            "👍🏻Fix test",
         ];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPunctuation);
 

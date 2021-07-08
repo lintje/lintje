@@ -13,6 +13,8 @@
   they will be ignored.
 - Expand SubjectPunctuation rule to also scan for punctuation at the start of
   the subject, not just the end. Subjects should not start with punctuation.
+- Expand SubjectPunctuation rule to also scan for emoji at the start of
+  the subject. Subjects should not start with an emoji as a prefix.
 
 ## 0.1.0
 
