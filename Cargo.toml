@@ -5,6 +5,7 @@ authors = ["Tom de Bruijn <tom@tomdebruijn.com>"]
 edition = "2018"
 repository = "https://github.com/tombruijn/lintje"
 license = "MIT"
+description = "Lintje is an opinionated linter for Git."
 keywords = ["git", "linter"]
 categories = ["command-line-utilities", "development-tools"]
 
