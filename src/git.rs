@@ -1,9 +1,14 @@
+use regex::Regex;
 use std::process::Command;
 
 use crate::commit::Commit;
 
 const SCISSORS: &str = "------------------------ >8 ------------------------";
 const COMMIT_DELIMITER: &str = "------------------------ COMMIT >! ------------------------";
+
+lazy_static! {
+    static ref SUBJECT_WITH_SQUASH_PR: Regex = Regex::new(r".+ \(#\d+\)$").unwrap();
+}
 
 #[derive(Debug, PartialEq)]
 pub enum CleanupMode {
@@ -143,17 +148,32 @@ fn commit_or_none(sha: Option<String>, subject: String, message: Vec<&str>) -> O
         commit.validate();
         Some(commit)
     } else {
-        debug!("Commit is ignored: {:?}", commit);
         None
     }
 }
 
 fn ignored(commit: &Commit) -> bool {
-    if commit.subject.starts_with("Merge pull request") {
+    let subject = &commit.subject;
+    if subject.starts_with("Merge pull request") {
+        debug!(
+            "Ignoring commit because it's a 'merge pull request' commit: {}",
+            subject
+        );
         return true;
     }
-    if commit.subject.starts_with("Merge branch") && commit.message.contains("See merge request !")
-    {
+    if subject.starts_with("Merge branch") && commit.message.contains("See merge request !") {
+        debug!(
+            "Ignoring commit because it's a 'merge request' commit: {}",
+            subject
+        );
+        return true;
+    }
+    if SUBJECT_WITH_SQUASH_PR.is_match(subject) {
+        // Subject ends with a GitHub squash PR marker: ` (#123)`
+        debug!(
+            "Ignoring commit because it's a 'merge pull request' squash commit: {}",
+            subject
+        );
         return true;
     }
 
@@ -274,6 +294,19 @@ mod tests {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
         Merge pull request #123 from tombruijn/repo\n\
+        \n\
+        This is my multi line message.\n\
+        Line 2.",
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_commit_ignore_squash_merge_commit_pull_request() {
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        Fix some issue that's squashed (#123)\n\
         \n\
         This is my multi line message.\n\
         Line 2.",
