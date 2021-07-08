@@ -124,8 +124,8 @@ fix incorrect email validation
 
 ## SubjectPunctuation
 
-The commit's subject ends with punctuation. Subjects don't need to end with
-punctuation.
+The commit's subject starts or ends with punctuation. Subjects don't need to
+end with punctuation.
 
 ```
 # Good
@@ -135,6 +135,9 @@ Fix incorrect email validation
 Fix incorrect email validation.
 Fix incorrect email validation!
 Fix incorrect email validation?
+.Fix incorrect email validation
+!Fix incorrect email validation
+?Fix incorrect email validation
 ```
 
 Sometimes commits contain some tag for some machine to parse, like `[ci skip]`

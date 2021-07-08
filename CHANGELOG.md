@@ -11,6 +11,8 @@
 - Don't validate commit's which are squash commits from GitHub Pull Requests.
   It's not recommended to rewrite merge commits after they've been made, so
   they will be ignored.
+- Expand SubjectPunctuation rule to also scan for punctuation at the start of
+  the subject, not just the end. Subjects should not start with punctuation.
 
 ## 0.1.0
 

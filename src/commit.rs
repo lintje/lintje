@@ -256,6 +256,25 @@ impl Commit {
             return;
         }
 
+        match self.subject.chars().next() {
+            Some(character) => {
+                if character.is_ascii_punctuation() {
+                    self.add_violation(
+                        Rule::SubjectPunctuation,
+                        format!(
+                            "Remove punctuation from the start of the commit subject: {}",
+                            character
+                        ),
+                    )
+                }
+            }
+            None => {
+                error!(
+                    "SubjectPunctuation validation failure: No first character found of subject."
+                )
+            }
+        }
+
         match self.subject.chars().last() {
             Some(character) => {
                 if character.is_ascii_punctuation() {
@@ -607,10 +626,19 @@ mod tests {
 
     #[test]
     fn test_validate_subject_punctuation() {
-        let subjects = vec!["Fix test"];
+        let subjects = vec!["Fix test", "あ commit"];
         assert_commit_subjects_as_valid(subjects, &Rule::SubjectPunctuation);
 
-        let invalid_subjects = vec!["Fix test.", "Fix test!", "Fix test?", "Fix test:"];
+        let invalid_subjects = vec![
+            "Fix test.",
+            "Fix test!",
+            "Fix test?",
+            "Fix test:",
+            ".Fix test",
+            "!Fix test",
+            "?Fix test",
+            ":Fix test",
+        ];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPunctuation);
 
         let ignore_commit = validated_commit(
