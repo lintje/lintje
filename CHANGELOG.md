@@ -16,6 +16,7 @@
 - Expand SubjectPunctuation rule to also scan for emoji at the start of
   the subject. Subjects should not start with an emoji as a prefix.
 - Expand SubjectPunctuation rule to check for more Unicode punctuation.
+- Add Microsoft Windows release build.
 
 ## 0.1.0
 

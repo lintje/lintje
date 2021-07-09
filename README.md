@@ -52,10 +52,17 @@ brew install lintje
 
 ### Linux
 
-To install Lintje on Linux download the Linux archive from the latest release
-on the [releases page](https://github.com/tombruijn/lintje/releases). Then
-extract it to a directory in your `$PATH` so the `lintje` executable is
-available in any directory.
+To install Lintje on Linux download the archive from the latest release on the
+[releases page](https://github.com/tombruijn/lintje/releases) for the
+appropriate system. Then extract it to a directory in your `$PATH` so the
+`lintje` executable is available in any directory.
+
+### Microsoft Windows
+
+To install Lintje on Microsoft Windows download the archive from the latest
+release on the [releases page](https://github.com/tombruijn/lintje/releases)
+for the appropriate system. Then extract it to a directory in your `PATH` so
+the `lintje.exe` executable is available in any directory.
 
 ### Supported Operating Systems
 
@@ -68,6 +75,8 @@ available in any directory.
 - Alpine Linux musl:
     - x86 64-bit (`x86_64-unknown-linux-musl`)
     - ARM 64-bit (`aarch64-unknown-linux-musl`)
+- Microsoft Windows:
+    - x86 64-bit (`x86_64-pc-windows-gnu`)
 
 ## Usage
 
