@@ -224,7 +224,7 @@ releases using [cross](https://github.com/rust-embedded/cross).
 To build all different targets, run the build script:
 
 ```
-script/build
+rake build
 ```
 
 The build output can be found in the `dist/` directory.
@@ -237,7 +237,7 @@ Before release all the supported targets will be build. See
 To release all different targets, run the release script:
 
 ```
-script/release
+rake release
 ```
 
 The release will be pushed to GitHub.
