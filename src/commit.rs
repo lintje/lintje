@@ -155,12 +155,12 @@ impl Commit {
         if subject.starts_with("fixup! ") {
             self.add_violation(
                 Rule::NeedsRebase,
-                "Squash fixup commits before merging.".to_string(),
+                "Rebase fixup commits before merging.".to_string(),
             )
         } else if subject.starts_with("squash! ") {
             self.add_violation(
                 Rule::NeedsRebase,
-                "Squash squash commits before merging.".to_string(),
+                "Rebase squash commits before merging.".to_string(),
             )
         }
     }
@@ -334,17 +334,17 @@ impl Commit {
         if wip_commit {
             self.add_violation(
                 Rule::SubjectCliche,
-                "Subject is a 'Work in Progress' commit.".to_string(),
+                "Reword the subject to describe the change in more detail.".to_string(),
             )
         } else if subject == &"Fix test".to_string() {
             self.add_violation(
                 Rule::SubjectCliche,
-                "Subject is a 'Fix test' commit.".to_string(),
+                "Reword the subject to explain which test was fixed.".to_string(),
             )
         } else if subject == &"Fix bug".to_string() {
             self.add_violation(
                 Rule::SubjectCliche,
-                "Subject is a 'Fix bug' commit.".to_string(),
+                "Reword the subject to explain what bug was fixed.".to_string(),
             )
         }
     }
@@ -358,7 +358,7 @@ impl Commit {
             if !line.is_empty() {
                 self.add_violation(
                     Rule::MessageEmptyFirstLine,
-                    "The line after the subject is not empty.".to_string(),
+                    "Add an empty line below the subject line.".to_string(),
                 );
             }
         }
