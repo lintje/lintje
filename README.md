@@ -15,6 +15,8 @@ reviews and debug sessions 2+ months from now.
 
 - [Installation](#installation)
 - [Usage](#usage)
+    - [Git hook](#git-hook)
+    - [Git alias](#git-alias)
 - [Rules documentation][rules]
 - [Configuration](#configuration)
 - [Development documentation](#development)
@@ -38,6 +40,8 @@ $ lintje
 
 1 commit inspected, 2 violations detected
 ```
+
+For more examples, see the [usage](#usage) section.
 
 ## Installation
 
@@ -81,17 +85,17 @@ the `lintje.exe` executable is available in any directory.
 ## Usage
 
 ```
-# Lint the most recent commit on the current branch
+# Lint the most recent commit on the current branch:
 lintje
 # Is the same as:
 lintje HEAD
-# Lint a specific commit
+# Lint a specific commit:
 lintje 3a561ef766c2acfe5da478697d91758110b8b24c
 
-# Select a range of commits
+# Lintje multiple commits
 # Lint the last 5 commits:
 lintje HEAD~5..HEAD
-# Lint the difference between two branches
+# Lint the difference between two branches:
 lintje main..develop
 ```
 
@@ -192,6 +196,9 @@ Here is some more content of the commit message is very long for valid reasons.
 lintje:disable SubjectPunctuation
 lintje:disable MessageLineTooLong
 ```
+
+_(The above is a bad commit, please don't use the disabling of rules this
+way.)_
 
 ## Development
 

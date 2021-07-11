@@ -2,10 +2,12 @@
 
 All the rules Lintje follows are documented on this page. The heading name
 matches the rule name, and can be used to [ignore specific rules per
-commit](../README.md#ignoring-rules-per-commit)
+commit](../README.md#ignoring-rules-per-commit).
 
 _Lintje is primarily focussed on supporting the English language, other
-languages may not be compatible with every rule._
+languages may not be compatible with every rule currently. Please
+[create an issue](https://github.com/tombruijn/lintje/issues) if you run into
+any problems._
 
 ## What type of rules is Lintje configured for?
 
