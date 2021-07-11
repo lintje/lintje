@@ -130,6 +130,13 @@ namespace :release do
 
   task :all => [:check_local_changes, :prepare, "build:all"] do
     version = fetch_package_version
+    if run("git tag").split("\n").include?("v#{version}")
+      puts "Tag #{version} already exists. Exiting."
+      puts "Please make sure to update the version in the Cargo.toml file."
+      puts "Don't forget to update the CHANGELOG.md file."
+      exit 1
+    end
+
     answer = prompt_confirmation \
       "Do you want to publish Lintje v#{version}? (y/n) "
     unless answer
