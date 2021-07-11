@@ -54,26 +54,40 @@ brew tap tombruijn/lintje
 brew install lintje
 ```
 
+Or install it manually by downloading the archive from the latest release on
+the [releases page](https://github.com/tombruijn/lintje/releases) for the
+appropriate system. _See the [list of installation
+targets](#supported-operating-systems)._
+
+Once downloaded extract it to a directory in your `$PATH` so the `lintje`
+executable is available in any directory from the command line.
+
 ### Linux
 
 To install Lintje on Linux download the archive from the latest release on the
 [releases page](https://github.com/tombruijn/lintje/releases) for the
-appropriate system. Then extract it to a directory in your `$PATH` so the
-`lintje` executable is available in any directory.
+appropriate system. _See the
+[list of installation targets](#supported-operating-systems)._
+
+Once downloaded extract it to a directory in your `$PATH` so the `lintje`
+executable is available in any directory from the command line.
 
 ### Microsoft Windows
 
 To install Lintje on Microsoft Windows download the archive from the latest
 release on the [releases page](https://github.com/tombruijn/lintje/releases)
-for the appropriate system. Then extract it to a directory in your `PATH` so
-the `lintje.exe` executable is available in any directory.
+for the appropriate system. _See the
+[list of installation targets](#supported-operating-systems)._
+
+Once downloaded extract it to a directory in your `PATH` so the `lintje.exe`
+executable is available in any directory from the command line.
 
 ### Supported Operating Systems
 
 - Apple macOS:
     - x86 64-bit (`x86_64-apple-darwin`)
     - ARM 64-bit (`aarch64-apple-darwin`) (Apple Silicon)
-- Linux GNU:
+- Linux GNU (most distributions like Ubuntu, Debian, etc.):
     - x86 64-bit (`x86_64-unknown-linux-gnu`)
     - ARM 64-bit (`aarch64-unknown-linux-gnu`)
 - Alpine Linux musl:
