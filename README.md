@@ -34,7 +34,7 @@ When running `lintje` to lint the last commit, the output will be:
 ```
 $ lintje
 6162010: Fix bug
-  SubjectCliche: Subject is a 'Fix bug' commit.
+  SubjectCliche: Reword the subject to explain what bug was fixed.
   MessagePresence: Add a message body to provide more context about the change
     and why it was made.
 
@@ -52,6 +52,13 @@ To install Lintje on macOS use the [Homebrew](https://brew.sh/) tap.
 ```
 brew tap tombruijn/lintje
 brew install lintje
+```
+
+Whenever a new version comes out run the following:
+
+```
+brew update
+brew upgrade lintje
 ```
 
 Or install it manually by downloading the archive from the latest release on
