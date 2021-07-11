@@ -53,6 +53,7 @@ BUILDS = {
 
 DIST_DIR = "dist"
 DIST_ARCHIVES_DIR = File.join(DIST_DIR, "archives")
+DIST_PACKAGES_DIR = File.join(DIST_DIR, "packages")
 ARCHIVES_CHECKSUMS_FILE = File.join(DIST_ARCHIVES_DIR, "checksums_256.txt")
 
 namespace :build do
@@ -157,6 +158,7 @@ namespace :release do
 
   task :all => [:prepare, "build:all"] do
     build_archives
+    build_packages
 
     version = fetch_package_version
     tag = "v#{version}"
@@ -211,6 +213,72 @@ namespace :release do
     File.open(ARCHIVES_CHECKSUMS_FILE, "a") do |file|
       file.write checksum
     end
+  end
+
+  task :packages do
+    build_packages
+  end
+
+  def build_packages
+    puts "Building OS packages"
+    build_debian_package "amd64", "x86_64-unknown-linux-gnu"
+    build_debian_package "arm64", "aarch64-unknown-linux-gnu"
+  end
+
+  def build_debian_package(package_architecture, triple)
+    package_config = BUILDS[triple]
+    package_revision = "1" # Hardcoded package revision for now
+    version = fetch_package_version
+    package_name =
+      "#{PROJECT_SLUG}-#{version}-#{package_revision}-#{package_architecture}"
+
+    # Prepare packge dist dir
+    package_dir = File.join(DIST_PACKAGES_DIR, package_name)
+    dist_dir = File.join(DIST_ARCHIVES_DIR, triple)
+    FileUtils.remove_dir package_dir if Dir.exist? package_dir
+    FileUtils.mkdir_p package_dir
+
+    # Create DEBIAN `control` file with package metadata
+    debian_dir = File.join(package_dir, "DEBIAN")
+    FileUtils.mkdir_p debian_dir
+    File.open File.join(debian_dir, "control"), "w" do |file|
+      bind = Class.new do
+        def initialize(version, architecture)
+          @package_slug = PROJECT_NAME
+          @package_name = PROJECT_NAME
+          @package_version = version
+          @package_architecture = architecture
+          @package_maintainer = PROJECT_MAINTAINER
+          @package_description = PROJECT_DESCRIPTION
+        end
+
+        def fetch_binding
+          binding
+        end
+      end.new(version, package_architecture).fetch_binding
+      template = File.read("support/packages/deb/DEBIAN/control.erb")
+      file.write ERB.new(template).result bind
+    end
+    # Copy executable to package dist dir.
+    # The path inside the package dist dir mimics the install location on the
+    # installation machine.
+    bin_dir = File.join(package_dir, "usr", "bin")
+    FileUtils.mkdir_p bin_dir
+    FileUtils.cp(
+      File.join(dist_dir, package_config[:artifact_filename]),
+      bin_dir
+    )
+
+    # Build the Docker image in which to build the package
+    image_tag = "ubuntu-deb:build_#{package_architecture}"
+    build_docker_image image_tag,
+      "Dockerfile.ubuntu-deb",
+      :platform => package_architecture
+    # Build and test the package
+    run_in_container image_tag,
+      "support/script/build_deb",
+      :platform => package_architecture,
+      :env => { "PACKAGE_NAME" => package_name }
   end
 end
 task :release => ["release:all"]

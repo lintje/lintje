@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -eu
+
+echo "Building package $PACKAGE_NAME"
+dpkg-deb --build --root-owner-group dist/packages/$PACKAGE_NAME
+
+echo Install the built package
+dpkg -i dist/packages/$PACKAGE_NAME.deb
+echo Test the installed package
+lintje --version
+echo Uninstall package
+dpkg --purge lintje
+
+echo Install with apt
+apt install -y ./dist/packages/$PACKAGE_NAME.deb
+echo Test the installed package
+lintje --version
+echo Uninstall package
+apt-get purge -y lintje
