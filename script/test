@@ -2,7 +2,7 @@
 
 set -eu
 
-script/build
+rake build
 
 expected_version=0.1.0
 
@@ -19,7 +19,7 @@ function test_for() {
       .
   )
   (
-    cd dist/$target
+    cd dist/archives/$target
     docker run --rm -it \
       -v "$(pwd):/dist" \
       -w "/dist" \
@@ -31,7 +31,7 @@ function test_for() {
 
 echo
 echo "Testing x86_64-apple-darwin"
-apple_artifact=dist/x86_64-apple-darwin/lintje
+apple_artifact=dist/archives/x86_64-apple-darwin/lintje
 if ! $apple_artifact --version | grep "lintje $expected_version"; then
   echo "Version numbers did not match!"
   echo "Expected:       lintje $expected_version"
