@@ -110,6 +110,13 @@ end
 task :build => ["build:all"]
 
 namespace :release do
+  task :prepare => [
+    :check_local_changes,
+    :prompt_confirmation,
+    :check_tag_presence,
+    :check_gh_install
+  ]
+
   task :check_local_changes do
     if local_changes?
       puts "Local changes detected!"
@@ -118,7 +125,27 @@ namespace :release do
     end
   end
 
-  task :prepare do
+  task :prompt_confirmation do
+    version = fetch_package_version
+    answer = prompt_confirmation \
+      "Do you want to publish Lintje v#{version}? (y/n) "
+    unless answer
+      puts "Exiting..."
+      exit 0
+    end
+  end
+
+  task :check_tag_presence do
+    version = fetch_package_version
+    if run("git tag").split("\n").include?("v#{version}")
+      puts "Tag #{version} already exists. Exiting."
+      puts "Please make sure to update the version in the Cargo.toml file."
+      puts "Don't forget to update the CHANGELOG.md file."
+      exit 1
+    end
+  end
+
+  task :check_gh_install do
     run "which gh &>/dev/null"
   rescue CommandFailed
     puts "The GitHub CLI could not be found. " \
@@ -128,24 +155,10 @@ namespace :release do
     exit 1
   end
 
-  task :all => [:check_local_changes, :prepare, "build:all"] do
-    version = fetch_package_version
-    if run("git tag").split("\n").include?("v#{version}")
-      puts "Tag #{version} already exists. Exiting."
-      puts "Please make sure to update the version in the Cargo.toml file."
-      puts "Don't forget to update the CHANGELOG.md file."
-      exit 1
-    end
-
-    answer = prompt_confirmation \
-      "Do you want to publish Lintje v#{version}? (y/n) "
-    unless answer
-      puts "Exiting..."
-      exit 0
-    end
-
+  task :all => [:prepare, "build:all"] do
     build_archives
 
+    version = fetch_package_version
     tag = "v#{version}"
     run "git tag #{tag}"
     run "git push origin #{current_branch} #{tag}"
