@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.2)
+    dotenv (2.7.6)
     parallel (1.20.1)
     parser (3.0.1.1)
       ast (~> 2.4.1)
@@ -26,6 +27,7 @@ PLATFORMS
   x86_64-darwin-20
 
 DEPENDENCIES
+  dotenv
   rubocop
 
 BUNDLED WITH

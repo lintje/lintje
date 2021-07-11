@@ -73,6 +73,12 @@ executable is available in any directory from the command line.
 
 ### Linux
 
+Please see the [installation guide][installation] for more information about
+Debian installation packages.
+
+For other systems, that do not have installation packages yet, follow the
+instructions below.
+
 To install Lintje on Linux download the archive from the latest release on the
 [releases page](https://github.com/tombruijn/lintje/releases) for the
 appropriate system. _See the
@@ -302,3 +308,4 @@ expected to adhere to it.
 [issues]: https://github.com/tombruijn/lintje/issues
 [discussions]: https://github.com/tombruijn/lintje/discussions
 [examples]: docs/examples.md
+[installation]: docs/installation.md

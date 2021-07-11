@@ -1,12 +1,15 @@
 # frozen_string_literal: true
 
 require "erb"
+require "json"
+require "dotenv"
 
 PROJECT_NAME = "Lintje"
 PROJECT_SLUG = "lintje"
 PROJECT_MAINTAINER = "Tom de Bruijn tom@tomdebruijn.com"
 PROJECT_HOMEPAGE = "https://github.com/tombruijn/lintje"
 PROJECT_DESCRIPTION = "Lintje is an opinionated linter for Git."
+CLOUDSMITH_REPO = "lintje/lintje"
 
 BUILDS = {
   "x86_64-apple-darwin" => {
@@ -220,6 +223,7 @@ namespace :release do
   end
 
   def build_packages
+    Dotenv.load
     puts "Building OS packages"
     build_debian_package "amd64", "x86_64-unknown-linux-gnu"
     build_debian_package "arm64", "aarch64-unknown-linux-gnu"
@@ -231,6 +235,7 @@ namespace :release do
     version = fetch_package_version
     package_name =
       "#{PROJECT_SLUG}-#{version}-#{package_revision}-#{package_architecture}"
+    package_filename = "#{package_name}.deb"
 
     # Prepare packge dist dir
     package_dir = File.join(DIST_PACKAGES_DIR, package_name)
@@ -279,6 +284,34 @@ namespace :release do
       "support/script/build_deb",
       :platform => package_architecture,
       :env => { "PACKAGE_NAME" => package_name }
+    upload_debian_package(package_filename)
+  end
+
+  def upload_debian_package(filename)
+    api_key = ENV["CLOUDSMITH_API_KEY"]
+    file_path = File.join(DIST_PACKAGES_DIR, filename)
+    # Upload the package to Cloudsmith
+    response = run <<~COMMAND
+      curl \
+        --silent \
+        --show-error \
+        --upload-file #{file_path} \
+        -u 'tombruijn:#{api_key}' \
+        -H "Content-Sha256: $(shasum -a256 '#{file_path}' | cut -f1 -d' ')" \
+        https://upload.cloudsmith.io/#{CLOUDSMITH_REPO}/#{filename}
+    COMMAND
+    output = JSON.parse(response)
+    identifier = output.fetch("identifier")
+    # Create package on Cloudsmith
+    # It's currently set to any-distro/any-version, because the executable has
+    # no specific dependencies or limitations for older versions of
+    # distributions that I know of.
+    run <<~COMMAND
+      curl -X POST -H "Content-Type: application/json" \
+        -u 'tombruijn:#{api_key}' \
+        -d '{"package_file": "#{identifier}", "distribution": "any-distro/any-version"}' \
+        https://api-prd.cloudsmith.io/v1/packages/#{CLOUDSMITH_REPO}/upload/deb/
+    COMMAND
   end
 end
 task :release => ["release:all"]
