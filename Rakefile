@@ -129,6 +129,14 @@ namespace :release do
   end
 
   task :all => [:check_local_changes, :prepare, "build:all"] do
+    version = fetch_package_version
+    answer = prompt_confirmation \
+      "Do you want to publish Lintje v#{version}? (y/n) "
+    unless answer
+      puts "Exiting..."
+      exit 0
+    end
+
     build_archives
 
     tag = "v#{version}"
@@ -281,6 +289,27 @@ end
 
 def current_branch
   `git rev-parse --abbrev-ref HEAD`.chomp
+end
+
+def prompt_confirmation(message)
+  loop do
+    print message
+    input = fetch_input.strip
+    case input
+    when "y", "Y", "yes"
+      return true
+    when "n", "N", "no"
+      return false
+    end
+  end
+end
+
+def fetch_input
+  input = $stdin.gets
+  input ? input.chomp : ""
+rescue Interrupt
+  puts "\nExiting..."
+  exit 1
 end
 
 class CommandFailed < StandardError
