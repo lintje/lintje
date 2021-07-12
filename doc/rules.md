@@ -241,6 +241,7 @@ little meaning. Expand the subject to be more descriptive.
 ```
 # Bad
 WIP
+Fix
 Fix bug
 Fix test
 Fix issue

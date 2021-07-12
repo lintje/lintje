@@ -396,23 +396,27 @@ impl Commit {
             return;
         }
 
-        let subject = &self.subject;
-        let wip_commit =
-            subject.to_lowercase().starts_with("wip ") || subject.to_lowercase() == *"wip";
+        let subject = &self.subject.to_lowercase();
+        let wip_commit = subject.starts_with("wip ") || subject == &"wip".to_string();
         if wip_commit {
             self.add_violation(
                 Rule::SubjectCliche,
                 "Reword the subject to describe the change in more detail.".to_string(),
             )
-        } else if subject == &"Fix test".to_string() {
+        } else if subject == &"fix test".to_string() {
             self.add_violation(
                 Rule::SubjectCliche,
                 "Reword the subject to explain which test was fixed.".to_string(),
             )
-        } else if subject == &"Fix bug".to_string() {
+        } else if subject == &"fix bug".to_string() {
             self.add_violation(
                 Rule::SubjectCliche,
                 "Reword the subject to explain what bug was fixed.".to_string(),
+            )
+        } else if subject == &"fix".to_string() {
+            self.add_violation(
+                Rule::SubjectCliche,
+                "Reword the subject to explain what was fixed.".to_string(),
             )
         }
     }
@@ -879,7 +883,12 @@ mod tests {
             "WIP",
             "wip",
             "Fix test",
+            "fix test",
             "Fix bug",
+            "fix bug",
+            "Fix",
+            "fix",
+            "FIX",
         ];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectCliche);
 
