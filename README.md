@@ -89,6 +89,17 @@ for the appropriate system. _See the
 Once downloaded extract it to a directory in your `PATH` so the `lintje.exe`
 executable is available in any directory from the command line.
 
+### Cargo install
+
+If [Rust](https://www.rust-lang.org/) is installed on your system it's also an
+option to install the Lintje crate using the command below. It's not guaranteed
+to work on any system Rust runs on, but please [create an issue][issues] if you
+run into any problems.
+
+```
+cargo install lintje
+```
+
 ### Supported Operating Systems
 
 - Apple macOS:
