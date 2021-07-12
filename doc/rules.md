@@ -172,6 +172,42 @@ JIRA-123
 Fix JIRA-123 for good
 ```
 
+## SubjectBuildTag
+
+The commit's subject contains a "skip ci" build tag. This should be moved to
+the message body. The skip CI tag doesn't tell anything about what kind of
+change was made. It's metadata only for the CI system.
+
+```
+# Bad
+// General
+Update README [ci skip]
+Update README [skip ci]
+Update README [no ci]
+// AppVeyor
+Update README [skip appveyor]
+// Azure
+Update README [azurepipelines skip]
+Update README [skip azurepipelines]
+Update README [azpipelines skip]
+Update README [skip azpipelines]
+Update README [azp skip]
+Update README [skip azp]
+Update README ***NO_CI***",
+// GitHub Actions
+Update README [actions skip]
+Update README [skip actions]
+// Travis
+Update README [travis skip]
+Update README [skip travis]
+Update README [travis ci skip]
+Update README [skip travis ci]
+Update README [travis-ci skip]
+Update README [skip travis-ci]
+Update README [travisci skip]
+Update README [skip travisci]
+```
+
 ## SubjectCliche
 
 The commit's subject is considered to be a cliché, it's overused and adds

@@ -57,6 +57,34 @@ lazy_static! {
         "tested",
         "testing",
     ];
+    static ref BUILD_TAGS: Vec<&'static str> = vec![
+        // General
+        "[ci skip]",
+        "[skip ci]",
+        "[no ci]",
+        // AppVeyor
+        "[skip appveyor]",
+        // Azure
+        "[azurepipelines skip]",
+        "[skip azurepipelines]",
+        "[azpipelines skip]",
+        "[skip azpipelines]",
+        "[azp skip]",
+        "[skip azp]",
+        "***NO_CI***",
+        // GitHub Actions
+        "[actions skip]",
+        "[skip actions]",
+        // Travis
+        "[travis skip]",
+        "[skip travis]",
+        "[travis ci skip]",
+        "[skip travis ci]",
+        "[travis-ci skip]",
+        "[skip travis-ci]",
+        "[travisci skip]",
+        "[skip travisci]",
+    ];
 }
 
 #[derive(Debug)]
@@ -124,6 +152,7 @@ impl Commit {
         self.validate_subject_capitalization();
         self.validate_subject_punctuation();
         self.validate_subject_ticket_numbers();
+        self.validate_subject_build_tags();
         self.validate_subject_cliches();
         self.validate_message_second_line_empty();
         self.validate_message_presence();
@@ -323,6 +352,22 @@ impl Commit {
         }
     }
 
+    fn validate_subject_build_tags(&mut self) {
+        if self.rule_ignored(Rule::SubjectBuildTag) {
+            return;
+        }
+
+        let subject = &self.subject.to_string();
+        for tag in BUILD_TAGS.iter() {
+            if subject.contains(tag) {
+                self.add_violation(
+                    Rule::SubjectBuildTag,
+                    format!("Move the build tag `{}` to the message body.", tag),
+                )
+            }
+        }
+    }
+
     fn validate_subject_cliches(&mut self) {
         if self.rule_ignored(Rule::SubjectCliche) {
             return;
@@ -453,7 +498,7 @@ enum CodeBlockStyle {
 
 #[cfg(test)]
 mod tests {
-    use super::{Commit, Rule, Violation, MOOD_WORDS};
+    use super::{Commit, Rule, Violation, BUILD_TAGS, MOOD_WORDS};
 
     fn commit_with_sha(sha: Option<String>, subject: String, message: String) -> Commit {
         Commit::new(sha, subject, message)
@@ -500,12 +545,12 @@ mod tests {
         }
     }
 
-    fn assert_commit_subject_as_invalid(subject: &str, rule: &Rule) {
-        let commit = validated_commit(subject.to_string(), "".to_string());
+    fn assert_commit_subject_as_invalid<S: AsRef<str>>(subject: S, rule: &Rule) {
+        let commit = validated_commit(subject.as_ref().to_string(), "".to_string());
         assert_commit_invalid_for(commit, rule);
     }
 
-    fn assert_commit_subjects_as_invalid(subjects: Vec<&str>, rule: &Rule) {
+    fn assert_commit_subjects_as_invalid<S: AsRef<str>>(subjects: Vec<S>, rule: &Rule) {
         for subject in subjects {
             assert_commit_subject_as_invalid(subject, rule)
         }
@@ -739,6 +784,24 @@ mod tests {
             "lintje:disable SubjectTicketNumber".to_string(),
         );
         assert_commit_valid_for(ignore_issue_number, &Rule::SubjectTicketNumber);
+    }
+
+    #[test]
+    fn test_validate_subject_build_tags() {
+        let subjects = vec!["Add exception for no ci build tag"];
+        assert_commit_subjects_as_valid(subjects, &Rule::SubjectBuildTag);
+
+        let mut invalid_subjects = vec![];
+        for tag in BUILD_TAGS.iter() {
+            invalid_subjects.push(format!("Update README {}", tag))
+        }
+        assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectBuildTag);
+
+        let ignore_commit = validated_commit(
+            "Update README [ci skip]".to_string(),
+            "lintje:disable SubjectBuildTag".to_string(),
+        );
+        assert_commit_valid_for(ignore_commit, &Rule::SubjectBuildTag);
     }
 
     #[test]

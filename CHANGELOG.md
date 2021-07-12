@@ -1,5 +1,10 @@
 # Lintje changelog
 
+## Next release
+
+- Add SubjectBuildTag rule to check for "skip ci" tags in the subject. These
+  tags should be moved to the message body.
+
 ## 0.2.0
 
 - Add MessageEmptyFirstLine rule that checks if the line after the subject line
