@@ -1,6 +1,9 @@
 version: v1.0
 name: Lintje
 
+auto_cancel:
+  running:
+    when: branch != 'main'
 agent:
   machine:
     type: e1-standard-2
