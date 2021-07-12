@@ -4,6 +4,8 @@
 
 - Add SubjectBuildTag rule to check for "skip ci" tags in the subject. These
   tags should be moved to the message body.
+- Add SubjectPrefix rule to explicitly check for prefixes in subjects, like
+  "fix: bug", "fix!: bug", "fix(scope): bug", and suggest to remove them.
 
 ## 0.2.0
 

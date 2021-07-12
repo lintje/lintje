@@ -2,6 +2,7 @@ use crate::rule::{rule_by_name, Rule, Violation};
 use regex::Regex;
 
 lazy_static! {
+    static ref SUBJECT_STARTS_WITH_PREFIX: Regex = Regex::new(r"^([\w\(\)/!]+:)\s.*").unwrap();
     static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^\p{Emoji}").unwrap();
     static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]+-\d+").unwrap();
     // Match all GitHub and GitLab keywords
@@ -152,6 +153,7 @@ impl Commit {
         self.validate_subject_capitalization();
         self.validate_subject_punctuation();
         self.validate_subject_ticket_numbers();
+        self.validate_subject_prefix();
         self.validate_subject_build_tags();
         self.validate_subject_cliches();
         self.validate_message_second_line_empty();
@@ -349,6 +351,27 @@ impl Commit {
                 "Remove the ticket number from the commit subject. Move it to the message body."
                     .to_string(),
             )
+        }
+    }
+
+    fn validate_subject_prefix(&mut self) {
+        if self.rule_ignored(Rule::SubjectPrefix) {
+            return;
+        }
+
+        let subject = &self.subject.to_string();
+        if let Some(captures) = SUBJECT_STARTS_WITH_PREFIX.captures(subject) {
+            // Get first match from captures, the prefix
+            match captures.get(1) {
+                Some(capture) => self.add_violation(
+                    Rule::SubjectPrefix,
+                    format!(
+                        "Remove the prefix from the commit subject: \"{}\"",
+                        capture.as_str()
+                    ),
+                ),
+                None => error!("SubjectPrefix: Unable to fetch prefix capture from subject."),
+            }
         }
     }
 
@@ -784,6 +807,42 @@ mod tests {
             "lintje:disable SubjectTicketNumber".to_string(),
         );
         assert_commit_valid_for(ignore_issue_number, &Rule::SubjectTicketNumber);
+    }
+
+    #[test]
+    fn test_validate_subject_prefix() {
+        let subjects = vec!["This is a commit without prefix"];
+        assert_commit_subjects_as_valid(subjects, &Rule::SubjectPrefix);
+
+        let invalid_subjects = vec![
+            "fix: bug",
+            "fix!: bug",
+            "Fix: bug",
+            "Fix!: bug",
+            "fix(scope): bug",
+            "fix(scope)!: bug",
+            "Fix(scope123)!: bug",
+            "fix(scope/scope): bug",
+            "fix(scope/scope)!: bug",
+        ];
+        assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPrefix);
+
+        let commit = validated_commit("fix: bug".to_string(), "".to_string());
+        let violation = commit
+            .violations
+            .iter()
+            .find(|&v| v.rule == Rule::SubjectPrefix)
+            .unwrap_or_else(|| panic!("Could not find violation"));
+        assert_eq!(
+            violation.message,
+            "Remove the prefix from the commit subject: \"fix:\""
+        );
+
+        let ignore_commit = validated_commit(
+            "fix: bug".to_string(),
+            "lintje:disable SubjectPrefix".to_string(),
+        );
+        assert_commit_valid_for(ignore_commit, &Rule::SubjectPrefix);
     }
 
     #[test]
