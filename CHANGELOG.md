@@ -1,6 +1,6 @@
 # Lintje changelog
 
-## Next release
+## 0.3.0
 
 - Add SubjectBuildTag rule to check for "skip ci" tags in the subject. These
   tags should be moved to the message body.
