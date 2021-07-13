@@ -168,6 +168,10 @@ namespace :release do
         #{File.join(DIST_ARCHIVES_DIR, "*.tar.gz")} #{ARCHIVES_CHECKSUMS_FILE} \
         --title "Release #{version}"
     COMMAND
+
+    puts "Publishing to crates.io"
+    system "cargo publish"
+
     puts "Release of version #{version} done!"
     puts "Please update the Homebrew tap next: https://github.com/tombruijn/homebrew-lintje"
   end
