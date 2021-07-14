@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::process::Command;
 
-use crate::commit::Commit;
+use crate::commit::{Commit, SUBJECT_WITH_MERGE_REMOTE_BRANCH};
 
 const SCISSORS: &str = "------------------------ >8 ------------------------";
 const COMMIT_DELIMITER: &str = "------------------------ COMMIT >! ------------------------";
@@ -176,6 +176,13 @@ fn ignored(commit: &Commit) -> bool {
         );
         return true;
     }
+    if subject.starts_with("Merge branch ") && !SUBJECT_WITH_MERGE_REMOTE_BRANCH.is_match(subject) {
+        debug!(
+            "Ignoring commit because it's a local merge commit: {}",
+            subject
+        );
+        return true;
+    }
 
     false
 }
@@ -328,6 +335,26 @@ mod tests {
         );
 
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_commit_ignore_merge_commits_without_into() {
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        Merge branch 'branch'",
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_commit_merge_remote_commits() {
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        Merge branch 'branch' of github.com/org/repo into branch",
+        );
+
+        assert!(result.is_some());
     }
 
     #[test]

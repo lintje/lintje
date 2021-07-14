@@ -1,5 +1,12 @@
 # Lintje changelog
 
+## Next version
+
+- Improve MergeCommit rule to fail on less types of merge commits. A local
+  merge commit into the repository's base branch is accepted, but a merge
+  commit merging a remote branch or two non-base-branch into one another are
+  not. In the future this may warn on certain local merges again.
+
 ## 0.3.0
 
 - Add SubjectBuildTag rule to check for "skip ci" tags in the subject. These

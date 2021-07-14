@@ -2,6 +2,7 @@ use crate::rule::{rule_by_name, Rule, Violation};
 use regex::Regex;
 
 lazy_static! {
+    pub static ref SUBJECT_WITH_MERGE_REMOTE_BRANCH: Regex = Regex::new(r"^Merge branch '.+' of .+ into .+").unwrap();
     static ref SUBJECT_STARTS_WITH_PREFIX: Regex = Regex::new(r"^([\w\(\)/!]+:)\s.*").unwrap();
     static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^\p{Emoji}").unwrap();
     static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]+-\d+").unwrap();
@@ -169,10 +170,10 @@ impl Commit {
         }
 
         let subject = &self.subject;
-        if subject.starts_with("Merge branch") {
+        if SUBJECT_WITH_MERGE_REMOTE_BRANCH.is_match(subject) {
             self.add_violation(
                 Rule::MergeCommit,
-                "Rebase branches on the base branch, rather than merging the base branch with a merge commit.".to_string()
+                "Rebase branches on the remote branch, rather than merging the remote branch into the local branch.".to_string()
             )
         }
     }
@@ -587,6 +588,15 @@ mod tests {
         violations.iter().any(|v| &v.rule == rule)
     }
 
+    fn assert_has_violation<S: AsRef<str>>(commit: &Commit, rule: Rule, message: S) {
+        let violation = commit
+            .violations
+            .iter()
+            .find(|v| v.rule == rule)
+            .unwrap_or_else(|| panic!("Could not find violation"));
+        assert_eq!(message.as_ref().to_string(), violation.message);
+    }
+
     #[test]
     fn test_create_short_sha() {
         let long_sha = Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string());
@@ -608,10 +618,26 @@ mod tests {
     fn test_validate_subject_merge_commit() {
         assert_commit_subject_as_valid("I am not a merge commit", &Rule::MergeCommit);
         assert_commit_subject_as_valid("Merge pull request #123 from repo", &Rule::MergeCommit);
-        assert_commit_subject_as_invalid("Merge branch 'main' into develop", &Rule::MergeCommit);
+        // Merge into the project's defaultBranch branch
+        assert_commit_subject_as_valid("Merge branch 'develop'", &Rule::MergeCommit);
+        // Merge a local branch into another local branch
+        assert_commit_subject_as_valid(
+            "Merge branch 'develop' into feature-branch",
+            &Rule::MergeCommit,
+        );
+        // Merge a remote branch into a local branch
+        let remote_merge_commit = validated_commit(
+            "Merge branch 'develop' of github.com/org/repo into develop".to_string(),
+            "".to_string(),
+        );
+        assert_has_violation(
+            &remote_merge_commit,
+            Rule::MergeCommit,
+            "Rebase branches on the remote branch, rather than merging the remote branch into the local branch.",
+        );
 
         let ignore_commit = validated_commit(
-            "Merge branch 'main' into develop".to_string(),
+            "Merge branch 'develop' of github.com/org/repo into develop".to_string(),
             "lintje:disable MergeCommit".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::MergeCommit);
@@ -831,15 +857,10 @@ mod tests {
         ];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPrefix);
 
-        let commit = validated_commit("fix: bug".to_string(), "".to_string());
-        let violation = commit
-            .violations
-            .iter()
-            .find(|&v| v.rule == Rule::SubjectPrefix)
-            .unwrap_or_else(|| panic!("Could not find violation"));
-        assert_eq!(
-            violation.message,
-            "Remove the prefix from the commit subject: \"fix:\""
+        assert_has_violation(
+            &validated_commit("fix: bug".to_string(), "".to_string()),
+            Rule::SubjectPrefix,
+            "Remove the prefix from the commit subject: \"fix:\"",
         );
 
         let ignore_commit = validated_commit(
