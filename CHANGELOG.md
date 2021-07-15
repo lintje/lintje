@@ -6,6 +6,9 @@
   merge commit into the repository's base branch is accepted, but a merge
   commit merging a remote branch or two non-base-branch into one another are
   not. In the future this may warn on certain local merges again.
+- Ignore merge commits for tags. These commits are local merges that will be
+  ignored for checks for now. They may trigger the MergeCommit rule in the
+  future, when local merges can be detected.
 
 ## 0.3.0
 

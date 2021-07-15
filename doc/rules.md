@@ -357,12 +357,16 @@ git config --global pull.rebase true
 
 This rule will also try to trigger on local merge commits in the future.
 
-Note: Merge commits that merge local branches into the repo's main branch do
-not fail under this rule. Merge commits made when merging Pull and Merge
-requests will also not fail on this rule, these commits are ignored entirely,
-as they communicate when a Pull/Merge request was accepted and merged into the
-base branch. This includes commits made by GitHub's "squash and merge" merge
-strategy.
+### Notes about merge commits
+
+Merge commits that merge local branches/tags into the repository's branches do
+not fail under this rule, they are currently ignored, but may fail on this rule
+in the future.
+
+Merge commits made when merging Pull and Merge requests will not fail on this
+rule, these commits are ignored entirely. These commits they communicate when a
+Pull/Merge request was accepted and merged into the base branch. This includes
+commits made by GitHub's "squash and merge" merge strategy.
 
 ## NeedsRebase
 

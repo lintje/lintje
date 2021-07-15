@@ -154,6 +154,13 @@ fn commit_or_none(sha: Option<String>, subject: String, message: Vec<&str>) -> O
 
 fn ignored(commit: &Commit) -> bool {
     let subject = &commit.subject;
+    if subject.starts_with("Merge tag ") {
+        debug!(
+            "Ignoring commit because it's a merge commit of a tag: {}",
+            subject
+        );
+        return true;
+    }
     if subject.starts_with("Merge pull request") {
         debug!(
             "Ignoring commit because it's a 'merge pull request' commit: {}",
@@ -294,6 +301,16 @@ mod tests {
         assert_eq!(commit.subject, "");
         assert_eq!(commit.message, "");
         assert!(!commit.violations.is_empty());
+    }
+
+    #[test]
+    fn test_parse_commit_ignore_tag_merge_commit() {
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        Merge tag 'v1.2.3' into main",
+        );
+
+        assert!(result.is_none());
     }
 
     #[test]
