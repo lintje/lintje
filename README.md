@@ -133,7 +133,7 @@ lintje HEAD~5..HEAD
 lintje main..develop
 ```
 
-It's recommended to add Git Lint to your CI setup to lint the range of commits
+It's recommended to add Lintje to your CI setup to lint the range of commits
 added by a Pull Request or push.
 
 See also the [examples page][examples] for more usage examples.
