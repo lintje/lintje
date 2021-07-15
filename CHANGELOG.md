@@ -12,6 +12,9 @@
 - Fix GitLab merge commit detection, to ignore those commits. It previously
   only scanned for Merge Request reference IDs, but now scans for the full
   `org/repo!id` reference used by GitLab in Merge Request merge commits.
+- Better detect GitLab merge commit references. Update the SubjectTicketNumber
+  rule to also detect references to Merge Requests in GitLab that uses
+  exclamation marks `!` instead of `#`.
 
 ## 0.3.0
 
