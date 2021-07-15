@@ -8,6 +8,8 @@ const COMMIT_DELIMITER: &str = "------------------------ COMMIT >! -------------
 
 lazy_static! {
     static ref SUBJECT_WITH_SQUASH_PR: Regex = Regex::new(r".+ \(#\d+\)$").unwrap();
+    static ref MESSAGE_CONTAINS_MERGE_REQUEST_REFERENCE: Regex =
+        Regex::new(r"^See merge request .+/.+!\d+$").unwrap();
 }
 
 #[derive(Debug, PartialEq)]
@@ -154,6 +156,7 @@ fn commit_or_none(sha: Option<String>, subject: String, message: Vec<&str>) -> O
 
 fn ignored(commit: &Commit) -> bool {
     let subject = &commit.subject;
+    let message = &commit.message;
     if subject.starts_with("Merge tag ") {
         debug!(
             "Ignoring commit because it's a merge commit of a tag: {}",
@@ -168,7 +171,9 @@ fn ignored(commit: &Commit) -> bool {
         );
         return true;
     }
-    if subject.starts_with("Merge branch") && commit.message.contains("See merge request !") {
+    if subject.starts_with("Merge branch ")
+        && MESSAGE_CONTAINS_MERGE_REQUEST_REFERENCE.is_match(message)
+    {
         debug!(
             "Ignoring commit because it's a 'merge request' commit: {}",
             subject
@@ -343,15 +348,51 @@ mod tests {
     fn test_parse_commit_ignore_merge_commits_merge_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        Merge branch 'branch' into 'main'\n\
+        Merge branch 'branch' into main\n\
         \n\
         This is my multi line message.\n\
-        Line 2.
-
-        See merge request !123",
+        Line 2.\n\
+        \n\
+        See merge request gitlab-org/repo!123",
         );
 
         assert!(result.is_none());
+
+        // This is not a full reference, but a shorthand. GitLab merge commits
+        // use the full org + repo + Merge Request ID reference.
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        Fix some issue\n\
+        \n\
+        This is my multi line message.\n\
+        Line 2.\n\
+        \n\
+        See merge request !123 for more info about the orignal fix",
+        );
+
+        assert!(result.is_some());
+
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        Fix some issue\n\
+        \n\
+        This is my multi line message.\n\
+        Line 2.\n\
+        \n\
+        Also See merge request !123",
+        );
+
+        assert!(result.is_some());
+
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        Fix some issue\n\
+        \n\
+        This is my multi line message.\n\
+        Line 2. See merge request org/repo!123",
+        );
+
+        assert!(result.is_some());
     }
 
     #[test]

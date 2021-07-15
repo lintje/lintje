@@ -9,6 +9,9 @@
 - Ignore merge commits for tags. These commits are local merges that will be
   ignored for checks for now. They may trigger the MergeCommit rule in the
   future, when local merges can be detected.
+- Fix GitLab merge commit detection, to ignore those commits. It previously
+  only scanned for Merge Request reference IDs, but now scans for the full
+  `org/repo!id` reference used by GitLab in Merge Request merge commits.
 
 ## 0.3.0
 
