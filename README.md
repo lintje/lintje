@@ -19,6 +19,7 @@ reviews and debug sessions 2+ months from now.
     - [Git alias](#git-alias)
 - [Rules documentation][rules]
 - [Configuration](#configuration)
+- [Getting help](#getting-help)
 - [Development documentation](#development)
 
 ## Example
@@ -232,6 +233,15 @@ lintje:disable MessageLineTooLong
 _(The above is a bad commit, please don't use the disabling of rules this
 way.)_
 
+## Getting help
+
+Need help with Lintje? Found a bug or have a question?
+
+Reach out to me through the [issue tracker][issues],
+[discussions][discussions], on Twitter
+[@tombruijn](https://twitter.com/tombruijn) (DMs are open) or on any Slack team
+you can find me on.
+
 ## Development
 
 ### Setup
@@ -284,3 +294,4 @@ expected to adhere to it.
 
 [rules]: doc/rules.md
 [issues]: https://github.com/tombruijn/lintje/issues
+[discussions]: https://github.com/tombruijn/lintje/discussions
