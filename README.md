@@ -15,6 +15,7 @@ reviews and debug sessions 2+ months from now.
 
 - [Installation](#installation)
 - [Usage](#usage)
+    - [Examples][examples]
     - [Git hook](#git-hook)
     - [Git alias](#git-alias)
 - [Rules documentation][rules]
@@ -42,7 +43,7 @@ $ lintje
 1 commit inspected, 2 violations detected
 ```
 
-For more examples, see the [usage](#usage) section.
+For more usage examples, see the [usage](#usage) section.
 
 ## Installation
 
@@ -132,8 +133,10 @@ lintje HEAD~5..HEAD
 lintje main..develop
 ```
 
-It's recommended to add Lintje to your CI setup to lint the range of commits
-added by a Pull Request or job.
+It's recommended to add Git Lint to your CI setup to lint the range of commits
+added by a Pull Request or push.
+
+See also the [examples page][examples] for more usage examples.
 
 ### Exit codes
 
@@ -295,3 +298,4 @@ expected to adhere to it.
 [rules]: doc/rules.md
 [issues]: https://github.com/tombruijn/lintje/issues
 [discussions]: https://github.com/tombruijn/lintje/discussions
+[examples]: docs/examples.md
