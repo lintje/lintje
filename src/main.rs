@@ -12,6 +12,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
+mod command;
 mod commit;
 mod git;
 mod logger;

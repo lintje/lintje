@@ -1,5 +1,11 @@
 # Lintje changelog
 
+## Next version
+
+- Better handling of Git commands when they fail. Print an error message when a
+  Git command fails (like calling `git log`) and when Git is not
+  installed.
+
 ## 0.3.1
 
 - Improve MergeCommit rule to fail on less types of merge commits. A local

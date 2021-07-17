@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo "STDOUT message"
+>&2 echo "STDERR message"
+
+exit ${1-1}

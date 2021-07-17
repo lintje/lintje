@@ -1,6 +1,6 @@
 use regex::Regex;
-use std::process::Command;
 
+use crate::command::run_command;
 use crate::commit::{Commit, SUBJECT_WITH_MERGE_REMOTE_BRANCH};
 
 const SCISSORS: &str = "------------------------ >8 ------------------------";
@@ -23,8 +23,6 @@ pub enum CleanupMode {
 
 pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, String> {
     let mut commits = Vec::<Commit>::new();
-    let mut command = Command::new("git");
-
     // Format definition per commit
     // Line 1: Commit SHA in long form
     // Line 2 to second to last: Commit subject and message
@@ -46,28 +44,17 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
         None => args.push("HEAD~1..HEAD".to_string()),
     };
 
-    command.args(&args);
-    match command.output() {
-        Ok(raw_output) => {
-            let output = String::from_utf8_lossy(&raw_output.stdout);
-            let messages = output.split(COMMIT_DELIMITER);
-            for message in messages {
-                let trimmed_message = message.trim();
-                if !trimmed_message.is_empty() {
-                    match parse_commit(trimmed_message) {
-                        Some(commit) => commits.push(commit),
-                        None => debug!("Commit ignored: {:?}", message),
-                    }
-                }
+    let output = run_command("git", &args)?;
+    let messages = output.split(COMMIT_DELIMITER);
+    for message in messages {
+        let trimmed_message = message.trim();
+        if !trimmed_message.is_empty() {
+            match parse_commit(trimmed_message) {
+                Some(commit) => commits.push(commit),
+                None => debug!("Commit ignored: {:?}", message),
             }
         }
-        Err(e) => {
-            return Err(format!(
-                "Unable to fetch commits from Git: {:?}\n{}",
-                args, e
-            ))
-        }
-    };
+    }
     Ok(commits)
 }
 
@@ -200,10 +187,8 @@ fn ignored(commit: &Commit) -> bool {
 }
 
 pub fn cleanup_mode() -> CleanupMode {
-    let mut command = Command::new("git");
-    command.args(&["config", "commit.cleanup"]);
-    match command.output() {
-        Ok(raw_output) => match String::from_utf8_lossy(&raw_output.stdout).trim() {
+    match run_command("git", &["config", "commit.cleanup"]) {
+        Ok(stdout) => match stdout.trim() {
             "default" => CleanupMode::Default,
             "scissors" => CleanupMode::Scissors,
             "strip" => CleanupMode::Strip,
@@ -226,13 +211,9 @@ pub fn cleanup_mode() -> CleanupMode {
 }
 
 pub fn comment_char() -> String {
-    let mut command = Command::new("git");
-    command.args(&["config", "core.commentChar"]);
-    match command.output() {
-        Ok(raw_output) => {
-            let character = String::from_utf8_lossy(&raw_output.stdout)
-                .trim()
-                .to_string();
+    match run_command("git", &["config", "core.commentChar"]) {
+        Ok(stdout) => {
+            let character = stdout.trim().to_string();
             if character.is_empty() {
                 debug!("No Git core.commentChar config found. Using default `#` character.");
                 "#".to_string()
