@@ -116,6 +116,9 @@ cargo install lintje
 - Microsoft Windows:
     - x86 64-bit (`x86_64-pc-windows-gnu`)
 
+Is your favorite Operating System not in this list? Please [create an
+issue][issues] with what Operating System you want to use Lintje on.
+
 ## Usage
 
 ```
