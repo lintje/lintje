@@ -345,10 +345,11 @@ mod tests {
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
                 \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
+                \x20\x20SubjectCliche: Reword the subject to describe the change in more detail.\n\
                 \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(
-                "1 commit inspected, 2 violations detected\n",
+                "1 commit inspected, 3 violations detected\n",
             ));
     }
 
@@ -380,10 +381,11 @@ mod tests {
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
                 \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
+                \x20\x20SubjectCliche: Reword the subject to describe the change in more detail.\n\
                 \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(
-                "2 commits inspected, 4 violations detected\n",
+                "2 commits inspected, 5 violations detected\n",
             ));
     }
 

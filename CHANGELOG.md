@@ -5,6 +5,8 @@
 - Better handling of Git commands when they fail. Print an error message when a
   Git command fails (like calling `git log`) and when Git is not
   installed.
+- Improve SubjectCliche rule to catch plurals of words (e.g. "fix tests") and
+  check for more subject prefixes like "add fix", "update code", "remove file".
 
 ## 0.3.1
 

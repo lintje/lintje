@@ -1,5 +1,5 @@
 use crate::rule::{rule_by_name, Rule, Violation};
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 
 lazy_static! {
     pub static ref SUBJECT_WITH_MERGE_REMOTE_BRANCH: Regex = Regex::new(r"^Merge branch '.+' of .+ into .+").unwrap();
@@ -9,6 +9,13 @@ lazy_static! {
     // Match all GitHub and GitLab keywords
     static ref SUBJECT_WITH_FIX_TICKET: Regex =
         Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+").unwrap();
+    static ref SUBJECT_WITH_CLICHE: Regex = {
+        let mut tempregex = RegexBuilder::new(r"^(fix(es|ed|ing)?|add(s|ed|ing)?|(updat|chang|remov|delet)(e|es|ed|ing))(\s+\w+)?$");
+        tempregex.case_insensitive(true);
+        tempregex.multi_line(false);
+        tempregex.build().unwrap()
+    };
+
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
     static ref CODE_BLOCK_LINE_END: Regex = Regex::new(r"^\s*```$").unwrap();
@@ -399,25 +406,10 @@ impl Commit {
 
         let subject = &self.subject.to_lowercase();
         let wip_commit = subject.starts_with("wip ") || subject == &"wip".to_string();
-        if wip_commit {
+        if wip_commit || SUBJECT_WITH_CLICHE.is_match(subject) {
             self.add_violation(
                 Rule::SubjectCliche,
                 "Reword the subject to describe the change in more detail.".to_string(),
-            )
-        } else if subject == &"fix test".to_string() {
-            self.add_violation(
-                Rule::SubjectCliche,
-                "Reword the subject to explain which test was fixed.".to_string(),
-            )
-        } else if subject == &"fix bug".to_string() {
-            self.add_violation(
-                Rule::SubjectCliche,
-                "Reword the subject to explain what bug was fixed.".to_string(),
-            )
-        } else if subject == &"fix".to_string() {
-            self.add_violation(
-                Rule::SubjectCliche,
-                "Reword the subject to explain what was fixed.".to_string(),
             )
         }
     }
@@ -920,26 +912,41 @@ mod tests {
     fn test_validate_subject_cliches() {
         let subjects = vec![
             "I am not a cliche",
+            "Fix user bug",
             "Fix test for some feature",
             "Fix bug for some feature",
+            "Fixes bug for some feature",
+            "Fixed bug for some feature",
+            "Fixing bug for some feature",
         ];
         assert_commit_subjects_as_valid(subjects, &Rule::SubjectCliche);
 
-        let invalid_subjects = vec![
-            "WIP something",
-            "wip something",
-            "Wip something",
-            "WIP",
-            "wip",
-            "Fix test",
-            "fix test",
-            "Fix bug",
-            "fix bug",
-            "Fix",
-            "fix",
-            "FIX",
+        let prefixes = vec![
+            "wip", "fix", "fixes", "fixed", "fixing", "add", "adds", "added", "adding", "update",
+            "updates", "updated", "updating", "change", "changes", "changed", "changing", "remove",
+            "removes", "removed", "removing", "delete", "deletes", "deleted", "deleting",
         ];
-        assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectCliche);
+        let mut invalid_subjects = vec![];
+        for word in prefixes.iter() {
+            let uppercase_word = word.to_uppercase();
+            let mut chars = word.chars();
+            let capitalized_word = match chars.next() {
+                None => panic!("Could not capitalize word: {}", word),
+                Some(letter) => letter.to_uppercase().collect::<String>() + chars.as_str(),
+            };
+
+            invalid_subjects.push(format!("{}", uppercase_word));
+            invalid_subjects.push(format!("{}", capitalized_word));
+            invalid_subjects.push(format!("{}", word));
+            invalid_subjects.push(format!("{} test", uppercase_word));
+            invalid_subjects.push(format!("{} issue", capitalized_word));
+            invalid_subjects.push(format!("{} bug", word));
+            invalid_subjects.push(format!("{} readme", word));
+            invalid_subjects.push(format!("{} something", word));
+        }
+        for subject in invalid_subjects {
+            assert_commit_subject_as_invalid(subject.as_str(), &Rule::SubjectCliche);
+        }
 
         let ignore_commit = validated_commit(
             "WIP".to_string(),
