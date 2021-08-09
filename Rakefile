@@ -342,7 +342,7 @@ def run(command, chdir: nil)
   thread =
     Thread.new do
       while line = read.readline # rubocop:disable Lint/AssignmentInCondition
-        # Output lines as the program runes
+        # Output lines as the program runs
         puts "| #{line}"
         # Store the output for later
         output_lines << line
