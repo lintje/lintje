@@ -7,6 +7,7 @@
   installed.
 - Improve SubjectCliche rule to catch plurals of words (e.g. "fix tests") and
   check for more subject prefixes like "add fix", "update code", "remove file".
+- Improve wording of the SubjectCapitalization violation message.
 
 ## 0.3.1
 

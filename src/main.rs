@@ -376,7 +376,7 @@ mod tests {
             .stdout(predicate::str::contains(
                 "added some code\n\
                 \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
-                \x20\x20SubjectCapitalization: Start the commit subject a capital letter.",
+                \x20\x20SubjectCapitalization: Start the commit subject with a capital letter.",
             ))
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
@@ -410,7 +410,7 @@ mod tests {
         assert.stdout(predicate::str::contains(
             "added some code\n\
              \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
-             \x20\x20SubjectCapitalization: Start the commit subject a capital letter.",
+             \x20\x20SubjectCapitalization: Start the commit subject with a capital letter.",
         ));
     }
 

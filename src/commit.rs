@@ -285,7 +285,7 @@ impl Commit {
                 if character.is_lowercase() {
                     self.add_violation(
                         Rule::SubjectCapitalization,
-                        "Start the commit subject a capital letter.".to_string(),
+                        "Start the commit subject with a capital letter.".to_string(),
                     )
                 }
             }
