@@ -8,6 +8,10 @@
 - Improve SubjectCliche rule to catch plurals of words (e.g. "fix tests") and
   check for more subject prefixes like "add fix", "update code", "remove file".
 - Improve wording of the SubjectCapitalization violation message.
+- Add branch name validation.
+    - New BranchNameTicketNumber rule to scan branch names for ticket numbers,
+      and `fix-###` formats. Ticket numbers are accepted as long as the name is
+      more than a combination of a prefix and number.
 
 ## 0.3.1
 

@@ -12,20 +12,22 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
+mod branch;
 mod command;
 mod commit;
 mod git;
 mod logger;
 mod rule;
 
+use branch::Branch;
 use commit::Commit;
-use git::{fetch_and_parse_commits, parse_commit_hook_format};
+use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "lintje", verbatim_doc_comment)]
 /**
-Lint Git commits
+Lint Git commits and branch name.
 
 ## Usage examples
 
@@ -65,31 +67,23 @@ struct Lint {
 fn main() {
     let args = Lint::from_args();
     init_logger(args.debug);
-    let result = match args.hook_message_file {
-        Some(hook_message_file) => lint_hook(&hook_message_file),
-        None => lint(args),
+    let commit_result = match args.hook_message_file {
+        Some(hook_message_file) => lint_commit_hook(&hook_message_file),
+        None => lint_commit(args.selection),
     };
-    match result {
-        Ok(_) => (),
-        Err(e) => {
-            error!("An error occurred: {}", e);
-            std::process::exit(2)
-        }
-    }
+    let branch_result = lint_branch();
+    handle_lint_result(commit_result, branch_result);
 }
 
-fn lint(options: Lint) -> Result<(), String> {
-    let commit_result = fetch_and_parse_commits(options.selection);
-    let commits = match commit_result {
-        Ok(commits) => commits,
-        Err(e) => return Err(e),
-    };
-
-    handle_lint_result(commits);
-    Ok(())
+fn lint_branch() -> Result<Branch, String> {
+    fetch_and_parse_branch()
 }
 
-fn lint_hook(filename: &Path) -> Result<(), String> {
+fn lint_commit(selection: Option<String>) -> Result<Vec<Commit>, String> {
+    fetch_and_parse_commits(selection)
+}
+
+fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
     let commits = match File::open(filename) {
         Ok(mut file) => {
             let mut contents = String::new();
@@ -116,22 +110,40 @@ fn lint_hook(filename: &Path) -> Result<(), String> {
             ));
         }
     };
-    handle_lint_result(commits);
-    Ok(())
+    Ok(commits)
 }
 
-fn handle_lint_result(commits: Vec<Commit>) {
-    debug!("Commits: {:?}", commits);
-    let commit_count = commits.len();
+fn handle_lint_result(
+    commit_result: Result<Vec<Commit>, String>,
+    branch_result: Result<Branch, String>,
+) {
     let mut violation_count = 0;
-    for commit in commits {
-        if !commit.is_valid() {
-            match commit.short_sha {
-                Some(sha) => println!("{}: {}", sha, commit.subject),
-                None => println!("{}", commit.subject),
-            }
+    let mut commit_count = 0;
+    let mut branch_message = "";
 
-            for violation in commit.violations {
+    if let Ok(ref commits) = commit_result {
+        debug!("Commits: {:?}", commits);
+        commit_count = commits.len();
+        for commit in commits {
+            if !commit.is_valid() {
+                match &commit.short_sha {
+                    Some(sha) => println!("{}: {}", sha, commit.subject),
+                    None => println!("{}", commit.subject),
+                }
+
+                for violation in &commit.violations {
+                    violation_count += 1;
+                    println!("  {}: {}", violation.rule, violation.message);
+                }
+            }
+        }
+    }
+    if let Ok(ref branch) = branch_result {
+        debug!("Branch: {:?}", branch);
+        branch_message = " and branch";
+        if !branch.is_valid() {
+            println!("Branch: {}", branch.name);
+            for violation in &branch.violations {
                 violation_count += 1;
                 println!("  {}: {}", violation.rule, violation.message);
             }
@@ -143,9 +155,21 @@ fn handle_lint_result(commits: Vec<Commit>) {
     }
     let plural = if commit_count != 1 { "s" } else { "" };
     println!(
-        "{} commit{} inspected, {} violations detected",
-        commit_count, plural, violation_count
+        "{} commit{}{} inspected, {} violations detected",
+        commit_count, plural, branch_message, violation_count
     );
+    if commit_result.is_err() {
+        error!("An error occurred validating commits: {:?}", commit_result);
+    }
+    if branch_result.is_err() {
+        error!(
+            "An error occurred validating the branch: {:?}",
+            branch_result
+        );
+    }
+    if commit_result.is_err() || branch_result.is_err() {
+        std::process::exit(2)
+    }
     if violation_count > 0 {
         std::process::exit(1)
     }
@@ -211,6 +235,27 @@ mod tests {
         create_commit(dir, "Initial commit", "");
         for (subject, message) in commits {
             create_commit(dir, subject, message)
+        }
+    }
+
+    fn checkout_branch(dir: &PathBuf, name: &str) {
+        let output = Command::new("git")
+            .args(&["checkout", "-b", name])
+            .current_dir(&dir)
+            .stdin(Stdio::null())
+            .output()
+            .expect(&format!("Could not checkout branch: {}", name));
+        if !output.status.success() {
+            panic!(
+                "Failed to checkout branch: {}\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
+                name,
+                output
+                    .status
+                    .code()
+                    .expect("Could not fetch status code of git checkout"),
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            )
         }
     }
 
@@ -314,7 +359,7 @@ mod tests {
                 "{}: Test commit",
                 short_sha
             )))
-            .stdout(predicate::str::contains("1 commit inspected"));
+            .stdout(predicate::str::contains("1 commit and branch inspected"));
     }
 
     #[test]
@@ -329,7 +374,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
         assert.stdout(predicate::str::contains(
-            "1 commit inspected, 0 violations detected\n",
+            "1 commit and branch inspected, 0 violations detected\n",
         ));
     }
 
@@ -349,7 +394,7 @@ mod tests {
                 \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(
-                "1 commit inspected, 3 violations detected\n",
+                "1 commit and branch inspected, 3 violations detected\n",
             ));
     }
 
@@ -385,7 +430,7 @@ mod tests {
                 \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(
-                "2 commits inspected, 5 violations detected\n",
+                "2 commits and branch inspected, 5 violations detected\n",
             ));
     }
 
@@ -486,5 +531,44 @@ mod tests {
         assert.stdout(predicate::str::contains(
             "Unable to open commit message file: commit_message_file",
         ));
+    }
+
+    #[test]
+    fn test_branch_valid() {
+        compile_bin();
+        let dir = test_dir("branch_valid");
+        create_test_repo(
+            &dir,
+            &[("Test commit", "I am a test commit, short but valid.")],
+        );
+        checkout_branch(&dir, "my-branch");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.current_dir(dir).assert().success();
+        assert.stdout(predicate::str::contains(
+            "1 commit and branch inspected, 0 violations detected\n",
+        ));
+    }
+
+    #[test]
+    fn test_branch_invalid() {
+        compile_bin();
+        let dir = test_dir("branch_invalid");
+        create_test_repo(
+            &dir,
+            &[("Test commit", "I am a test commit, short but valid.")],
+        );
+        checkout_branch(&dir, "fix-123");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        assert
+            .stdout(predicate::str::contains(
+                "Branch: fix-123\n\
+                \x20\x20BranchNameTicketNumber: Remove the ticket number from the branch name or expand the branch name with more details.",
+            ))
+            .stdout(predicate::str::contains(
+                    "1 commit and branch inspected, 1 violations detected\n",
+            ));
     }
 }

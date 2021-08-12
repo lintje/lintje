@@ -16,6 +16,7 @@ pub enum Rule {
     MessageEmptyFirstLine,
     MessagePresence,
     MessageLineLength,
+    BranchNameTicketNumber,
 }
 
 #[derive(Debug)]
@@ -41,6 +42,7 @@ impl fmt::Display for Rule {
             Rule::MessageEmptyFirstLine => "MessageEmptyFirstLine",
             Rule::MessagePresence => "MessagePresence",
             Rule::MessageLineLength => "MessageLineLength",
+            Rule::BranchNameTicketNumber => "BranchNameTicketNumber",
         };
         write!(f, "{}", label)
     }

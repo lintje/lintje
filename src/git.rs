@@ -1,5 +1,6 @@
 use regex::Regex;
 
+use crate::branch::Branch;
 use crate::command::run_command;
 use crate::commit::{Commit, SUBJECT_WITH_MERGE_REMOTE_BRANCH};
 
@@ -19,6 +20,15 @@ pub enum CleanupMode {
     Verbatim,
     Scissors,
     Default,
+}
+
+pub fn fetch_and_parse_branch() -> Result<Branch, String> {
+    let name = run_command("git", &["rev-parse", "--abbrev-ref", "HEAD"])?
+        .trim()
+        .to_string();
+    let mut branch = Branch::new(name);
+    branch.validate();
+    Ok(branch)
 }
 
 pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, String> {
