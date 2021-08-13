@@ -20,13 +20,17 @@ global_job_config:
       - checkout --use-cache
 
 blocks:
-  - name: Build
+  - name: Linters
     dependencies: []
     task:
       jobs:
       - name: Rust Lint
         commands:
           - cargo fmt --all -- --check
+  - name: Build
+    dependencies: []
+    task:
+      jobs:
       - name: Build & Test
         env_vars:
           - name: RUST_BACKTRACE
@@ -46,4 +50,4 @@ blocks:
         commands:
           - artifact pull workflow lintje
           - chmod +x lintje
-          - ./lintje $SEMAPHORE_GIT_COMMIT_RANGE
+          - ./lintje --debug $SEMAPHORE_GIT_COMMIT_RANGE
