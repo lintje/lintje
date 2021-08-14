@@ -9,6 +9,7 @@
   check for more subject prefixes like "add fix", "update code", "remove file".
 - Improve wording of the SubjectCapitalization violation message.
 - Add branch name validation.
+    - Can be disabled with the `--no-branch` flag.
     - New BranchNameTicketNumber rule to scan branch names for ticket numbers,
       and `fix-###` formats. Ticket numbers are accepted as long as the name is
       more than a combination of a prefix and number.

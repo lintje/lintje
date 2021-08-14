@@ -48,6 +48,9 @@ Lint Git commits and branch name.
 
     lintje --hook-message-file=.git/COMMIT_EDITMSG
       Lints the given commit message file from the commit-msg hook.
+
+    lintje --no-branch
+      Disable branch name validation.
 */
 struct Lint {
     /// Prints debug information
@@ -57,6 +60,10 @@ struct Lint {
     /// Lint the contents the Git hook commit-msg commit message file.
     #[structopt(long, parse(from_os_str))]
     hook_message_file: Option<PathBuf>,
+
+    /// Disable branch validation
+    #[structopt(long = "no-branch")]
+    no_branch_validation: bool,
 
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.
@@ -71,7 +78,11 @@ fn main() {
         Some(hook_message_file) => lint_commit_hook(&hook_message_file),
         None => lint_commit(args.selection),
     };
-    let branch_result = lint_branch();
+    let branch_result = if args.no_branch_validation {
+        None
+    } else {
+        Some(lint_branch())
+    };
     handle_lint_result(commit_result, branch_result);
 }
 
@@ -115,7 +126,7 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
 
 fn handle_lint_result(
     commit_result: Result<Vec<Commit>, String>,
-    branch_result: Result<Branch, String>,
+    branch_result: Option<Result<Branch, String>>,
 ) {
     let mut violation_count = 0;
     let mut commit_count = 0;
@@ -138,15 +149,21 @@ fn handle_lint_result(
             }
         }
     }
-    if let Ok(ref branch) = branch_result {
-        debug!("Branch: {:?}", branch);
-        branch_message = " and branch";
-        if !branch.is_valid() {
-            println!("Branch: {}", branch.name);
-            for violation in &branch.violations {
-                violation_count += 1;
-                println!("  {}: {}", violation.rule, violation.message);
+    let mut branch_error = None;
+    if let Some(result) = branch_result {
+        match result {
+            Ok(ref branch) => {
+                debug!("Branch: {:?}", branch);
+                branch_message = " and branch";
+                if !branch.is_valid() {
+                    println!("Branch: {}", branch.name);
+                    for violation in &branch.violations {
+                        violation_count += 1;
+                        println!("  {}: {}", violation.rule, violation.message);
+                    }
+                }
             }
+            Err(error) => branch_error = Some(error),
         }
     }
 
@@ -158,16 +175,19 @@ fn handle_lint_result(
         "{} commit{}{} inspected, {} violations detected",
         commit_count, plural, branch_message, violation_count
     );
+    let mut has_error = false;
     if commit_result.is_err() {
+        has_error = true;
         error!("An error occurred validating commits: {:?}", commit_result);
     }
-    if branch_result.is_err() {
+    if branch_error.is_some() {
+        has_error = true;
         error!(
             "An error occurred validating the branch: {:?}",
-            branch_result
+            &branch_error
         );
     }
-    if commit_result.is_err() || branch_result.is_err() {
+    if has_error {
         std::process::exit(2)
     }
     if violation_count > 0 {
@@ -570,5 +590,22 @@ mod tests {
             .stdout(predicate::str::contains(
                     "1 commit and branch inspected, 1 violations detected\n",
             ));
+    }
+
+    #[test]
+    fn test_no_branch_validation() {
+        compile_bin();
+        let dir = test_dir("branch_invalid_disabled");
+        create_test_repo(
+            &dir,
+            &[("Test commit", "I am a test commit, short but valid.")],
+        );
+        checkout_branch(&dir, "fix-123");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.arg("--no-branch").current_dir(dir).assert().success();
+        assert.stdout(predicate::str::contains(
+            "1 commit inspected, 0 violations detected\n",
+        ));
     }
 }
