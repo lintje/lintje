@@ -15,6 +15,8 @@
       more than a combination of a prefix and number.
     - New BranchNameLength rule checks for a minimum branch name length of four
       characters.
+    - New BranchNamePunctuation rule checks for a branch names starting or
+      ending with punctuation.
 
 ## 0.3.1
 

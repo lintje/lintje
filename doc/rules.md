@@ -460,3 +460,27 @@ fix/123
 feature-123
 JIRA-123
 ```
+
+## BranchNamePunctuation
+
+The branch name starts or ends with punctuation. Branch names should not use
+punctuation this way.
+
+```
+# Good branch names
+fix-email-validation
+fix_email_validation
+feature/email-validation
+
+# Bad branch names
+fix-bug!
+fix-bug.
+fix-bug'
+fix-bug"
+!fix-bug
+-fix-bug
+_fix-bug
+~fix-bug
+(JIRA-123)
+[JIRA-123]
+```

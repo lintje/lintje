@@ -1,4 +1,5 @@
 use crate::rule::{rule_by_name, Rule, Violation};
+use crate::utils::is_punctuation;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
@@ -19,10 +20,6 @@ lazy_static! {
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
     static ref CODE_BLOCK_LINE_END: Regex = Regex::new(r"^\s*```$").unwrap();
-    static ref OTHER_PUNCTUATION: Vec<char> = vec![
-        '…',
-        '⋯',
-    ];
     static ref MOOD_WORDS: Vec<&'static str> = vec![
         "fixed",
         "fixes",
@@ -499,10 +496,6 @@ impl Commit {
     fn add_violation(&mut self, rule: Rule, message: String) {
         self.violations.push(Violation { rule, message })
     }
-}
-
-fn is_punctuation(character: &char) -> bool {
-    character.is_ascii_punctuation() || OTHER_PUNCTUATION.contains(&character)
 }
 
 #[derive(PartialEq)]

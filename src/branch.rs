@@ -1,4 +1,5 @@
 use crate::rule::{Rule, Violation};
+use crate::utils::is_punctuation;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
@@ -31,6 +32,7 @@ impl Branch {
     pub fn validate(&mut self) {
         self.validate_length();
         self.validate_ticket_number();
+        self.validate_punctuation();
     }
 
     fn validate_length(&mut self) {
@@ -61,6 +63,46 @@ impl Branch {
                     Rule::BranchNameTicketNumber,
                     "Remove the ticket number from the branch name or expand the branch name with more details."
                     .to_string(),
+                )
+            }
+        }
+    }
+
+    fn validate_punctuation(&mut self) {
+        match &self.name.chars().next() {
+            Some(character) => {
+                if is_punctuation(&character) {
+                    self.add_violation(
+                        Rule::BranchNamePunctuation,
+                        format!(
+                            "Remove punctuation from the start of the branch name: {}",
+                            character
+                        ),
+                    )
+                }
+            }
+            None => {
+                error!(
+                    "BranchNamePunctuation validation failure: No first character found of branch name."
+                )
+            }
+        }
+
+        match &self.name.chars().last() {
+            Some(character) => {
+                if is_punctuation(&character) {
+                    self.add_violation(
+                        Rule::BranchNamePunctuation,
+                        format!(
+                            "Remove punctuation from the end of the branch name: {}",
+                            character
+                        ),
+                    )
+                }
+            }
+            None => {
+                error!(
+                    "BranchNamePunctuation validation failure: No last character found of branch name."
                 )
             }
         }
@@ -173,5 +215,45 @@ mod tests {
             "JIRA-123",
         ];
         assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameTicketNumber);
+    }
+
+    #[test]
+    fn test_validate_punctuation() {
+        let subjects = vec!["fix-test", "fix-あ-test"];
+        assert_branch_names_as_valid(subjects, &Rule::BranchNamePunctuation);
+
+        let invalid_subjects = vec![
+            "fix.",
+            "fix!",
+            "fix?",
+            "fix:",
+            "fix-",
+            "fix_",
+            "fix/",
+            "fix\'",
+            "fix\"",
+            "fix…",
+            "fix⋯",
+            ".fix",
+            "!fix",
+            "?fix",
+            ":fix",
+            "-fix",
+            "_fix",
+            "/fix",
+            "…fix",
+            "⋯fix",
+            "[JIRA-123",
+            "[bug-fix",
+            "(feat-fix",
+            "{fix-test",
+            "|fix-test",
+            "-fix-test",
+            "+fix-test",
+            "*fix-test",
+            "%fix-test",
+            "@fix-test",
+        ];
+        assert_branch_names_as_invalid(invalid_subjects, &Rule::BranchNamePunctuation);
     }
 }

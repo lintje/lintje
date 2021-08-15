@@ -18,6 +18,7 @@ mod commit;
 mod git;
 mod logger;
 mod rule;
+mod utils;
 
 use branch::Branch;
 use commit::Commit;
