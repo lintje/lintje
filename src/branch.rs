@@ -29,7 +29,21 @@ impl Branch {
     }
 
     pub fn validate(&mut self) {
+        self.validate_length();
         self.validate_ticket_number();
+    }
+
+    fn validate_length(&mut self) {
+        let length = self.name.chars().count();
+        if length < 4 {
+            self.add_violation(
+                Rule::BranchNameLength,
+                format!(
+                    "Branch name is too short: {} characters. Describe the branch in more detail.",
+                    length
+                ),
+            )
+        }
     }
 
     fn validate_ticket_number(&mut self) {
@@ -107,6 +121,22 @@ mod tests {
 
     fn has_violation(violations: &Vec<Violation>, rule: &Rule) -> bool {
         violations.iter().any(|v| &v.rule == rule)
+    }
+
+    #[test]
+    fn test_validate_name_length() {
+        let valid_names = vec![
+            "abcd".to_string(),
+            "-_/!".to_string(),
+            "a".repeat(5),
+            "a".repeat(50),
+            "あ".repeat(4),
+            "✨".repeat(4),
+        ];
+        assert_branch_names_as_valid(valid_names, &Rule::BranchNameLength);
+
+        let invalid_names = vec!["", "a", "ab", "abc"];
+        assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameLength);
     }
 
     #[test]

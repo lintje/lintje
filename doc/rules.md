@@ -410,6 +410,25 @@ git checkout feature-branch
 git rebase --interactive --autosquash main
 ```
 
+## BranchNameLength
+
+The branch name is detected as too short. A branch name needs to be at least
+four characters.
+
+```
+# Good branch names
+main
+develop
+trunk
+fix-email-validation
+
+# Bad branch names
+foo
+wip
+fix
+bug
+```
+
 ## BranchNameTicketNumber
 
 The branch name is detected to only contain a ticket number or a prefix and

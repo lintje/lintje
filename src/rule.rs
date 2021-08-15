@@ -17,6 +17,7 @@ pub enum Rule {
     MessagePresence,
     MessageLineLength,
     BranchNameTicketNumber,
+    BranchNameLength,
 }
 
 #[derive(Debug)]
@@ -43,6 +44,7 @@ impl fmt::Display for Rule {
             Rule::MessagePresence => "MessagePresence",
             Rule::MessageLineLength => "MessageLineLength",
             Rule::BranchNameTicketNumber => "BranchNameTicketNumber",
+            Rule::BranchNameLength => "BranchNameLength",
         };
         write!(f, "{}", label)
     }

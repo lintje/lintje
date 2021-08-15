@@ -13,6 +13,8 @@
     - New BranchNameTicketNumber rule to scan branch names for ticket numbers,
       and `fix-###` formats. Ticket numbers are accepted as long as the name is
       more than a combination of a prefix and number.
+    - New BranchNameLength rule checks for a minimum branch name length of four
+      characters.
 
 ## 0.3.1
 
