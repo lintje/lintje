@@ -205,12 +205,12 @@ impl Commit {
     }
 
     fn validate_subject_line_length(&mut self) {
+        if self.rule_ignored(Rule::SubjectLength) {
+            return;
+        }
+
         let length = self.subject.chars().count();
         if length > 50 {
-            if self.rule_ignored(Rule::SubjectLength) {
-                return;
-            }
-
             self.add_violation(
                 Rule::SubjectLength,
                 format!(
@@ -220,10 +220,6 @@ impl Commit {
             )
         }
         if length < 5 {
-            if self.rule_ignored(Rule::SubjectLength) {
-                return;
-            }
-
             self.add_violation(
                 Rule::SubjectLength,
                 format!(
