@@ -38,8 +38,8 @@ messages for the purposes of generating changelogs automatically.
 
 The audiences of commits and changelogs are different. Commits are written for
 people working on a project and changelogs are written for people using the
-project. In my opinion a changelog entry not be based on a Git commit, but
-instead be managed with another tool such as
+project. In my opinion a changelog entry should not be based on a Git commit,
+but instead be managed with another tool such as
 [Changesets](https://github.com/atlassian/changesets), which can also generate
 changelogs automatically.
 
