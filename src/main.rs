@@ -586,10 +586,11 @@ mod tests {
         assert
             .stdout(predicate::str::contains(
                 "Branch: fix-123\n\
-                \x20\x20BranchNameTicketNumber: Remove the ticket number from the branch name or expand the branch name with more details.",
+                \x20\x20BranchNameTicketNumber: Remove the ticket number from the branch name or expand the branch name with more details.\n\
+                \x20\x20BranchNameCliche: Reword the branch name to describe the change in more detail.",
             ))
             .stdout(predicate::str::contains(
-                    "1 commit and branch inspected, 1 violations detected\n",
+                    "1 commit and branch inspected, 2 violations detected\n",
             ));
     }
 

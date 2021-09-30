@@ -17,6 +17,8 @@
       characters.
     - New BranchNamePunctuation rule checks for a branch names starting or
       ending with punctuation.
+    - New BranchNameCliche rule checks for a branch names is a cliché.
+      "fix-bug" or "add-test" branches are no longer accepted.
 
 ## 0.3.1
 

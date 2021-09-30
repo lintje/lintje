@@ -19,6 +19,7 @@ pub enum Rule {
     BranchNameTicketNumber,
     BranchNameLength,
     BranchNamePunctuation,
+    BranchNameCliche,
 }
 
 #[derive(Debug)]
@@ -47,6 +48,7 @@ impl fmt::Display for Rule {
             Rule::BranchNameTicketNumber => "BranchNameTicketNumber",
             Rule::BranchNameLength => "BranchNameLength",
             Rule::BranchNamePunctuation => "BranchNamePunctuation",
+            Rule::BranchNameCliche => "BranchNameCliche",
         };
         write!(f, "{}", label)
     }

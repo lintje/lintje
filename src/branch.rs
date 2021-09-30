@@ -9,6 +9,14 @@ lazy_static! {
         tempregex.multi_line(false);
         tempregex.build().unwrap()
     };
+    static ref BRANCH_WITH_CLICHE: Regex = {
+        let mut tempregex = RegexBuilder::new(
+            r"^(wip|fix(es|ed|ing)?|add(s|ed|ing)?|(updat|chang|remov|delet)(e|es|ed|ing))([-_/]+\w+)?$",
+        );
+        tempregex.case_insensitive(true);
+        tempregex.multi_line(false);
+        tempregex.build().unwrap()
+    };
 }
 
 #[derive(Debug)]
@@ -33,6 +41,7 @@ impl Branch {
         self.validate_length();
         self.validate_ticket_number();
         self.validate_punctuation();
+        self.validate_cliche();
     }
 
     fn validate_length(&mut self) {
@@ -105,6 +114,16 @@ impl Branch {
                     "BranchNamePunctuation validation failure: No last character found of branch name."
                 )
             }
+        }
+    }
+
+    fn validate_cliche(&mut self) {
+        let branch = &self.name.to_lowercase();
+        if BRANCH_WITH_CLICHE.is_match(branch) {
+            self.add_violation(
+                Rule::BranchNameCliche,
+                "Reword the branch name to describe the change in more detail.".to_string(),
+            )
         }
     }
 
@@ -255,5 +274,40 @@ mod tests {
             "@fix-test",
         ];
         assert_branch_names_as_invalid(invalid_subjects, &Rule::BranchNamePunctuation);
+    }
+
+    #[test]
+    fn test_validate_cliche() {
+        let subjects = vec!["add-email-validation", "fix-brittle-test"];
+        assert_branch_names_as_valid(subjects, &Rule::BranchNameCliche);
+
+        let prefixes = vec![
+            "wip", "fix", "fixes", "fixed", "fixing", "add", "adds", "added", "adding", "update",
+            "updates", "updated", "updating", "change", "changes", "changed", "changing", "remove",
+            "removes", "removed", "removing", "delete", "deletes", "deleted", "deleting",
+        ];
+        let mut invalid_subjects = vec![];
+        for word in prefixes.iter() {
+            let uppercase_word = word.to_uppercase();
+            let mut chars = word.chars();
+            let capitalized_word = match chars.next() {
+                None => panic!("Could not capitalize word: {}", word),
+                Some(letter) => letter.to_uppercase().collect::<String>() + chars.as_str(),
+            };
+
+            invalid_subjects.push(format!("{}", uppercase_word));
+            invalid_subjects.push(format!("{}", capitalized_word));
+            invalid_subjects.push(format!("{}", word));
+            invalid_subjects.push(format!("{}-test", uppercase_word));
+            invalid_subjects.push(format!("{}-issue", capitalized_word));
+            invalid_subjects.push(format!("{}-bug", word));
+            invalid_subjects.push(format!("{}-readme", word));
+            invalid_subjects.push(format!("{}-something", word));
+            invalid_subjects.push(format!("{}_something", word));
+            invalid_subjects.push(format!("{}/something", word));
+        }
+        for subject in invalid_subjects {
+            assert_branch_name_as_invalid(subject.as_str(), &Rule::BranchNameCliche);
+        }
     }
 }
