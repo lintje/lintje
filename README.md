@@ -307,5 +307,5 @@ expected to adhere to it.
 [rules]: doc/rules.md
 [issues]: https://github.com/tombruijn/lintje/issues
 [discussions]: https://github.com/tombruijn/lintje/discussions
-[examples]: docs/examples.md
-[installation]: docs/installation.md
+[examples]: doc/examples.md
+[installation]: doc/installation.md
