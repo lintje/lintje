@@ -23,6 +23,8 @@
   numbers and * and # as emoji at the start of a subject.
 - Ignore commits made by GitHub bots. Project members can't always ensure that
   all bots follow the rules set by Lintje.
+- Add Debian installation method. More information in the
+  [installation docs](doc/installation.md).
 
 ## 0.3.1
 
