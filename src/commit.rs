@@ -5,7 +5,13 @@ use regex::{Regex, RegexBuilder};
 lazy_static! {
     pub static ref SUBJECT_WITH_MERGE_REMOTE_BRANCH: Regex = Regex::new(r"^Merge branch '.+' of .+ into .+").unwrap();
     static ref SUBJECT_STARTS_WITH_PREFIX: Regex = Regex::new(r"^([\w\(\)/!]+:)\s.*").unwrap();
-    static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^\p{Emoji}").unwrap();
+    // Regex to match emoji, but not all emoji. Emoji using ASCII codepoints like the emojis for
+    // the numbers 0-9, and symbols like * and # are not included. Otherwise it would also catches
+    // plain numbers 0-9 and those symbols, even when they are not emoji.
+    // This regex matches all emoji but subtracts any object with ASCII codepoints.
+    // For more information, see:
+    // https://github.com/BurntSushi/ripgrep/discussions/1623#discussioncomment-28827
+    static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^[\p{Emoji}--\p{Ascii}]").unwrap();
     static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]+-\d+").unwrap();
     // Match all GitHub and GitLab keywords
     static ref SUBJECT_WITH_FIX_TICKET: Regex =
@@ -724,7 +730,17 @@ mod tests {
 
     #[test]
     fn test_validate_subject_punctuation() {
-        let subjects = vec!["Fix test", "あ commit"];
+        let subjects = vec![
+            "Fix test",
+            "あ commit",
+            "123 digits",
+            "0 digit",
+            // These should not be allowed, but won't match using the Emoji -- ASCII regex matcher.
+            // See the comment for SUBJECT_STARTS_WITH_EMOJI for more information.
+            "0️⃣ emoji",
+            "﹟emoji",
+            "＊emoji",
+        ];
         assert_commit_subjects_as_valid(subjects, &Rule::SubjectPunctuation);
 
         let invalid_subjects = vec![

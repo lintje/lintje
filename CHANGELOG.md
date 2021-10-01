@@ -19,6 +19,8 @@
       ending with punctuation.
     - New BranchNameCliche rule checks for a branch names is a cliché.
       "fix-bug" or "add-test" branches are no longer accepted.
+- Fix emoji false positives in SubjectPunctuation. It will no longer match on
+  numbers and * and # as emoji at the start of a subject.
 
 ## 0.3.1
 
