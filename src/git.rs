@@ -35,9 +35,10 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
     let mut commits = Vec::<Commit>::new();
     // Format definition per commit
     // Line 1: Commit SHA in long form
-    // Line 2 to second to last: Commit subject and message
+    // Line 2: Commit author email address
+    // Line 3 to second to last: Commit subject and message
     // Line last: Delimiter to tell commits apart
-    let format = "%H%n%B";
+    let format = "%H%n%ae%n%B";
     let mut args = vec![
         "log".to_string(),
         format!("--pretty={}{}", format, COMMIT_DELIMITER),
@@ -70,12 +71,14 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
 
 fn parse_commit(message: &str) -> Option<Commit> {
     let mut long_sha = None;
+    let mut email = None;
     let mut subject = None;
     let mut message_lines = vec![];
     for (index, line) in message.lines().enumerate() {
         match index {
             0 => long_sha = Some(line),
-            1 => subject = Some(line),
+            1 => email = Some(line.to_string()),
+            2 => subject = Some(line),
             _ => message_lines.push(line),
         }
     }
@@ -87,6 +90,7 @@ fn parse_commit(message: &str) -> Option<Commit> {
             });
             commit_or_none(
                 Some(long_sha.to_string()),
+                email,
                 used_subject.to_string(),
                 message_lines,
             )
@@ -138,11 +142,16 @@ pub fn parse_commit_hook_format(
         debug!("Commit subject not present in message: {:?}", message);
         ""
     });
-    commit_or_none(None, used_subject.to_string(), message_lines)
+    commit_or_none(None, None, used_subject.to_string(), message_lines)
 }
 
-fn commit_or_none(sha: Option<String>, subject: String, message: Vec<&str>) -> Option<Commit> {
-    let mut commit = Commit::new(sha, subject, message.join("\n"));
+fn commit_or_none(
+    sha: Option<String>,
+    email: Option<String>,
+    subject: String,
+    message: Vec<&str>,
+) -> Option<Commit> {
+    let mut commit = Commit::new(sha, email, subject, message.join("\n"));
     if !ignored(&commit) {
         commit.validate();
         Some(commit)
@@ -154,6 +163,15 @@ fn commit_or_none(sha: Option<String>, subject: String, message: Vec<&str>) -> O
 fn ignored(commit: &Commit) -> bool {
     let subject = &commit.subject;
     let message = &commit.message;
+    if let Some(email) = &commit.email {
+        if email.ends_with("[bot]@users.noreply.github.com") {
+            debug!(
+                "Ignoring commit because it is from a bot account: {}",
+                email
+            );
+            return true;
+        }
+    }
     if subject.starts_with("Merge tag ") {
         debug!(
             "Ignoring commit because it's a merge commit of a tag: {}",
@@ -246,6 +264,7 @@ mod tests {
     fn test_parse_commit() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         This is a subject\n\
         \n\
         This is my multi line message.\n\
@@ -259,6 +278,7 @@ mod tests {
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
         );
         assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
+        assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
         assert!(commit.violations.is_empty());
@@ -268,6 +288,7 @@ mod tests {
     fn test_parse_commit_with_errors() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         This is a subject",
         );
 
@@ -278,6 +299,7 @@ mod tests {
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
         );
         assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
+        assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
         assert!(!commit.violations.is_empty());
@@ -294,15 +316,28 @@ mod tests {
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
         );
         assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "");
         assert_eq!(commit.message, "");
         assert!(!commit.violations.is_empty());
     }
 
     #[test]
+    fn test_parse_commit_ignore_bot_commit() {
+        let result = parse_commit(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        12345678+bot-name[bot]@users.noreply.github.com\n\
+        Commit by bot without description",
+        );
+
+        assert!(result.is_none());
+    }
+
+    #[test]
     fn test_parse_commit_ignore_tag_merge_commit() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Merge tag 'v1.2.3' into main",
         );
 
@@ -313,6 +348,7 @@ mod tests {
     fn test_parse_commit_ignore_merge_commit_pull_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Merge pull request #123 from tombruijn/repo\n\
         \n\
         This is my multi line message.\n\
@@ -326,6 +362,7 @@ mod tests {
     fn test_parse_commit_ignore_squash_merge_commit_pull_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Fix some issue that's squashed (#123)\n\
         \n\
         This is my multi line message.\n\
@@ -339,6 +376,7 @@ mod tests {
     fn test_parse_commit_ignore_merge_commits_merge_request() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Merge branch 'branch' into main\n\
         \n\
         This is my multi line message.\n\
@@ -353,6 +391,7 @@ mod tests {
         // use the full org + repo + Merge Request ID reference.
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Fix some issue\n\
         \n\
         This is my multi line message.\n\
@@ -365,6 +404,7 @@ mod tests {
 
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Fix some issue\n\
         \n\
         This is my multi line message.\n\
@@ -377,6 +417,7 @@ mod tests {
 
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Fix some issue\n\
         \n\
         This is my multi line message.\n\
@@ -390,6 +431,7 @@ mod tests {
     fn test_parse_commit_ignore_merge_commits_without_into() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Merge branch 'branch'",
         );
 
@@ -400,6 +442,7 @@ mod tests {
     fn test_parse_commit_merge_remote_commits() {
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
         Merge branch 'branch' of github.com/org/repo into branch",
         );
 
@@ -418,6 +461,7 @@ mod tests {
         let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is a message.");
     }
@@ -431,6 +475,7 @@ mod tests {
         let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
     }
@@ -456,6 +501,7 @@ mod tests {
         let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,
@@ -483,6 +529,7 @@ mod tests {
         let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,
@@ -509,6 +556,7 @@ mod tests {
         let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,
@@ -534,6 +582,7 @@ mod tests {
         let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,
@@ -565,6 +614,7 @@ mod tests {
         let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(
             commit.message,

@@ -21,6 +21,8 @@
       "fix-bug" or "add-test" branches are no longer accepted.
 - Fix emoji false positives in SubjectPunctuation. It will no longer match on
   numbers and * and # as emoji at the start of a subject.
+- Ignore commits made by GitHub bots. Project members can't always ensure that
+  all bots follow the rules set by Lintje.
 
 ## 0.3.1
 

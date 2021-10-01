@@ -103,6 +103,7 @@ lazy_static! {
 pub struct Commit {
     pub long_sha: Option<String>,
     pub short_sha: Option<String>,
+    pub email: Option<String>,
     pub subject: String,
     pub message: String,
     pub violations: Vec<Violation>,
@@ -110,7 +111,12 @@ pub struct Commit {
 }
 
 impl Commit {
-    pub fn new(long_sha: Option<String>, subject: String, message: String) -> Self {
+    pub fn new(
+        long_sha: Option<String>,
+        email: Option<String>,
+        subject: String,
+        message: String,
+    ) -> Self {
         // Get first 7 characters of the commit SHA to get the short SHA.
         let short_sha = match &long_sha {
             Some(long) => match long.get(0..7) {
@@ -126,6 +132,7 @@ impl Commit {
         Self {
             long_sha,
             short_sha,
+            email,
             subject: subject.trim_end().to_string(),
             message,
             ignored_rules,
@@ -516,7 +523,7 @@ mod tests {
     use super::{Commit, Rule, Violation, BUILD_TAGS, MOOD_WORDS};
 
     fn commit_with_sha(sha: Option<String>, subject: String, message: String) -> Commit {
-        Commit::new(sha, subject, message)
+        Commit::new(sha, Some("test@example.com".to_string()), subject, message)
     }
 
     fn commit(subject: String, message: String) -> Commit {
