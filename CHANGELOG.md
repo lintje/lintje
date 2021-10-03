@@ -25,6 +25,7 @@
   all bots follow the rules set by Lintje.
 - Add Debian installation method. More information in the
   [installation docs](doc/installation.md).
+- Print the singular "violation" label when Lintje only finds one violation.
 
 ## 0.3.1
 

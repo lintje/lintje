@@ -171,10 +171,15 @@ fn handle_lint_result(
     if violation_count > 0 {
         println!();
     }
-    let plural = if commit_count != 1 { "s" } else { "" };
+    let commit_plural = if commit_count != 1 { "s" } else { "" };
+    let violation_plural = if violation_count != 1 { "s" } else { "" };
+    print!(
+        "{} commit{}{} inspected",
+        commit_count, commit_plural, branch_message
+    );
     println!(
-        "{} commit{}{} inspected, {} violations detected",
-        commit_count, plural, branch_message, violation_count
+        ", {} violation{} detected",
+        violation_count, violation_plural
     );
     let mut has_error = false;
     if commit_result.is_err() {
@@ -416,6 +421,27 @@ mod tests {
             ))
             .stdout(predicate::str::contains(
                 "1 commit and branch inspected, 3 violations detected\n",
+            ));
+    }
+
+    #[test]
+    fn test_single_commit_invalid_one_violation() {
+        compile_bin();
+        let dir = test_dir("single_commit_invalid_one_violation");
+        create_test_repo(
+            &dir,
+            &[("added some code", ""), ("Valid commit subject", "")],
+        );
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        assert
+            .stdout(predicate::str::contains(
+                "Valid commit subject\n\
+                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
+            ))
+            .stdout(predicate::str::contains(
+                "1 commit and branch inspected, 1 violation detected\n",
             ));
     }
 
