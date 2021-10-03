@@ -107,6 +107,7 @@ pub struct Commit {
     pub subject: String,
     pub message: String,
     pub violations: Vec<Violation>,
+    pub ignored: bool,
     pub ignored_rules: Vec<Rule>,
 }
 
@@ -135,6 +136,7 @@ impl Commit {
             email,
             subject: subject.trim_end().to_string(),
             message,
+            ignored: false,
             ignored_rules,
             violations: Vec::<Violation>::new(),
         }

@@ -26,6 +26,7 @@
 - Add Debian installation method. More information in the
   [installation docs](doc/installation.md).
 - Print the singular "violation" label when Lintje only finds one violation.
+- Print number of ignored commits, if any commits are ignored.
 
 ## 0.3.1
 

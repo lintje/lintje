@@ -84,7 +84,7 @@ fn main() {
     } else {
         Some(lint_branch())
     };
-    handle_lint_result(commit_result, branch_result);
+    handle_lint_result(commit_result, branch_result, args.debug);
 }
 
 fn lint_branch() -> Result<Branch, String> {
@@ -109,10 +109,9 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
                     ));
                 }
             };
-            match parse_commit_hook_format(&contents, git::cleanup_mode(), git::comment_char()) {
-                Some(commit) => vec![commit],
-                None => vec![],
-            }
+            let commit =
+                parse_commit_hook_format(&contents, git::cleanup_mode(), git::comment_char());
+            vec![commit]
         }
         Err(e) => {
             return Err(format!(
@@ -128,15 +127,21 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
 fn handle_lint_result(
     commit_result: Result<Vec<Commit>, String>,
     branch_result: Option<Result<Branch, String>>,
+    debug: bool,
 ) {
     let mut violation_count = 0;
     let mut commit_count = 0;
+    let mut ignored_commit_count = 0;
     let mut branch_message = "";
 
     if let Ok(ref commits) = commit_result {
         debug!("Commits: {:?}", commits);
-        commit_count = commits.len();
         for commit in commits {
+            if commit.ignored {
+                ignored_commit_count += 1;
+                continue;
+            }
+            commit_count += 1;
             if !commit.is_valid() {
                 match &commit.short_sha {
                     Some(sha) => println!("{}: {}", sha, commit.subject),
@@ -177,10 +182,18 @@ fn handle_lint_result(
         "{} commit{}{} inspected",
         commit_count, commit_plural, branch_message
     );
-    println!(
+    print!(
         ", {} violation{} detected",
         violation_count, violation_plural
     );
+    if ignored_commit_count > 0 || debug {
+        let ignored_plural = if ignored_commit_count != 1 { "s" } else { "" };
+        print!(
+            " ({} commit{} ignored)",
+            ignored_commit_count, ignored_plural
+        );
+    }
+    println!();
     let mut has_error = false;
     if commit_result.is_err() {
         has_error = true;
@@ -443,6 +456,44 @@ mod tests {
             .stdout(predicate::str::contains(
                 "1 commit and branch inspected, 1 violation detected\n",
             ));
+    }
+
+    #[test]
+    fn test_single_commit_ignored() {
+        compile_bin();
+        let dir = test_dir("single_commit_ignored");
+        create_test_repo(
+            &dir,
+            &[
+                ("added some code", ""),
+                ("Merge pull request #123 from tombruijn/repo", ""),
+            ],
+        );
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.current_dir(dir).assert().success();
+        assert.stdout(predicate::str::contains(
+            "0 commits and branch inspected, 0 violations detected (1 commit ignored)\n",
+        ));
+    }
+
+    #[test]
+    fn test_single_commit_with_debug() {
+        compile_bin();
+        let dir = test_dir("single_commit_with_debug");
+        create_test_repo(
+            &dir,
+            &[
+                ("added some code", ""),
+                ("Valid commit subject", "Valid message body"),
+            ],
+        );
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.current_dir(dir).args(["--debug"]).assert().success();
+        assert.stdout(predicate::str::contains(
+            "1 commit and branch inspected, 0 violations detected (0 commits ignored)\n",
+        ));
     }
 
     #[test]

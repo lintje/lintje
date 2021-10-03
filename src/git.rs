@@ -88,12 +88,12 @@ fn parse_commit(message: &str) -> Option<Commit> {
                 debug!("Commit subject not present in message: {:?}", message);
                 ""
             });
-            commit_or_none(
+            Some(commit_for(
                 Some(long_sha.to_string()),
                 email,
                 used_subject.to_string(),
                 message_lines,
-            )
+            ))
         }
         _ => {
             debug!("Commit ignored: SHA was not present: {}", message);
@@ -106,7 +106,7 @@ pub fn parse_commit_hook_format(
     message: &str,
     cleanup_mode: CleanupMode,
     comment_char: String,
-) -> Option<Commit> {
+) -> Commit {
     let mut subject = None;
     let mut message_lines = Vec::<&str>::new();
     let scissor_line = format!("{} {}", comment_char, SCISSORS);
@@ -142,22 +142,22 @@ pub fn parse_commit_hook_format(
         debug!("Commit subject not present in message: {:?}", message);
         ""
     });
-    commit_or_none(None, None, used_subject.to_string(), message_lines)
+    commit_for(None, None, used_subject.to_string(), message_lines)
 }
 
-fn commit_or_none(
+fn commit_for(
     sha: Option<String>,
     email: Option<String>,
     subject: String,
     message: Vec<&str>,
-) -> Option<Commit> {
+) -> Commit {
     let mut commit = Commit::new(sha, email, subject, message.join("\n"));
-    if !ignored(&commit) {
-        commit.validate();
-        Some(commit)
+    if ignored(&commit) {
+        commit.ignored = true;
     } else {
-        None
+        commit.validate();
     }
+    commit
 }
 
 fn ignored(commit: &Commit) -> bool {
@@ -258,7 +258,26 @@ pub fn comment_char() -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::Commit;
     use super::{parse_commit, parse_commit_hook_format, CleanupMode};
+
+    fn assert_commit_is_ignored(result: &Option<Commit>) {
+        match result {
+            Some(commit) => {
+                assert_eq!(commit.ignored, true);
+            }
+            None => panic!("Result is not a commit!"),
+        }
+    }
+
+    fn assert_commit_is_not_ignored(result: &Option<Commit>) {
+        match result {
+            Some(commit) => {
+                assert_eq!(commit.ignored, false);
+            }
+            None => panic!("Result is not a commit!"),
+        }
+    }
 
     #[test]
     fn test_parse_commit() {
@@ -271,7 +290,7 @@ mod tests {
         Line 2.",
         );
 
-        assert!(result.is_some());
+        assert_commit_is_not_ignored(&result);
         let commit = result.unwrap();
         assert_eq!(
             commit.long_sha,
@@ -292,7 +311,7 @@ mod tests {
         This is a subject",
         );
 
-        assert!(result.is_some());
+        assert_commit_is_not_ignored(&result);
         let commit = result.unwrap();
         assert_eq!(
             commit.long_sha,
@@ -309,7 +328,7 @@ mod tests {
     fn test_parse_commit_empty() {
         let result = parse_commit("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
 
-        assert!(result.is_some());
+        assert_commit_is_not_ignored(&result);
         let commit = result.unwrap();
         assert_eq!(
             commit.long_sha,
@@ -330,7 +349,7 @@ mod tests {
         Commit by bot without description",
         );
 
-        assert!(result.is_none());
+        assert_commit_is_ignored(&result);
     }
 
     #[test]
@@ -341,7 +360,7 @@ mod tests {
         Merge tag 'v1.2.3' into main",
         );
 
-        assert!(result.is_none());
+        assert_commit_is_ignored(&result);
     }
 
     #[test]
@@ -355,7 +374,7 @@ mod tests {
         Line 2.",
         );
 
-        assert!(result.is_none());
+        assert_commit_is_ignored(&result);
     }
 
     #[test]
@@ -369,7 +388,7 @@ mod tests {
         Line 2.",
         );
 
-        assert!(result.is_none());
+        assert_commit_is_ignored(&result);
     }
 
     #[test]
@@ -385,7 +404,7 @@ mod tests {
         See merge request gitlab-org/repo!123",
         );
 
-        assert!(result.is_none());
+        assert_commit_is_ignored(&result);
 
         // This is not a full reference, but a shorthand. GitLab merge commits
         // use the full org + repo + Merge Request ID reference.
@@ -400,7 +419,7 @@ mod tests {
         See merge request !123 for more info about the orignal fix",
         );
 
-        assert!(result.is_some());
+        assert_commit_is_not_ignored(&result);
 
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
@@ -413,7 +432,7 @@ mod tests {
         Also See merge request !123",
         );
 
-        assert!(result.is_some());
+        assert_commit_is_not_ignored(&result);
 
         let result = parse_commit(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
@@ -424,7 +443,7 @@ mod tests {
         Line 2. See merge request org/repo!123",
         );
 
-        assert!(result.is_some());
+        assert_commit_is_not_ignored(&result);
     }
 
     #[test]
@@ -435,7 +454,7 @@ mod tests {
         Merge branch 'branch'",
         );
 
-        assert!(result.is_none());
+        assert_commit_is_ignored(&result);
     }
 
     #[test]
@@ -446,19 +465,17 @@ mod tests {
         Merge branch 'branch' of github.com/org/repo into branch",
         );
 
-        assert!(result.is_some());
+        assert_commit_is_not_ignored(&result);
     }
 
     #[test]
     fn test_parse_commit_hook_format() {
-        let result = parse_commit_hook_format(
+        let commit = parse_commit_hook_format(
             "This is a subject\n\nThis is a message.",
             CleanupMode::Default,
             "#".to_string(),
         );
 
-        assert!(result.is_some());
-        let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.email, None);
@@ -468,11 +485,9 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_without_message() {
-        let result =
+        let commit =
             parse_commit_hook_format("This is a subject", CleanupMode::Default, "#".to_string());
 
-        assert!(result.is_some());
-        let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.email, None);
@@ -483,7 +498,7 @@ mod tests {
     // Same as Default
     #[test]
     fn test_parse_commit_hook_format_with_strip() {
-        let result = parse_commit_hook_format(
+        let commit = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.  \n\
@@ -497,8 +512,6 @@ mod tests {
             "#".to_string(),
         );
 
-        assert!(result.is_some());
-        let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.email, None);
@@ -511,7 +524,7 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_with_strip_custom_comment_char() {
-        let result = parse_commit_hook_format(
+        let commit = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.  \n\
@@ -525,8 +538,6 @@ mod tests {
             "-".to_string(),
         );
 
-        assert!(result.is_some());
-        let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.email, None);
@@ -539,7 +550,7 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_with_scissors() {
-        let result = parse_commit_hook_format(
+        let commit = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.\n\
@@ -552,8 +563,6 @@ mod tests {
             "#".to_string(),
         );
 
-        assert!(result.is_some());
-        let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.email, None);
@@ -566,7 +575,7 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_with_verbatim() {
-        let result = parse_commit_hook_format(
+        let commit = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.\n\
@@ -578,8 +587,6 @@ mod tests {
             "#".to_string(),
         );
 
-        assert!(result.is_some());
-        let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.email, None);
@@ -596,7 +603,7 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_with_whitespace() {
-        let result = parse_commit_hook_format(
+        let commit = parse_commit_hook_format(
             "This is a subject\n\
             \n\
             This is the message body.  \n\
@@ -610,8 +617,6 @@ mod tests {
             "#".to_string(),
         );
 
-        assert!(result.is_some());
-        let commit = result.unwrap();
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
         assert_eq!(commit.email, None);
