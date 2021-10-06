@@ -1,6 +1,6 @@
 # Lintje changelog
 
-## Next version
+## 0.4.0
 
 - Better handling of Git commands when they fail. Print an error message when a
   Git command fails (like calling `git log`) and when Git is not
