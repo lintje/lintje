@@ -116,6 +116,7 @@ task :build => ["build:all"]
 namespace :release do
   task :prepare => [
     :check_local_changes,
+    :check_env,
     :prompt_confirmation,
     :check_tag_presence,
     :check_gh_install
@@ -125,6 +126,15 @@ namespace :release do
     if local_changes?
       puts "Local changes detected!"
       puts "Please commit all changes before release."
+      exit 1
+    end
+  end
+
+  task :check_env do
+    unless ENV["CLOUDSMITH_API_KEY"]
+      puts "The CLOUDSMITH_API_KEY env var is not configured in the `.env` " \
+        "file."
+      puts "Please make sure the environment is configured correctly."
       exit 1
     end
   end
