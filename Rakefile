@@ -131,6 +131,7 @@ namespace :release do
   end
 
   task :check_env do
+    Dotenv.load
     unless ENV["CLOUDSMITH_API_KEY"]
       puts "The CLOUDSMITH_API_KEY env var is not configured in the `.env` " \
         "file."
@@ -233,7 +234,6 @@ namespace :release do
   end
 
   def build_packages
-    Dotenv.load
     puts "Building OS packages"
     build_debian_package "amd64", "x86_64-unknown-linux-gnu"
     build_debian_package "arm64", "aarch64-unknown-linux-gnu"
