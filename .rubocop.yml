@@ -59,3 +59,6 @@ Metrics/BlockLength:
 Metrics/MethodLength:
   Exclude:
     - Rakefile
+
+Bundler/OrderedGems:
+  Enabled: false
