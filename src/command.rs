@@ -1,10 +1,36 @@
 use std::ffi::OsStr;
 use std::process::Command;
 
+pub struct CommandError {
+    pub code: Option<i32>,
+    pub message: String,
+}
+
+impl CommandError {
+    pub fn code_string(&self) -> String {
+        match self.code {
+            Some(code) => code.to_string(),
+            None => "".to_string(),
+        }
+    }
+}
+//
+impl std::fmt::Display for CommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::fmt::Debug for CommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}: {}", self.code, self.message)
+    }
+}
+
 pub fn run_command<S: AsRef<OsStr> + std::fmt::Debug>(
     cmd: &str,
     args: &[S],
-) -> Result<String, String> {
+) -> Result<String, CommandError> {
     let mut command = Command::new(cmd);
     command.args(args);
     match command.output() {
@@ -15,7 +41,8 @@ pub fn run_command<S: AsRef<OsStr> + std::fmt::Debug>(
                 Ok(stdout.to_string())
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                let (status_code, additional_message) = match status.code() {
+                let status_code = status.code();
+                let (exit_code, additional_message) = match status_code {
                     Some(127) => {
                         // I've only seen this happen on emulated systems: host
                         // architecture is different from the Docker image.
@@ -25,15 +52,18 @@ pub fn run_command<S: AsRef<OsStr> + std::fmt::Debug>(
                     Some(code) => (code.to_string(), ""),
                     None => ("unknown".to_string(), ""),
                 };
-                return Err(format!(
-                    "Failed to run command.{}\n\
-                    Command: {}\n\
-                    Arguments: {:?}\n\
-                    Exit code: {}\n\
-                    STDOUT: {}\n\
-                    STDERR: {}",
-                    additional_message, cmd, args, status_code, stdout, stderr
-                ));
+                return Err(CommandError {
+                    code: status_code,
+                    message: format!(
+                        "Failed to run command.{}\n\
+                        Command: {}\n\
+                        Arguments: {:?}\n\
+                        Exit code: {}\n\
+                        STDOUT: {}\n\
+                        STDERR: {}",
+                        additional_message, cmd, args, exit_code, stdout, stderr
+                    ),
+                });
             }
         }
         Err(e) => {
@@ -42,13 +72,16 @@ pub fn run_command<S: AsRef<OsStr> + std::fmt::Debug>(
             } else {
                 ""
             };
-            return Err(format!(
-                "Failed to run command.{}\n\
-                Command: {}\n\
-                Arguments: {:?}\n\
-                Error: {}",
-                additional_message, cmd, args, e
-            ));
+            return Err(CommandError {
+                code: None,
+                message: format!(
+                    "Failed to run command.{}\n\
+                    Command: {}\n\
+                    Arguments: {:?}\n\
+                    Error: {}",
+                    additional_message, cmd, args, e
+                ),
+            });
         }
     }
 }
@@ -76,7 +109,7 @@ mod tests {
                     Exit code: 5\n\
                     STDOUT: STDOUT message\n\n\
                     STDERR: STDERR message\n";
-                assert_eq!(e, message)
+                assert_eq!(e.message, message)
             }
         }
     }
@@ -92,7 +125,7 @@ mod tests {
                     Exit code: 127\n\
                     STDOUT: STDOUT message\n\n\
                     STDERR: STDERR message\n";
-                assert_eq!(e, message)
+                assert_eq!(e.message, message)
             }
         }
     }
@@ -106,7 +139,7 @@ mod tests {
                     Command: lintje-does-not-exist\n\
                     Arguments: [\"123\", \"hello\"]\n\
                     Error: No such file or directory (os error 2)";
-                assert_eq!(e, message)
+                assert_eq!(e.message, message)
             }
         }
     }

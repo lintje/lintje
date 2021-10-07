@@ -23,9 +23,10 @@ pub enum CleanupMode {
 }
 
 pub fn fetch_and_parse_branch() -> Result<Branch, String> {
-    let name = run_command("git", &["rev-parse", "--abbrev-ref", "HEAD"])?
-        .trim()
-        .to_string();
+    let name = match run_command("git", &["rev-parse", "--abbrev-ref", "HEAD"]) {
+        Ok(output) => output.trim().to_string(),
+        Err(e) => return Err(e.message),
+    };
     let mut branch = Branch::new(name);
     branch.validate();
     Ok(branch)
@@ -55,7 +56,10 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
         None => args.push("HEAD~1..HEAD".to_string()),
     };
 
-    let output = run_command("git", &args)?;
+    let output = match run_command("git", &args) {
+        Ok(out) => out,
+        Err(e) => return Err(e.message),
+    };
     let messages = output.split(COMMIT_DELIMITER);
     for message in messages {
         let trimmed_message = message.trim();
@@ -232,7 +236,19 @@ pub fn cleanup_mode() -> CleanupMode {
             }
         },
         Err(e) => {
-            error!("Unable to determine Git's commit.cleanup config: {}", e);
+            let message = format!(
+                "Unable to determine Git's commit.cleanup config. \
+                Falling back on default commit.cleanup config.\nError: Exit code {}: {}",
+                e.code_string(),
+                e.message
+            );
+            if e.code == Some(1) {
+                // Git returns exit code 1 if the config option is not set
+                // So no need to error when that happens
+                debug!("{}", message);
+            } else {
+                error!("{}", message);
+            }
             CleanupMode::Default
         }
     }
@@ -250,7 +266,19 @@ pub fn comment_char() -> String {
             }
         }
         Err(e) => {
-            error!("Unable to determine Git's core.commentChar config: {}", e);
+            let message = format!(
+                "Unable to determine Git's core.commentChar config. \
+                Falling back on default core.commentChar: `#`\nError: Exit code {}: {}",
+                e.code_string(),
+                e.message
+            );
+            if e.code == Some(1) {
+                // Git returns exit code 1 if the config option is not set
+                // So no need to error when that happens
+                debug!("{}", message);
+            } else {
+                error!("{}", message);
+            }
             "#".to_string()
         }
     }

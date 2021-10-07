@@ -1,5 +1,10 @@
 # Lintje changelog
 
+## 0.4.1
+
+- Fix error handling for Git hook mode when no `core.commentChar` or
+  `commit.cleanup` is configured in Git.
+
 ## 0.4.0
 
 - Better handling of Git commands when they fail. Print an error message when a
