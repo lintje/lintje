@@ -238,8 +238,7 @@ pub fn cleanup_mode() -> CleanupMode {
         Err(e) => {
             let message = format!(
                 "Unable to determine Git's commit.cleanup config. \
-                Falling back on default commit.cleanup config.\nError: Exit code {}: {}",
-                e.code_string(),
+                Falling back on default commit.cleanup config.\nError: {}",
                 e.message
             );
             if e.code == Some(1) {
@@ -268,8 +267,7 @@ pub fn comment_char() -> String {
         Err(e) => {
             let message = format!(
                 "Unable to determine Git's core.commentChar config. \
-                Falling back on default core.commentChar: `#`\nError: Exit code {}: {}",
-                e.code_string(),
+                Falling back on default core.commentChar: `#`\nError: {}",
                 e.message
             );
             if e.code == Some(1) {

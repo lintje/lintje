@@ -6,15 +6,6 @@ pub struct CommandError {
     pub message: String,
 }
 
-impl CommandError {
-    pub fn code_string(&self) -> String {
-        match self.code {
-            Some(code) => code.to_string(),
-            None => "".to_string(),
-        }
-    }
-}
-//
 impl std::fmt::Display for CommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.message)
