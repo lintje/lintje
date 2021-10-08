@@ -68,6 +68,9 @@ Fix
 One day I woke up and found the solution to this year old bug, the solution...
 ```
 
+*Note: This rule is skipped if a [SubjectCliche](#subjectcliche) violation is
+found.*
+
 ## SubjectMood
 
 Write commit subjects in the imperative mood. The commit is not actively

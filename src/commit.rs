@@ -167,6 +167,7 @@ impl Commit {
     pub fn validate(&mut self) {
         self.validate_merge_commit();
         self.validate_needs_rebase();
+        self.validate_subject_cliches();
         self.validate_subject_line_length();
         self.validate_subject_mood();
         self.validate_subject_whitespace();
@@ -175,7 +176,6 @@ impl Commit {
         self.validate_subject_ticket_numbers();
         self.validate_subject_prefix();
         self.validate_subject_build_tags();
-        self.validate_subject_cliches();
         self.validate_message_empty_first_line();
         self.validate_message_presence();
         self.validate_message_line_length();
@@ -217,7 +217,7 @@ impl Commit {
     }
 
     fn validate_subject_line_length(&mut self) {
-        if self.rule_ignored(Rule::SubjectLength) {
+        if self.rule_ignored(Rule::SubjectLength) || self.has_violation(Rule::SubjectCliche) {
             return;
         }
 
@@ -511,6 +511,12 @@ impl Commit {
     fn add_violation(&mut self, rule: Rule, message: String) {
         self.violations.push(Violation { rule, message })
     }
+
+    fn has_violation(&self, rule: Rule) -> bool {
+        self.violations
+            .iter()
+            .any(|violation| violation.rule == rule)
+    }
 }
 
 #[derive(PartialEq)]
@@ -679,6 +685,9 @@ mod tests {
             "lintje:disable SubjectLength".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectLength);
+
+        // Already a SubjectCliche violation, so it's skipped.
+        assert_commit_subject_as_valid("wip", &Rule::SubjectLength);
     }
 
     #[test]

@@ -428,8 +428,8 @@ mod tests {
         assert
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
-                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
                 \x20\x20SubjectCliche: Reword the subject to describe the change in more detail.\n\
+                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
                 \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(
@@ -523,8 +523,8 @@ mod tests {
             ))
             .stdout(predicate::str::contains(
                 "Fixing tests\n\
-                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
                 \x20\x20SubjectCliche: Reword the subject to describe the change in more detail.\n\
+                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
                 \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
             ))
             .stdout(predicate::str::contains(

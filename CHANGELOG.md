@@ -1,5 +1,11 @@
 # Lintje changelog
 
+## Next version
+
+- Ignore SubjectLength violations if the subject already has a SubjectCliche
+  violation. This reduces the number of violation that are printed when a
+  SubjectCliche violation means writing a longer subject anyway.
+
 ## 0.4.1
 
 - Fix error handling for Git hook mode when no `core.commentChar` or
