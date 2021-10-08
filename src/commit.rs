@@ -284,7 +284,7 @@ impl Commit {
     }
 
     fn validate_subject_capitalization(&mut self) {
-        if self.rule_ignored(Rule::SubjectCapitalization) {
+        if self.rule_ignored(Rule::SubjectCapitalization) || self.has_violation(Rule::NeedsRebase) {
             return;
         }
 
@@ -438,7 +438,7 @@ impl Commit {
     }
 
     fn validate_message_presence(&mut self) {
-        if self.rule_ignored(Rule::MessagePresence) {
+        if self.rule_ignored(Rule::MessagePresence) || self.has_violation(Rule::NeedsRebase) {
             return;
         }
 
@@ -744,6 +744,12 @@ mod tests {
             "lintje:disable SubjectCapitalization".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::SubjectCapitalization);
+
+        // Already a NeedsRebase violation, so it's skipped.
+        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
+        assert_commit_valid_for(rebase_commit, &Rule::SubjectCapitalization);
+        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
+        assert_commit_invalid_for(rebase_commit, &Rule::NeedsRebase);
     }
 
     #[test]
@@ -1018,6 +1024,12 @@ mod tests {
             "lintje:disable MessagePresence".to_string(),
         );
         assert_commit_valid_for(ignore_commit, &Rule::MessagePresence);
+
+        // Already a NeedsRebase violation, so it's skipped.
+        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
+        assert_commit_valid_for(rebase_commit, &Rule::MessagePresence);
+        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
+        assert_commit_invalid_for(rebase_commit, &Rule::NeedsRebase);
     }
 
     #[test]

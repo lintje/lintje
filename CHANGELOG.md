@@ -2,9 +2,13 @@
 
 ## Next version
 
-- Ignore SubjectLength violations if the subject already has a SubjectCliche
+- Ignore SubjectLength rule if the subject already has a SubjectCliche
   violation. This reduces the number of violation that are printed when a
   SubjectCliche violation means writing a longer subject anyway.
+- Ignore SubjectCapitalization and MessagePresence rules if the subject already
+  has a NeedsRebase violation. To fix a NeedsRebase violation the commit needs
+  to be rebased into the commit it's marked to fixup or squash, and there will
+  be no need to fix the capitalization or add a message body.
 
 ## 0.4.1
 
