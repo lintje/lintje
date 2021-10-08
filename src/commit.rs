@@ -176,7 +176,7 @@ impl Commit {
         self.validate_subject_prefix();
         self.validate_subject_build_tags();
         self.validate_subject_cliches();
-        self.validate_message_second_line_empty();
+        self.validate_message_empty_first_line();
         self.validate_message_presence();
         self.validate_message_line_length();
     }
@@ -422,7 +422,7 @@ impl Commit {
         }
     }
 
-    fn validate_message_second_line_empty(&mut self) {
+    fn validate_message_empty_first_line(&mut self) {
         if self.rule_ignored(Rule::MessageEmptyFirstLine) {
             return;
         }
