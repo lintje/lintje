@@ -106,6 +106,7 @@ pub struct Commit {
     pub email: Option<String>,
     pub subject: String,
     pub message: String,
+    pub has_changes: bool,
     pub violations: Vec<Violation>,
     pub ignored: bool,
     pub ignored_rules: Vec<Rule>,
@@ -117,6 +118,7 @@ impl Commit {
         email: Option<String>,
         subject: String,
         message: String,
+        has_changes: bool,
     ) -> Self {
         // Get first 7 characters of the commit SHA to get the short SHA.
         let short_sha = match &long_sha {
@@ -136,6 +138,7 @@ impl Commit {
             email,
             subject: subject.trim_end().to_string(),
             message,
+            has_changes,
             ignored: false,
             ignored_rules,
             violations: Vec::<Violation>::new(),
@@ -179,6 +182,7 @@ impl Commit {
         self.validate_message_empty_first_line();
         self.validate_message_presence();
         self.validate_message_line_length();
+        self.validate_changes();
     }
 
     // Note: Some merge commits are ignored in git.rs and won't be validated here, because they are
@@ -508,6 +512,20 @@ impl Commit {
         }
     }
 
+    fn validate_changes(&mut self) {
+        if self.rule_ignored(Rule::DiffPresence) {
+            return;
+        }
+
+        if !self.has_changes {
+            self.add_violation(
+                Rule::DiffPresence,
+                "The commit has no file changes. Add changes to the commit or remove the commit."
+                    .to_string(),
+            )
+        }
+    }
+
     fn add_violation(&mut self, rule: Rule, message: String) {
         self.violations.push(Violation { rule, message })
     }
@@ -531,7 +549,13 @@ mod tests {
     use super::{Commit, Rule, Violation, BUILD_TAGS, MOOD_WORDS};
 
     fn commit_with_sha(sha: Option<String>, subject: String, message: String) -> Commit {
-        Commit::new(sha, Some("test@example.com".to_string()), subject, message)
+        Commit::new(
+            sha,
+            Some("test@example.com".to_string()),
+            subject,
+            message,
+            true,
+        )
     }
 
     fn commit(subject: String, message: String) -> Commit {
@@ -539,6 +563,16 @@ mod tests {
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
             subject,
             message,
+        )
+    }
+
+    fn commit_without_file_changes(message: String) -> Commit {
+        Commit::new(
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
+            Some("test@example.com".to_string()),
+            "Some subject".to_string(),
+            message,
+            false,
         )
     }
 
@@ -1191,5 +1225,21 @@ mod tests {
             ),
             &Rule::MessageLineLength,
         );
+    }
+
+    #[test]
+    fn test_validate_changes_presense() {
+        let with_changes = validated_commit("Subject".to_string(), "\nSome message.".to_string());
+        assert_commit_valid_for(with_changes, &Rule::DiffPresence);
+
+        let mut without_changes = commit_without_file_changes("\nSome message.".to_string());
+        without_changes.validate();
+        assert_commit_invalid_for(without_changes, &Rule::DiffPresence);
+
+        let mut ignore_commit = commit_without_file_changes(
+            "\nSome message.\nlintje:disable: DiffPresence".to_string(),
+        );
+        ignore_commit.validate();
+        assert_commit_invalid_for(ignore_commit, &Rule::DiffPresence);
     }
 }

@@ -21,6 +21,7 @@ mod rule;
 mod utils;
 
 use branch::Branch;
+use command::run_command;
 use commit::Commit;
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
@@ -109,8 +110,25 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
                     ));
                 }
             };
-            let commit =
-                parse_commit_hook_format(&contents, git::cleanup_mode(), git::comment_char());
+
+            // Run the diff command to fetch the current staged changes and determine if the commit is
+            // empty or not. The contents of the commit message file is too unreliable as it depends on
+            // user config and how the user called the `git commit` command.
+            let mut has_changes = true;
+            match run_command("git", &["diff", "--cached", "--shortstat"]) {
+                Ok(stdout) => {
+                    if stdout.is_empty() {
+                        has_changes = false;
+                    }
+                }
+                Err(e) => error!("Unable to determine commit changes.\nError: {}", e.message),
+            }
+            let commit = parse_commit_hook_format(
+                &contents,
+                git::cleanup_mode(),
+                git::comment_char(),
+                has_changes,
+            );
             vec![commit]
         }
         Err(e) => {
@@ -492,6 +510,26 @@ mod tests {
     }
 
     #[test]
+    fn test_single_commit_invalid_without_file_changes() {
+        compile_bin();
+        let dir = test_dir("single_commit_invalid_without_file_changes");
+        create_test_repo(&dir);
+        create_commit(&dir, "Valid commit subject", "");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        assert
+            .stdout(predicate::str::contains(
+                "Valid commit subject\n\
+                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.\n\
+                \x20\x20DiffPresence: The commit has no file changes. Add changes to the commit or remove the commit.",
+            ))
+            .stdout(predicate::str::contains(
+                "1 commit and branch inspected, 2 violations detected\n",
+            ));
+    }
+
+    #[test]
     fn test_single_commit_ignored() {
         compile_bin();
         let dir = test_dir("single_commit_ignored");
@@ -574,10 +612,39 @@ mod tests {
             .assert()
             .failure()
             .code(1);
+        assert
+            .stdout(predicate::str::contains(
+                    "added some code\n\
+                    \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
+                    \x20\x20SubjectCapitalization: Start the commit subject with a capital letter.\n\
+                    \x20\x20DiffPresence: The commit has no file changes. Add changes to the commit or remove the commit.",
+            ))
+            .stdout(predicate::str::contains(
+                    "1 commit and branch inspected, 3 violations detected\n",
+            ));
+    }
+
+    #[test]
+    fn test_file_option_with_file_changes() {
+        compile_bin();
+        let dir = test_dir("commit_file_option_with_file_changes");
+        create_test_repo(&dir);
+        create_file(&dir.join("file name"));
+        stage_files(&dir);
+        let filename = "commit_message_file";
+        let commit_file = dir.join(filename);
+        let mut file = File::create(&commit_file).unwrap();
+        file.write_all(b"Valid subject\n\nValid message body.")
+            .unwrap();
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .arg(&format!("--hook-message-file={}", filename))
+            .current_dir(dir)
+            .assert()
+            .success();
         assert.stdout(predicate::str::contains(
-            "added some code\n\
-             \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
-             \x20\x20SubjectCapitalization: Start the commit subject with a capital letter.",
+            "1 commit and branch inspected, 0 violations detected\n",
         ));
     }
 

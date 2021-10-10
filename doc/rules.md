@@ -361,6 +361,15 @@ line.
     Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy aa
     tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
 
+## DiffPresence
+
+The commit is detected as having no file changes, it's an empty commit. Avoid
+empty commits in the Git history. Empty commits can be left over after a rebase
+after all its changes have been applied already in another commit.
+
+Add the intended files changes to the empty commit, or remove the commit from
+the Git history to fix this violation.
+
 ## MergeCommit
 
 The commit is detected as a merge commit, which is a commit merging one branch

@@ -9,6 +9,8 @@
   has a NeedsRebase violation. To fix a NeedsRebase violation the commit needs
   to be rebased into the commit it's marked to fixup or squash, and there will
   be no need to fix the capitalization or add a message body.
+- Add DiffPresence rule. This rule whether or not the commit has any changes or
+  not. When a commit is empty, it will print a violation.
 
 ## 0.4.1
 
