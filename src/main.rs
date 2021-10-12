@@ -249,7 +249,7 @@ mod tests {
         Path::new(TEST_DIR).join(name)
     }
 
-    fn create_test_repo(dir: &PathBuf, commits: &[(&str, &str)]) {
+    fn create_test_repo(dir: &PathBuf) {
         if Path::new(&dir).exists() {
             fs::remove_dir_all(&dir).expect("Could not remove test repo dir");
         }
@@ -272,9 +272,6 @@ mod tests {
             )
         }
         create_commit(dir, "Initial commit", "");
-        for (subject, message) in commits {
-            create_commit(dir, subject, message)
-        }
     }
 
     fn checkout_branch(dir: &PathBuf, name: &str) {
@@ -322,6 +319,44 @@ mod tests {
                     .status
                     .code()
                     .expect("Could not fetch status code of git commit"),
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            )
+        }
+    }
+
+    fn create_commit_with_file(dir: &PathBuf, subject: &str, message: &str, filename: &str) {
+        create_file(&dir.join(&filename));
+        stage_files(&dir);
+        create_commit(&dir, &subject, &message)
+    }
+
+    fn create_file(file_path: &PathBuf) {
+        let mut file = match File::create(&file_path) {
+            Ok(file) => file,
+            Err(e) => panic!("Could not create file: {:?}: {}", file_path, e),
+        };
+        // Write a slice of bytes to the file
+        match file.write_all(b"I am a test file!") {
+            Ok(_) => (),
+            Err(e) => panic!("Could not write to file: {:?}: {}", file_path, e),
+        }
+    }
+
+    fn stage_files(dir: &PathBuf) {
+        let output = Command::new("git")
+            .args(["add", "."])
+            .current_dir(dir)
+            .stdin(Stdio::null())
+            .output()
+            .unwrap_or_else(|e| panic!("Failed to add files to commit: {:?}", e));
+        if !output.status.success() {
+            panic!(
+                "Failed to add files to commit!\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
+                output
+                    .status
+                    .code()
+                    .expect("Could not fetch status code of git add"),
                 String::from_utf8(output.stdout).unwrap(),
                 String::from_utf8(output.stderr).unwrap()
             )
@@ -382,7 +417,8 @@ mod tests {
     fn test_commit_by_sha() {
         compile_bin();
         let dir = test_dir("commit_by_sha");
-        create_test_repo(&dir, &[("Test commit", "")]);
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "", "file");
         let output = Command::new("git")
             .args(&["log", "--pretty=%H", "-n 1"])
             .current_dir(&dir)
@@ -405,10 +441,8 @@ mod tests {
     fn test_single_commit_valid() {
         compile_bin();
         let dir = test_dir("single_commit_valid");
-        create_test_repo(
-            &dir,
-            &[("Test commit", "I am a test commit, short but valid.")],
-        );
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
@@ -421,7 +455,8 @@ mod tests {
     fn test_single_commit_invalid() {
         compile_bin();
         let dir = test_dir("single_commit_invalid");
-        create_test_repo(&dir, &[("added some code", ""), ("Fixing tests", "")]);
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Fixing tests", "", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().failure().code(1);
@@ -441,10 +476,8 @@ mod tests {
     fn test_single_commit_invalid_one_violation() {
         compile_bin();
         let dir = test_dir("single_commit_invalid_one_violation");
-        create_test_repo(
-            &dir,
-            &[("added some code", ""), ("Valid commit subject", "")],
-        );
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Valid commit subject", "", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().failure().code(1);
@@ -462,12 +495,12 @@ mod tests {
     fn test_single_commit_ignored() {
         compile_bin();
         let dir = test_dir("single_commit_ignored");
-        create_test_repo(
+        create_test_repo(&dir);
+        create_commit_with_file(
             &dir,
-            &[
-                ("added some code", ""),
-                ("Merge pull request #123 from tombruijn/repo", ""),
-            ],
+            "Merge pull request #123 from tombruijn/repo",
+            "",
+            "file",
         );
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
@@ -481,13 +514,8 @@ mod tests {
     fn test_single_commit_with_debug() {
         compile_bin();
         let dir = test_dir("single_commit_with_debug");
-        create_test_repo(
-            &dir,
-            &[
-                ("added some code", ""),
-                ("Valid commit subject", "Valid message body"),
-            ],
-        );
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Valid commit subject", "Valid message body", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).args(["--debug"]).assert().success();
@@ -500,13 +528,9 @@ mod tests {
     fn test_multiple_commit_invalid() {
         compile_bin();
         let dir = test_dir("multiple_commits_invalid");
-        create_test_repo(
-            &dir,
-            &[
-                ("added some code", "This is a message."),
-                ("Fixing tests", ""),
-            ],
-        );
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "added some code", "This is a message.", "file1");
+        create_commit_with_file(&dir, "Fixing tests", "", "file2");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
@@ -536,7 +560,7 @@ mod tests {
     fn test_lint_hook() {
         compile_bin();
         let dir = test_dir("commit_file_option");
-        create_test_repo(&dir, &[]);
+        create_test_repo(&dir);
         let filename = "commit_message_file";
         let commit_file = dir.join(filename);
         let mut file = File::create(&commit_file).unwrap();
@@ -561,7 +585,7 @@ mod tests {
     fn test_file_option_with_scissors_cleanup() {
         compile_bin();
         let dir = test_dir("commit_file_option_with_scissors_cleanup_default_comment_char");
-        create_test_repo(&dir, &[]);
+        create_test_repo(&dir);
         configure_git_cleanup_mode(&dir, "scissors");
         let filename = "commit_message_file";
         let commit_file = dir.join(filename);
@@ -588,7 +612,7 @@ mod tests {
     fn test_file_option_with_scissors_cleanup_custom_comment_char() {
         compile_bin();
         let dir = test_dir("commit_file_option_with_scissors_cleanup_custom_comment_char");
-        create_test_repo(&dir, &[]);
+        create_test_repo(&dir);
         configure_git_cleanup_mode(&dir, "scissors");
         configure_git_comment_char(&dir, "-");
         let filename = "commit_message_file";
@@ -616,7 +640,7 @@ mod tests {
     fn test_file_option_without_file() {
         compile_bin();
         let dir = test_dir("commit_file_option_without_file");
-        create_test_repo(&dir, &[]);
+        create_test_repo(&dir);
         let filename = "commit_message_file";
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
@@ -635,10 +659,8 @@ mod tests {
     fn test_branch_valid() {
         compile_bin();
         let dir = test_dir("branch_valid");
-        create_test_repo(
-            &dir,
-            &[("Test commit", "I am a test commit, short but valid.")],
-        );
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "I am a test commit.", "file");
         checkout_branch(&dir, "my-branch");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
@@ -652,11 +674,9 @@ mod tests {
     fn test_branch_invalid() {
         compile_bin();
         let dir = test_dir("branch_invalid");
-        create_test_repo(
-            &dir,
-            &[("Test commit", "I am a test commit, short but valid.")],
-        );
+        create_test_repo(&dir);
         checkout_branch(&dir, "fix-123");
+        create_commit_with_file(&dir, "Test commit", "I am a test commit.", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().failure().code(1);
@@ -675,10 +695,8 @@ mod tests {
     fn test_no_branch_validation() {
         compile_bin();
         let dir = test_dir("branch_invalid_disabled");
-        create_test_repo(
-            &dir,
-            &[("Test commit", "I am a test commit, short but valid.")],
-        );
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "I am a test commit.", "file");
         checkout_branch(&dir, "fix-123");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
