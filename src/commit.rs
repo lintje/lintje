@@ -279,6 +279,9 @@ impl Commit {
         if self.rule_ignored(Rule::SubjectWhitespace) {
             return;
         }
+        if self.subject.chars().count() == 0 && self.has_violation(Rule::SubjectLength) {
+            return;
+        }
 
         match self.subject.chars().next() {
             Some(character) => {
@@ -299,6 +302,9 @@ impl Commit {
         if self.rule_ignored(Rule::SubjectCapitalization) || self.has_violation(Rule::NeedsRebase) {
             return;
         }
+        if self.subject.chars().count() == 0 && self.has_violation(Rule::SubjectLength) {
+            return;
+        }
 
         match self.subject.chars().next() {
             Some(character) => {
@@ -317,6 +323,9 @@ impl Commit {
 
     fn validate_subject_punctuation(&mut self) {
         if self.rule_ignored(Rule::SubjectPunctuation) {
+            return;
+        }
+        if self.subject.chars().count() == 0 && self.has_violation(Rule::SubjectLength) {
             return;
         }
 
@@ -766,6 +775,9 @@ mod tests {
         let invalid_subjects = vec![" Fix test", "\tFix test", "\x20Fix test"];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectWhitespace);
 
+        assert_commit_subject_as_invalid("", &Rule::SubjectLength);
+        assert_commit_subject_as_valid("", &Rule::SubjectWhitespace);
+
         let ignore_commit = validated_commit(
             " Fix test".to_string(),
             "lintje:disable SubjectWhitespace".to_string(),
@@ -780,6 +792,9 @@ mod tests {
 
         let invalid_subjects = vec!["fix test"];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectCapitalization);
+
+        assert_commit_subject_as_invalid("", &Rule::SubjectLength);
+        assert_commit_subject_as_valid("", &Rule::SubjectCapitalization);
 
         let ignore_commit = validated_commit(
             "fix test".to_string(),
@@ -841,6 +856,9 @@ mod tests {
             "@fix Fix test",
         ];
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPunctuation);
+
+        assert_commit_subject_as_invalid("", &Rule::SubjectLength);
+        assert_commit_subject_as_valid("", &Rule::SubjectPunctuation);
 
         let ignore_commit = validated_commit(
             "Fix test.".to_string(),

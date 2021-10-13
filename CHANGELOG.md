@@ -12,6 +12,7 @@
 - Add DiffPresence rule. This rule whether or not the commit has any changes or
   not. When a commit is empty, it will print a violation.
 - Improve SubjectLength violation message when the subject is completely empty.
+- Remove error messages from output when the commit subject is empty.
 
 ## 0.4.1
 
