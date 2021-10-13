@@ -226,6 +226,14 @@ impl Commit {
         }
 
         let length = self.subject.chars().count();
+        if length == 0 {
+            self.add_violation(
+                Rule::SubjectLength,
+                "The subject is not present. Please add a subject to describe the change."
+                    .to_string(),
+            );
+            return;
+        }
         if length > 50 {
             self.add_violation(
                 Rule::SubjectLength,

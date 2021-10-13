@@ -11,6 +11,7 @@
   be no need to fix the capitalization or add a message body.
 - Add DiffPresence rule. This rule whether or not the commit has any changes or
   not. When a commit is empty, it will print a violation.
+- Improve SubjectLength violation message when the subject is completely empty.
 
 ## 0.4.1
 
