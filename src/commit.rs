@@ -12,7 +12,10 @@ lazy_static! {
     // For more information, see:
     // https://github.com/BurntSushi/ripgrep/discussions/1623#discussioncomment-28827
     static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^[\p{Emoji}--\p{Ascii}]").unwrap();
-    static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]+-\d+").unwrap();
+    // Jira project keys are at least 2 uppercase characters long.
+    // AB-123
+    // JIRA-123
+    static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]{2,}-\d+").unwrap();
     // Match all GitHub and GitLab keywords
     static ref SUBJECT_WITH_FIX_TICKET: Regex =
         Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+").unwrap();
@@ -856,10 +859,24 @@ mod tests {
             "Fix !",
             "Fix !!123",
             "Fix !a123",
+            "Change A-1 config",
+            "Change A-12 config",
         ];
         assert_commit_subjects_as_valid(valid_ticket_subjects, &Rule::SubjectTicketNumber);
 
-        let invalid_ticket_subjects = vec!["JIRA-1234", "Fix JIRA-1234 lorem"];
+        let invalid_ticket_subjects = vec![
+            "JI-1",
+            "JI-12",
+            "JI-1234567890",
+            "JIR-1",
+            "JIR-12",
+            "JIR-1234567890",
+            "JIRA-12",
+            "JIRA-123",
+            "JIRA-1234",
+            "JIRA-1234567890",
+            "Fix JIRA-1234 lorem",
+        ];
         assert_commit_subjects_as_invalid(invalid_ticket_subjects, &Rule::SubjectTicketNumber);
 
         let invalid_subjects = vec![

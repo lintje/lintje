@@ -16,6 +16,8 @@
 - Match more build tags in the SubjectBuildTag rule. It now also matches all
   tags that match the format of "[skip *]" and "[* skip]", rather than a
   previously fixed list of build tags.
+- Match fewer substrings as ticket numbers, strings like "A-1" no longer
+  matches.
 
 ## 0.4.1
 
