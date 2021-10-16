@@ -220,9 +220,9 @@ commit](#ignoring-rules-per-commit).
 
 ### Ignoring rules per commit
 
-It's possible to ignore certain rules for a commit, but this be used very
-infrequently. If you think Lintje should handle a certain scenario better,
-please [create an issue][issues] explaining your use case.
+It's possible to ignore certain rules for a commit, but it's recommended to use
+this very infrequently. If you think Lintje should handle a certain scenario
+better, please [create an issue][issues] explaining your use case.
 
 To ignore a rule in a specific commit, use the magic `lintje:disable` comment.
 
