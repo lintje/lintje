@@ -13,6 +13,9 @@
   not. When a commit is empty, it will print a violation.
 - Improve SubjectLength violation message when the subject is completely empty.
 - Remove error messages from output when the commit subject is empty.
+- Match more build tags in the SubjectBuildTag rule. It now also matches all
+  tags that match the format of "[skip *]" and "[* skip]", rather than a
+  previously fixed list of build tags.
 
 ## 0.4.1
 

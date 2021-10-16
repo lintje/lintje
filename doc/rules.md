@@ -239,6 +239,13 @@ Update README [travis-ci skip]
 Update README [skip travis-ci]
 Update README [travisci skip]
 Update README [skip travisci]
+// Other custom tags that match the format
+[skip me]
+[something skip]
+[skip changeset]
+[changeset skip]
+[skip review]
+[review skip]
 ```
 
 ## SubjectCliche

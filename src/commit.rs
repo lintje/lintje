@@ -22,6 +22,12 @@ lazy_static! {
         tempregex.multi_line(false);
         tempregex.build().unwrap()
     };
+    static ref SUBJECT_WITH_BUILD_TAGS: Regex = {
+        let mut tempregex = RegexBuilder::new(r"(\[(skip [\w\s_-]+|[\w\s_-]+ skip|no ci)\]|\*\*\*NO_CI\*\*\*)");
+        tempregex.case_insensitive(true);
+        tempregex.multi_line(false);
+        tempregex.build().unwrap()
+    };
 
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
@@ -68,34 +74,6 @@ lazy_static! {
         "tests",
         "tested",
         "testing",
-    ];
-    static ref BUILD_TAGS: Vec<&'static str> = vec![
-        // General
-        "[ci skip]",
-        "[skip ci]",
-        "[no ci]",
-        // AppVeyor
-        "[skip appveyor]",
-        // Azure
-        "[azurepipelines skip]",
-        "[skip azurepipelines]",
-        "[azpipelines skip]",
-        "[skip azpipelines]",
-        "[azp skip]",
-        "[skip azp]",
-        "***NO_CI***",
-        // GitHub Actions
-        "[actions skip]",
-        "[skip actions]",
-        // Travis
-        "[travis skip]",
-        "[skip travis]",
-        "[travis ci skip]",
-        "[skip travis ci]",
-        "[travis-ci skip]",
-        "[skip travis-ci]",
-        "[travisci skip]",
-        "[skip travisci]",
     ];
 }
 
@@ -418,12 +396,13 @@ impl Commit {
         }
 
         let subject = &self.subject.to_string();
-        for tag in BUILD_TAGS.iter() {
-            if subject.contains(tag) {
-                self.add_violation(
+        if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {
+            match captures.get(1) {
+                Some(tag) => self.add_violation(
                     Rule::SubjectBuildTag,
-                    format!("Move the build tag `{}` to the message body.", tag),
-                )
+                    format!("Move the build tag `{}` to the message body.", tag.as_str()),
+                ),
+                None => error!("SubjectBuildTag: Unable to fetch build tag from subject."),
             }
         }
     }
@@ -563,7 +542,7 @@ enum CodeBlockStyle {
 
 #[cfg(test)]
 mod tests {
-    use super::{Commit, Rule, Violation, BUILD_TAGS, MOOD_WORDS};
+    use super::{Commit, Rule, Violation, MOOD_WORDS};
 
     fn commit_with_sha(sha: Option<String>, subject: String, message: String) -> Commit {
         Commit::new(
@@ -984,8 +963,40 @@ mod tests {
         let subjects = vec!["Add exception for no ci build tag"];
         assert_commit_subjects_as_valid(subjects, &Rule::SubjectBuildTag);
 
+        let build_tags = vec![
+            // General
+            "[ci skip]",
+            "[skip ci]",
+            "[no ci]",
+            // AppVeyor
+            "[skip appveyor]",
+            // Azure
+            "[azurepipelines skip]",
+            "[skip azurepipelines]",
+            "[azpipelines skip]",
+            "[skip azpipelines]",
+            "[azp skip]",
+            "[skip azp]",
+            "***NO_CI***",
+            // GitHub Actions
+            "[actions skip]",
+            "[skip actions]",
+            // Travis
+            "[travis skip]",
+            "[skip travis]",
+            "[travis ci skip]",
+            "[skip travis ci]",
+            "[travis-ci skip]",
+            "[skip travis-ci]",
+            "[travisci skip]",
+            "[skip travisci]",
+            // Other custom tags that match the format
+            "[skip me]",
+            "[skip changeset]",
+            "[skip review]",
+        ];
         let mut invalid_subjects = vec![];
-        for tag in BUILD_TAGS.iter() {
+        for tag in build_tags.iter() {
             invalid_subjects.push(format!("Update README {}", tag))
         }
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectBuildTag);
