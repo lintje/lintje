@@ -3,7 +3,7 @@
 ## Next version
 
 - Ignore SubjectLength rule if the subject already has a SubjectCliche
-  violation. This reduces the number of violation that are printed when a
+  violation. This reduces the number of violations that are printed when a
   SubjectCliche violation means writing a longer subject anyway.
 - Ignore SubjectCapitalization and MessagePresence rules if the subject already
   has a NeedsRebase violation. To fix a NeedsRebase violation the commit needs
@@ -18,6 +18,9 @@
   previously fixed list of build tags.
 - Match fewer substrings as ticket numbers, strings like "A-1" no longer
   matches.
+- Ignore SubjectCapitalization rule if the subject already has a SubjectPrefix
+  violation. This reduces the number of violations that are printed when a
+  prefix is found in the commit, which is the violation that takes priority.
 
 ## 0.4.1
 

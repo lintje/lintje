@@ -155,10 +155,10 @@ impl Commit {
         self.validate_subject_line_length();
         self.validate_subject_mood();
         self.validate_subject_whitespace();
+        self.validate_subject_prefix();
         self.validate_subject_capitalization();
         self.validate_subject_punctuation();
         self.validate_subject_ticket_numbers();
-        self.validate_subject_prefix();
         self.validate_subject_build_tags();
         self.validate_message_empty_first_line();
         self.validate_message_presence();
@@ -280,7 +280,10 @@ impl Commit {
     }
 
     fn validate_subject_capitalization(&mut self) {
-        if self.rule_ignored(Rule::SubjectCapitalization) || self.has_violation(Rule::NeedsRebase) {
+        if self.rule_ignored(Rule::SubjectCapitalization)
+            || self.has_violation(Rule::NeedsRebase)
+            || self.has_violation(Rule::SubjectPrefix)
+        {
             return;
         }
         if self.subject.chars().count() == 0 && self.has_violation(Rule::SubjectLength) {
@@ -789,6 +792,12 @@ mod tests {
         assert_commit_valid_for(rebase_commit, &Rule::SubjectCapitalization);
         let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
         assert_commit_invalid_for(rebase_commit, &Rule::NeedsRebase);
+
+        // Already a SubjectPrefix violation, so it's skipped.
+        let prefix_commit = validated_commit("chore: foo".to_string(), "".to_string());
+        assert_commit_valid_for(prefix_commit, &Rule::SubjectCapitalization);
+        let prefix_commit = validated_commit("chore: foo".to_string(), "".to_string());
+        assert_commit_invalid_for(prefix_commit, &Rule::SubjectPrefix);
     }
 
     #[test]
