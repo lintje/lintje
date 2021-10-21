@@ -142,6 +142,17 @@ namespace :release do
 
   task :prompt_confirmation do
     version = fetch_package_version
+    cargo_lock = File.read("Cargo.lock")
+    cargo_lock_updated = cargo_lock.include?(<<~LOCK)
+      name = "lintje"
+      version = "#{version}"
+    LOCK
+    unless cargo_lock_updated
+      puts "Cargo.lock is not updated to be the same version as Cargo.toml! " \
+        "Run `cargo build` to update the lock file."
+      exit 1
+    end
+
     answer = prompt_confirmation \
       "Do you want to publish Lintje v#{version}? (y/n) "
     unless answer
