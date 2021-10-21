@@ -1,6 +1,6 @@
 # Lintje changelog
 
-## Next version
+## 0.5.0
 
 - Ignore SubjectLength rule if the subject already has a SubjectCliche
   violation. This reduces the number of violations that are printed when a
