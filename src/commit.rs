@@ -1,5 +1,5 @@
 use crate::rule::{rule_by_name, Rule, Violation};
-use crate::utils::is_punctuation;
+use crate::utils::{display_width, is_punctuation};
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
@@ -207,7 +207,8 @@ impl Commit {
         }
 
         let length = self.subject.chars().count();
-        if length == 0 {
+        let width = display_width(&self.subject);
+        if width == 0 {
             self.add_violation(
                 Rule::SubjectLength,
                 "The subject is not present. Please add a subject to describe the change."
@@ -215,7 +216,7 @@ impl Commit {
             );
             return;
         }
-        if length > 50 {
+        if width > 50 {
             self.add_violation(
                 Rule::SubjectLength,
                 format!(
@@ -224,7 +225,7 @@ impl Commit {
                 ),
             )
         }
-        if length < 5 {
+        if width < 5 {
             self.add_violation(
                 Rule::SubjectLength,
                 format!(
@@ -473,7 +474,7 @@ impl Commit {
         let mut violations = vec![];
         for (index, raw_line) in self.message.lines().enumerate() {
             let line = raw_line.trim_end();
-            let length = line.chars().count();
+            let width = display_width(line);
             match code_block_style {
                 CodeBlockStyle::Fenced => {
                     if CODE_BLOCK_LINE_END.is_match(line) {
@@ -497,7 +498,7 @@ impl Commit {
                 // When in a code block, skip line length validation
                 continue;
             }
-            if length > 72 {
+            if width > 72 {
                 if URL_REGEX.is_match(line) {
                     continue;
                 }
@@ -707,14 +708,15 @@ mod tests {
         let long_subject = "a".repeat(51);
         assert_commit_subject_as_invalid(long_subject.as_str(), &Rule::SubjectLength);
 
-        let emoji_subject = "✨".repeat(50);
-        assert_commit_subject_as_valid(emoji_subject.as_str(), &Rule::SubjectLength);
+        assert_commit_subject_as_invalid("é", &Rule::SubjectLength);
 
-        let hiragana_short_subject = "あ".repeat(50);
-        assert_commit_subject_as_valid(hiragana_short_subject.as_str(), &Rule::SubjectLength);
+        // This emoji display width is 2
+        assert_commit_subject_as_valid(&"✨".repeat(25), &Rule::SubjectLength);
+        assert_commit_subject_as_invalid(&"✨".repeat(26), &Rule::SubjectLength);
 
-        let hiragana_long_subject = "あ".repeat(51);
-        assert_commit_subject_as_invalid(hiragana_long_subject.as_str(), &Rule::SubjectLength);
+        // Hiragana display width is 2
+        assert_commit_subject_as_valid(&"あ".repeat(25), &Rule::SubjectLength);
+        assert_commit_subject_as_invalid(&"あ".repeat(26), &Rule::SubjectLength);
 
         let ignore_commit = validated_commit(
             "a".repeat(51).to_string(),
@@ -1163,11 +1165,21 @@ mod tests {
         let commit5 = validated_commit("Subject".to_string(), message5);
         assert_commit_invalid_for(commit5, &Rule::MessageLineLength);
 
-        let hiragana_short_message = ["あ".repeat(72)].join("\n");
+        // This emoji display width is 2
+        let emoji_short_message = ["✨".repeat(36)].join("\n");
+        let emoji_short_commit = validated_commit("Subject".to_string(), emoji_short_message);
+        assert_commit_valid_for(emoji_short_commit, &Rule::MessageLineLength);
+
+        let emoji_long_message = ["✨".repeat(37)].join("\n");
+        let emoji_long_commit = validated_commit("Subject".to_string(), emoji_long_message);
+        assert_commit_invalid_for(emoji_long_commit, &Rule::MessageLineLength);
+
+        // Hiragana display width is 2
+        let hiragana_short_message = ["あ".repeat(36)].join("\n");
         let hiragana_short_commit = validated_commit("Subject".to_string(), hiragana_short_message);
         assert_commit_valid_for(hiragana_short_commit, &Rule::MessageLineLength);
 
-        let hiragana_long_message = ["あ".repeat(73)].join("\n");
+        let hiragana_long_message = ["あ".repeat(37)].join("\n");
         let hiragana_long_commit = validated_commit("Subject".to_string(), hiragana_long_message);
         assert_commit_invalid_for(hiragana_long_commit, &Rule::MessageLineLength);
 

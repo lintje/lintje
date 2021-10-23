@@ -68,8 +68,11 @@ Fix
 One day I woke up and found the solution to this year old bug, the solution...
 ```
 
-*Note: This rule is skipped if a [SubjectCliche](#subjectcliche) violation is
-found.*
+### Notes
+
+- This rule is skipped if a [SubjectCliche](#subjectcliche) violation is found.
+- Certain characters like emoji are counted as multiple characters in this
+  rule. Read more about [Unicode support][unicode].
 
 ## SubjectMood
 
@@ -384,6 +387,11 @@ line.
     Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy aa
     tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
 
+### Notes
+
+- Certain characters like emoji are counted as multiple characters in this
+  rule. Read more about [Unicode support][unicode].
+
 ## DiffPresence
 
 The commit is detected as having no file changes, it's an empty commit. Avoid
@@ -579,4 +587,26 @@ deleting-stuff
 ...
 ```
 
+<a name="unicode"></a>
+## A note about Unicode display width
+
+Not all characters render with the same display width. The `a` character has a
+width of 1 column, but an emoji usually is wider than 1 column. Not all emoji
+render the same width and may appear broken.
+
+For example, the `✅` has a width of 2, while the `👩‍🔬` has a width of 4
+columns. This is because the second emoji is a combination of the `👩` and `🔬`
+emoji, and they are both counted towards the width even though only one emoji
+is rendered.
+
+There are also emoji that only render with a width of 1 column, such as `❤️`.
+These emoji will only be counted towards 1 column, even though they appear with
+a width of 2 columns.
+
+This is a technical limitation by the library Lintje uses to calculate String
+width, as it implements the Unicode width as described in the Unicode
+specification properly. It may cause some problems with rules that calculate
+line length.
+
+[unicode]: #unicode
 [imperative mood]: https://en.wikipedia.org/wiki/Imperative_mood
