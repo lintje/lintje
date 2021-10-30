@@ -1,5 +1,6 @@
-use crate::rule::{Rule, Violation};
-use crate::utils::is_punctuation;
+use crate::rule::{Context, Position, Rule, Violation};
+use crate::utils::{character_count_for_bytes_index, display_width, is_punctuation};
+use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
@@ -45,14 +46,22 @@ impl Branch {
     }
 
     fn validate_length(&mut self) {
-        let length = self.name.chars().count();
-        if length < 4 {
+        let name = &self.name;
+        let width = display_width(name);
+        if width < 4 {
+            let context = vec![Context::branch_hint(
+                name.to_string(),
+                Range {
+                    start: 0,
+                    end: name.len(),
+                },
+                "Describe the change in more detail".to_string(),
+            )];
             self.add_violation(
                 Rule::BranchNameLength,
-                format!(
-                    "Branch name is too short: {} characters. Describe the branch in more detail.",
-                    length
-                ),
+                format!("Branch name of {} characters is too short", width),
+                Position::Branch { column: 1 },
+                context,
             )
         }
     }
@@ -68,10 +77,19 @@ impl Branch {
                 (Some(_prefix), Some(_suffix), _) => true,
             };
             if !valid {
+                let context = vec![Context::branch_hint(
+                    name.to_string(),
+                    Range {
+                        start: 0,
+                        end: name.len(),
+                    },
+                    "Remove the ticket number from the branch name or expand the branch name with more details".to_string(),
+                )];
                 self.add_violation(
                     Rule::BranchNameTicketNumber,
-                    "Remove the ticket number from the branch name or expand the branch name with more details."
-                    .to_string(),
+                    "A ticket number was detected in the branch name".to_string(),
+                    Position::Branch { column: 1 },
+                    context,
                 )
             }
         }
@@ -81,12 +99,20 @@ impl Branch {
         match &self.name.chars().next() {
             Some(character) => {
                 if is_punctuation(&character) {
+                    let branch = &self.name;
+                    let context = vec![Context::branch_hint(
+                        branch.to_string(),
+                        Range {
+                            start: 0,
+                            end: character.len_utf8(),
+                        },
+                        "Remove punctuation from the start of the branch name".to_string(),
+                    )];
                     self.add_violation(
                         Rule::BranchNamePunctuation,
-                        format!(
-                            "Remove punctuation from the start of the branch name: {}",
-                            character
-                        ),
+                        "The branch name starts with a punctuation character".to_string(),
+                        Position::Branch { column: 1 },
+                        context,
                     )
                 }
             }
@@ -100,12 +126,26 @@ impl Branch {
         match &self.name.chars().last() {
             Some(character) => {
                 if is_punctuation(&character) {
+                    let branch_length = self.name.len();
+                    let branch = &self.name;
+                    let context = vec![Context::branch_hint(
+                        branch.to_string(),
+                        Range {
+                            start: branch_length - character.len_utf8(),
+                            end: branch_length,
+                        },
+                        "Remove punctuation from the end of the branch name".to_string(),
+                    )];
                     self.add_violation(
                         Rule::BranchNamePunctuation,
-                        format!(
-                            "Remove punctuation from the end of the branch name: {}",
-                            character
-                        ),
+                        "The branch name ends with a punctuation character".to_string(),
+                        Position::Branch {
+                            column: character_count_for_bytes_index(
+                                &self.name,
+                                self.name.len() - character.len_utf8(),
+                            ),
+                        },
+                        context,
                     )
                 }
             }
@@ -120,26 +160,60 @@ impl Branch {
     fn validate_cliche(&mut self) {
         let branch = &self.name.to_lowercase();
         if BRANCH_WITH_CLICHE.is_match(branch) {
+            let context = vec![Context::branch_hint(
+                branch.to_string(),
+                Range {
+                    start: 0,
+                    end: branch.len(),
+                },
+                "Describe the change in more detail".to_string(),
+            )];
             self.add_violation(
                 Rule::BranchNameCliche,
-                "Reword the branch name to describe the change in more detail.".to_string(),
+                "The branch name does not explain the change in much detail".to_string(),
+                Position::Branch { column: 1 },
+                context,
             )
         }
     }
 
-    fn add_violation(&mut self, rule: Rule, message: String) {
-        self.violations.push(Violation { rule, message })
+    fn add_violation(
+        &mut self,
+        rule: Rule,
+        message: String,
+        position: Position,
+        context: Vec<Context>,
+    ) {
+        self.violations.push(Violation {
+            rule,
+            message,
+            position,
+            context,
+        })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Branch, Rule, Violation};
+    use super::Branch;
+    use crate::rule::{Position, Rule, Violation};
 
     fn validated_branch(name: String) -> Branch {
         let mut branch = Branch::new(name);
         branch.validate();
         branch
+    }
+
+    fn find_violation(violations: Vec<Violation>, rule: &Rule) -> Violation {
+        let mut violations = violations.into_iter().filter(|v| &v.rule == rule);
+        let violation = match violations.next() {
+            Some(violation) => violation,
+            None => panic!("No violation of the {} rule found", rule),
+        };
+        if violations.next().is_some() {
+            panic!("More than one violation of the {} rule found", rule)
+        }
+        violation
     }
 
     fn assert_branch_valid_for(branch: Branch, rule: &Rule) {
@@ -198,6 +272,20 @@ mod tests {
 
         let invalid_names = vec!["", "a", "ab", "abc"];
         assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameLength);
+
+        let branch = validated_branch("abc".to_string());
+        let violation = find_violation(branch.violations, &Rule::BranchNameLength);
+        assert_eq!(
+            violation.message,
+            "Branch name of 3 characters is too short"
+        );
+        assert_eq!(violation.position, Position::Branch { column: 1 });
+        assert_eq!(
+            violation.formatted_context(),
+            "|\n\
+             | abc\n\
+             | ^^^ Describe the change in more detail\n"
+        );
     }
 
     #[test]
@@ -234,6 +322,20 @@ mod tests {
             "JIRA-123",
         ];
         assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameTicketNumber);
+
+        let branch = validated_branch("fix-123".to_string());
+        let violation = find_violation(branch.violations, &Rule::BranchNameTicketNumber);
+        assert_eq!(
+            violation.message,
+            "A ticket number was detected in the branch name"
+        );
+        assert_eq!(violation.position, Position::Branch { column: 1 });
+        assert_eq!(
+            violation.formatted_context(),
+            "|\n\
+             | fix-123\n\
+             | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
+        );
     }
 
     #[test]
@@ -274,6 +376,34 @@ mod tests {
             "@fix-test",
         ];
         assert_branch_names_as_invalid(invalid_subjects, &Rule::BranchNamePunctuation);
+
+        let punctuation_start = validated_branch("!fix".to_string());
+        let violation = find_violation(punctuation_start.violations, &Rule::BranchNamePunctuation);
+        assert_eq!(
+            violation.message,
+            "The branch name starts with a punctuation character"
+        );
+        assert_eq!(violation.position, Position::Branch { column: 1 });
+        assert_eq!(
+            violation.formatted_context(),
+            "|\n\
+             | !fix\n\
+             | ^ Remove punctuation from the start of the branch name\n"
+        );
+
+        let punctuation_end = validated_branch("fix!".to_string());
+        let violation = find_violation(punctuation_end.violations, &Rule::BranchNamePunctuation);
+        assert_eq!(
+            violation.message,
+            "The branch name ends with a punctuation character"
+        );
+        assert_eq!(violation.position, Position::Branch { column: 4 });
+        assert_eq!(
+            violation.formatted_context(),
+            "|\n\
+             | fix!\n\
+             |    ^ Remove punctuation from the end of the branch name\n"
+        );
     }
 
     #[test]
@@ -309,5 +439,19 @@ mod tests {
         for subject in invalid_subjects {
             assert_branch_name_as_invalid(subject.as_str(), &Rule::BranchNameCliche);
         }
+
+        let branch = validated_branch("fix-bug".to_string());
+        let violation = find_violation(branch.violations, &Rule::BranchNameCliche);
+        assert_eq!(
+            violation.message,
+            "The branch name does not explain the change in much detail"
+        );
+        assert_eq!(violation.position, Position::Branch { column: 1 });
+        assert_eq!(
+            violation.formatted_context(),
+            "|\n\
+             | fix-bug\n\
+             | ^^^^^^^ Describe the change in more detail\n"
+        );
     }
 }

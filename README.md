@@ -35,12 +35,27 @@ When running `lintje` to lint the last commit, the output will be:
 
 ```
 $ lintje
-6162010: Fix bug
-  SubjectCliche: Reword the subject to explain what bug was fixed.
-  MessagePresence: Add a message body to provide more context about the change
-    and why it was made.
+SubjectCliche: The subject does not explain the change in much detail
+  9a2ae29:1:1: Fix bug
+    |
+  1 | Fix bug
+    | ^^^^^^^ Describe the change in more detail
 
-1 commit inspected, 2 violations detected
+MessagePresence: No message body was found
+  9a2ae29:3:1: Fix bug
+    |
+  1 | Fix bug
+  2 |
+  3 |
+    | ^ Add a message body with context about the change and why it was made
+
+BranchNameCliche: The branch name does not explain the change in much detail
+  Branch:1: fix-bug
+  |
+  | fix-bug
+  | ^^^^^^^ Describe the change in more detail
+
+1 commit and branch inspected, 3 violations detected
 ```
 
 For more usage examples, see the [usage](#usage) section.

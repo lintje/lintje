@@ -6,6 +6,9 @@ extern crate lazy_static;
 #[cfg(test)]
 extern crate predicates;
 
+extern crate unicode_segmentation;
+extern crate unicode_width;
+
 use log::LevelFilter;
 use std::fs::File;
 use std::io::Read;
@@ -25,6 +28,7 @@ use command::run_command;
 use commit::Commit;
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
+use utils::indent_string;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "lintje", verbatim_doc_comment)]
@@ -161,14 +165,24 @@ fn handle_lint_result(
             }
             commit_count += 1;
             if !commit.is_valid() {
-                match &commit.short_sha {
-                    Some(sha) => println!("{}: {}", sha, commit.subject),
-                    None => println!("{}", commit.subject),
-                }
-
                 for violation in &commit.violations {
                     violation_count += 1;
-                    println!("  {}: {}", violation.rule, violation.message);
+                    println!("{}: {}", violation.rule, violation.message);
+                    print!("  ");
+                    match &commit.short_sha {
+                        Some(sha) => print!("{}", sha),
+                        None => print!("0000000"),
+                    }
+                    if let Some(line_number) = &violation.position.line_number() {
+                        print!(":{}", line_number);
+                    }
+                    if let Some(column) = &violation.position.column() {
+                        print!(":{}", column);
+                    }
+                    print!(": {}", commit.subject);
+                    println!();
+                    print!("{}", indent_string(violation.formatted_context(), 2));
+                    println!();
                 }
             }
         }
@@ -180,10 +194,17 @@ fn handle_lint_result(
                 debug!("Branch: {:?}", branch);
                 branch_message = " and branch";
                 if !branch.is_valid() {
-                    println!("Branch: {}", branch.name);
                     for violation in &branch.violations {
                         violation_count += 1;
-                        println!("  {}: {}", violation.rule, violation.message);
+                        println!("{}: {}", violation.rule, violation.message);
+                        print!("  Branch");
+                        if let Some(column) = &violation.position.column() {
+                            print!(":{}", column);
+                        }
+                        print!(": {}", branch.name);
+                        println!();
+                        print!("{}", indent_string(violation.formatted_context(), 2));
+                        println!();
                     }
                 }
             }
@@ -191,9 +212,6 @@ fn handle_lint_result(
         }
     }
 
-    if violation_count > 0 {
-        println!();
-    }
     let commit_plural = if commit_count != 1 { "s" } else { "" };
     let violation_plural = if violation_count != 1 { "s" } else { "" };
     print!(
@@ -255,6 +273,7 @@ fn init_logger(debug: bool) {
 #[cfg(test)]
 mod tests {
     use predicates::prelude::*;
+    use regex::Regex;
     use std::fs;
     use std::fs::File;
     use std::io::Write;
@@ -421,6 +440,13 @@ mod tests {
         }
     }
 
+    fn normalize_output(output: &Vec<u8>) -> String {
+        // Replace dynamic commit short SHA with 0000000 dummy placeholder
+        let regexp = Regex::new("([a-z0-9]{7})(:\\d:\\d)").unwrap();
+        let raw_output = String::from_utf8_lossy(&output);
+        regexp.replace_all(&raw_output, "0000000$2").to_string()
+    }
+
     fn compile_bin() {
         Command::new("cargo")
             .args(&["build"])
@@ -448,10 +474,9 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg(sha.to_string()).current_dir(dir).assert().failure();
         assert
-            .stdout(predicate::str::contains(&format!(
-                "{}: Test commit",
-                short_sha
-            )))
+            .stdout(
+                predicate::str::is_match(format!("{}:\\d+:\\d+: Test commit", short_sha)).unwrap(),
+            )
             .stdout(predicate::str::contains("1 commit and branch inspected"));
     }
 
@@ -478,16 +503,32 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().failure().code(1);
-        assert
-            .stdout(predicate::str::contains(
-                "Fixing tests\n\
-                \x20\x20SubjectCliche: Reword the subject to describe the change in more detail.\n\
-                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
-                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
-            ))
-            .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 3 violations detected\n",
-            ));
+
+        let output = normalize_output(&assert.get_output().stdout);
+        assert_eq!(
+            output,
+            "SubjectCliche: The subject does not explain the change in much detail\n\
+            \x20\x200000000:1:1: Fixing tests\n\
+            \x20\x20  |\n\
+            \x20\x201 | Fixing tests\n\
+            \x20\x20  | ^^^^^^^^^^^^ Describe the change in more detail\n\
+            \n\
+            SubjectMood: The subject does not use the imperative grammatical mood\n\
+            \x20\x200000000:1:1: Fixing tests\n\
+            \x20\x20  |\n\
+            \x20\x201 | Fixing tests\n\
+            \x20\x20  | ^^^^^^ Use the imperative mood for the subject\n\
+            \n\
+            MessagePresence: No message body was found\n\
+            \x20\x200000000:3:1: Fixing tests\n\
+            \x20\x20  |\n\
+            \x20\x201 | Fixing tests\n\
+            \x20\x202 | \n\
+            \x20\x203 | \n\
+            \x20\x20  | ^ Add a message body with context about the change and why it was made\n\
+            \n\
+            1 commit and branch inspected, 3 violations detected\n"
+        );
     }
 
     #[test]
@@ -501,11 +542,10 @@ mod tests {
         let assert = cmd.current_dir(dir).assert().failure().code(1);
         assert
             .stdout(predicate::str::contains(
-                "Valid commit subject\n\
-                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
+                "MessagePresence: No message body was found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 1 violation detected\n",
+                "1 commit and branch inspected, 1 violation detected",
             ));
     }
 
@@ -520,12 +560,13 @@ mod tests {
         let assert = cmd.current_dir(dir).assert().failure().code(1);
         assert
             .stdout(predicate::str::contains(
-                "Valid commit subject\n\
-                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.\n\
-                \x20\x20DiffPresence: The commit has no file changes. Add changes to the commit or remove the commit.",
+                "MessagePresence: No message body was found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 2 violations detected\n",
+                "DiffPresence: No file changes found",
+            ))
+            .stdout(predicate::str::contains(
+                "1 commit and branch inspected, 2 violations detected",
             ));
     }
 
@@ -544,7 +585,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
         assert.stdout(predicate::str::contains(
-            "0 commits and branch inspected, 0 violations detected (1 commit ignored)\n",
+            "0 commits and branch inspected, 0 violations detected (1 commit ignored)",
         ));
     }
 
@@ -558,7 +599,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).args(["--debug"]).assert().success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 violations detected (0 commits ignored)\n",
+            "1 commit and branch inspected, 0 violations detected (0 commits ignored)",
         ));
     }
 
@@ -577,21 +618,21 @@ mod tests {
             .assert()
             .failure()
             .code(1);
-        assert
-            .stdout(predicate::str::contains(
-                "added some code\n\
-                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
-                \x20\x20SubjectCapitalization: Start the commit subject with a capital letter.",
-            ))
-            .stdout(predicate::str::contains(
-                "Fixing tests\n\
-                \x20\x20SubjectCliche: Reword the subject to describe the change in more detail.\n\
-                \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
-                \x20\x20MessagePresence: Add a message body to provide more context about the change and why it was made.",
-            ))
-            .stdout(predicate::str::contains(
-                "2 commits and branch inspected, 5 violations detected\n",
-            ));
+        let output = normalize_output(&assert.get_output().stdout);
+
+        assert!(predicate::str::contains(
+            "SubjectMood: The subject does not use the imperative grammatical mood\n\
+            \x20\x200000000:1:1: Fixing tests\n"
+        )
+        .eval(&output));
+        assert!(predicate::str::contains(
+            "SubjectCapitalization: The subject does not start with a capital letter\n\
+            \x20\x200000000:1:1: added some code\n"
+        )
+        .eval(&output));
+        assert.stdout(predicate::str::contains(
+            "2 commits and branch inspected, 5 violations detected",
+        ));
     }
 
     #[test]
@@ -614,13 +655,16 @@ mod tests {
             .code(1);
         assert
             .stdout(predicate::str::contains(
-                    "added some code\n\
-                    \x20\x20SubjectMood: Use the imperative mood for the commit subject.\n\
-                    \x20\x20SubjectCapitalization: Start the commit subject with a capital letter.\n\
-                    \x20\x20DiffPresence: The commit has no file changes. Add changes to the commit or remove the commit.",
+                "SubjectMood: The subject does not use the imperative grammatical mood",
             ))
             .stdout(predicate::str::contains(
-                    "1 commit and branch inspected, 3 violations detected\n",
+                "SubjectCapitalization: The subject does not start with a capital letter",
+            ))
+            .stdout(predicate::str::contains(
+                "DiffPresence: No file changes found",
+            ))
+            .stdout(predicate::str::contains(
+                "1 commit and branch inspected, 3 violations detected",
             ));
     }
 
@@ -644,7 +688,7 @@ mod tests {
             .assert()
             .success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 violations detected\n",
+            "1 commit and branch inspected, 0 violations detected",
         ));
     }
 
@@ -672,7 +716,7 @@ mod tests {
             .assert()
             .failure()
             .code(1);
-        assert.stdout(predicate::str::contains("  MessagePresence: "));
+        assert.stdout(predicate::str::contains("MessagePresence: "));
     }
 
     #[test]
@@ -700,7 +744,7 @@ mod tests {
             .assert()
             .failure()
             .code(1);
-        assert.stdout(predicate::str::contains("  MessagePresence: "));
+        assert.stdout(predicate::str::contains("MessagePresence: "));
     }
 
     #[test]
@@ -733,7 +777,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 violations detected\n",
+            "1 commit and branch inspected, 0 violations detected",
         ));
     }
 
@@ -749,12 +793,21 @@ mod tests {
         let assert = cmd.current_dir(dir).assert().failure().code(1);
         assert
             .stdout(predicate::str::contains(
-                "Branch: fix-123\n\
-                \x20\x20BranchNameTicketNumber: Remove the ticket number from the branch name or expand the branch name with more details.\n\
-                \x20\x20BranchNameCliche: Reword the branch name to describe the change in more detail.",
+                "BranchNameTicketNumber: A ticket number was detected in the branch name\n\
+                \x20\x20Branch:1: fix-123\n\
+                \x20\x20|\n\
+                \x20\x20| fix-123\n\
+                \x20\x20| ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
             ))
             .stdout(predicate::str::contains(
-                    "1 commit and branch inspected, 2 violations detected\n",
+                "BranchNameCliche: The branch name does not explain the change in much detail\n\
+                \x20\x20Branch:1: fix-123\n\
+                \x20\x20|\n\
+                \x20\x20| fix-123\n\
+                \x20\x20| ^^^^^^^ Describe the change in more detail\n"
+            ))
+            .stdout(predicate::str::contains(
+                    "1 commit and branch inspected, 2 violations detected",
             ));
     }
 
@@ -769,7 +822,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--no-branch").current_dir(dir).assert().success();
         assert.stdout(predicate::str::contains(
-            "1 commit inspected, 0 violations detected\n",
+            "1 commit inspected, 0 violations detected",
         ));
     }
 }

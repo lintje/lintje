@@ -16,6 +16,12 @@
       `👩‍🔬` emoji will be counted as four characters, because it is made
       up of the `👩` and `🔬` emoji. Other emoji like the heart `❤️` emoji will
       only count towards one character.
+- Improved violation messages.
+    - When a violation of the Lintje rules are found the message that gets
+      printed will includes more context about the problem it found. It will
+      highlight where exactly the problem was detected in a commit subject,
+      commit message, commit diff or branch name to make it easier to resolve
+      the problem.
 
 ## 0.5.0
 
