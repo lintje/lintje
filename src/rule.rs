@@ -178,7 +178,10 @@ impl Violation {
 
             // Add line that provides context to the violation
             let content = &context.source.content();
-            s.push_str(&format!("{}| {}\n", line_prefix, content));
+            // Print tabs as 4 spaces because that will render more consistenly than render the tab
+            // character
+            let formatted_content = content.replace("\t", "    ");
+            s.push_str(&format!("{}| {}\n", line_prefix, formatted_content));
 
             // Add a hint if any
             if let Some(hint) = &context.hint {
@@ -418,7 +421,7 @@ mod tests {
         assert_eq!(
             v_tab.formatted_context(),
             "\x20\x20|\n\
-                   1 | \tLorem ipsum\n\
+                   1 |     Lorem ipsum\n\
              \x20\x20| ^^^^ A tab\n"
         );
     }

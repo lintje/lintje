@@ -1194,7 +1194,7 @@ mod tests {
         assert_eq!(
             violation.formatted_context(),
             "\x20\x20|\n\
-                   1 | \tFix test\n\
+                   1 |     Fix test\n\
              \x20\x20| ^^^^ Remove the leading whitespace from the subject\n"
         );
 
