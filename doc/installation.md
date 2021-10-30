@@ -4,6 +4,8 @@
 
 [![Hosted By: Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat-square)][Cloudsmith]
 
+- View [Lintje packages on Cloudsmith](https://cloudsmith.io/~lintje/repos/lintje/).
+
 Package repository hosting is graciously provided by [Cloudsmith][Cloudsmith].
 Providing free repositories for Open Source projects. I chose Cloudsmith
 because they have support for a lot of different formats, making it easier to
