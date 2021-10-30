@@ -8,14 +8,8 @@
     - Double width characters now count towards a width of two.
     - Emoji with a larger display width are now counted with
       their display width. This means it's no longer possible to write a
-      subject of  50 emoji in a subject, only 25 emoji that have a render with
+      subject of 50 emoji in a subject, only 25 emoji that have a render with
       of two, for example.
-    - Note: Some characters will be counted with an inaccurate display width.
-      Emoji that are comprised of a combination of several emoji will not
-      always count towards the expected width. The "woman scientist"
-      `👩‍🔬` emoji will be counted as four characters, because it is made
-      up of the `👩` and `🔬` emoji. Other emoji like the heart `❤️` emoji will
-      only count towards one character.
 - Improved violation messages.
     - When a violation of the Lintje rules are found the message that gets
       printed will includes more context about the problem it found. It will

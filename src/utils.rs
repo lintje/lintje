@@ -1,6 +1,16 @@
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+const ZERO_WIDTH_JOINER: &str = "\u{200d}";
+const VARIATION_SELECTOR_16: &str = "\u{fe0f}";
+const SKIN_TONES: [&str; 5] = [
+    "\u{1f3fb}", // Light Skin Tone
+    "\u{1f3fc}", // Medium-Light Skin Tone
+    "\u{1f3fd}", // Medium Skin Tone
+    "\u{1f3fe}", // Medium-Dark Skin Tone
+    "\u{1f3ff}", // Dark Skin Tone
+];
+
 lazy_static! {
     static ref OTHER_PUNCTUATION: Vec<char> = vec!['…', '⋯',];
 }
@@ -14,7 +24,28 @@ pub fn is_punctuation(character: &char) -> bool {
 //
 // This may return some odd results at times where some symbols are counted as more character width
 // than they actually are.
+//
+// This function has exceptions for skin tones and other emoji modifiers to determin a more
+// accurate display with.
 pub fn display_width(string: &str) -> usize {
+    // Characters that are used as modifiers on emoji. By themselves they have no width.
+    if string == ZERO_WIDTH_JOINER || string == VARIATION_SELECTOR_16 {
+        return 0;
+    }
+    // Emoji that are numbers or * or #. They are recognized as normal characters by unicode-width,
+    // and return a render width of 1, instead of 2—which they actually are.
+    if string.contains(VARIATION_SELECTOR_16) || string.contains(ZERO_WIDTH_JOINER) {
+        return 2;
+    }
+    // Any character with a skin tone is most likely an emoji.
+    // Normally it would be counted as as four or more characters, but these emoji should be
+    // rendered as having a width of two.
+    for skin_tone in SKIN_TONES {
+        if string.contains(skin_tone) {
+            return 2;
+        }
+    }
+
     match string {
         "\t" => {
             // unicode-width returns 0 for tab width, which is not how it's rendered.
@@ -172,32 +203,51 @@ mod test {
         assert_width("ぁ", 2);
         assert_width("あ", 2);
 
+        // Zero width characters
+        assert_width("\u{200d}", 0);
+        assert_width("\u{fe0f}", 0);
+
         // Some of these characters don't match the width one would expect. Most of these are
-        // rendered as 2 width in my editor and terminal, but this is what unicode-width returns as
-        // the width according to the Unicode specification.
-        // These checks are mostly here for a reference to improve the calculated display width
-        // better in the future.
-        assert_width("0️⃣", 1);
-        assert_width("1️⃣", 1);
-        assert_width("#️⃣", 1);
+        // display as 2 width in my editor and terminal, but unicode-width returns as the width
+        // according to the Unicode specification, which may sometimes be different than the actual
+        // display width.
+        //
+        // Some of these the assertions below do not return the width according to unicode-width.
+        // The `display_width` function will check for things like skin tones and other emoji
+        // modifiers to return a differen display width.
+        assert_width("0️⃣", 2);
+        assert_width("1️⃣", 2);
+        assert_width("#️⃣", 2);
         assert_width("﹟", 2);
         assert_width("＃", 2);
-        assert_width("*️⃣", 1);
+        assert_width("*️⃣", 2);
         assert_width("＊", 2);
         assert_width("❗️", 2);
-        assert_width("☁️", 1);
-        assert_width("❤️", 1);
-        assert_width("☂️", 1);
-        assert_width("✏️", 1);
-        assert_width("✂️", 1);
-        assert_width("☎️", 1);
-        assert_width("✈️", 1);
-        assert_width("👁", 1);
-        assert_width("👁️", 1); // Eye + variable selector 16 `\u{fe0f}`
+        assert_width("☁️", 2);
+        assert_width("❤️", 2);
+        assert_width("☂️", 2);
+        assert_width("✏️", 2);
+        assert_width("✂️", 2);
+        assert_width("☎️", 2);
+        assert_width("✈️", 2);
+        assert_width("👁", 1); // Eye without variable selector 16
+        assert_width("👁️", 2); // Eye + variable selector 16 `\u{fe0f}`
         assert_width("👁️‍🗨️", 2);
-        assert_width("👩‍🔬", 4);
-        assert_width("👨‍🦰", 4);
-        assert_width("🧔🏿", 4);
+
+        // Skin tones
+        assert_width("👩", 2);
+        assert_width("👩🏻", 2);
+        assert_width("👩🏼", 2);
+        assert_width("👩🏽", 2);
+        assert_width("👩🏾", 2);
+        assert_width("👩🏿", 2);
+
+        // Other variations
+        assert_width("👩‍🔬", 2);
+        assert_width("🧘🏽‍♀️", 2);
+        assert_width("👨🏻‍❤️‍👨🏿", 2);
+        assert_width("🧑‍🦲", 2);
+        assert_width("👨🏿‍🦲", 2);
     }
 
     #[test]
@@ -279,7 +329,7 @@ mod test {
         // Multi character emoji test
         // Just before the emoji
         let (width, line_stats) = line_length_stats("Aa👩‍🔬Bb", 2);
-        assert_eq!(width, 8); // TODO: Should be 6, but unicode-rs returns 4 width for the emoji
+        assert_eq!(width, 6);
         assert_eq!(
             line_stats,
             MarkerStats {
@@ -289,7 +339,7 @@ mod test {
         );
         // Max width is in the middle of the emoji, so it will return the position before the emoji
         let (width, line_stats) = line_length_stats("Aa👩‍🔬Bb", 3);
-        assert_eq!(width, 8); // TODO: Should be 6, but unicode-rs returns 4 width for the emoji
+        assert_eq!(width, 6);
         assert_eq!(
             line_stats,
             MarkerStats {
@@ -299,25 +349,32 @@ mod test {
         );
         // Max width is after the emoji
         let (width, line_stats) = line_length_stats("Aa👩‍🔬Bb", 4);
-        // TODO: Should be 6, but unicode-width returns 4 width for the emoji
-        assert_eq!(width, 8);
-        // TODO: Is inaccurate because the emoji is considered 4 characters wide
-        assert_eq!(
-            line_stats,
-            MarkerStats {
-                bytes_index: 2,
-                char_count: 2,
-            }
-        );
-        // Max width is after the emoji
-        let (width, line_stats) = line_length_stats("Aa👩‍🔬Bb", 6);
-        // TODO: Should be 6, but unicode-width returns 4 width for the emoji
-        assert_eq!(width, 8);
+        assert_eq!(width, 6);
         assert_eq!(
             line_stats,
             MarkerStats {
                 bytes_index: 13,
                 char_count: 3,
+            }
+        );
+        // Max width is after the `B` character
+        let (width, line_stats) = line_length_stats("Aa👩‍🔬Bb", 5);
+        assert_eq!(width, 6);
+        assert_eq!(
+            line_stats,
+            MarkerStats {
+                bytes_index: 14,
+                char_count: 4,
+            }
+        );
+        // Max width is the full string
+        let (width, line_stats) = line_length_stats("Aa👩‍🔬Bb", 6);
+        assert_eq!(width, 6);
+        assert_eq!(
+            line_stats,
+            MarkerStats {
+                bytes_index: 15,
+                char_count: 5,
             }
         );
     }
