@@ -195,7 +195,8 @@ impl Branch {
 
 #[cfg(test)]
 mod tests {
-    use super::Branch;
+    use crate::branch::Branch;
+    use crate::formatter::formatted_context;
     use crate::rule::{Position, Rule, Violation};
 
     fn validated_branch(name: String) -> Branch {
@@ -281,7 +282,7 @@ mod tests {
         );
         assert_eq!(violation.position, Position::Branch { column: 1 });
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "|\n\
              | abc\n\
              | ^^^ Describe the change in more detail\n"
@@ -331,7 +332,7 @@ mod tests {
         );
         assert_eq!(violation.position, Position::Branch { column: 1 });
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "|\n\
              | fix-123\n\
              | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
@@ -385,7 +386,7 @@ mod tests {
         );
         assert_eq!(violation.position, Position::Branch { column: 1 });
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "|\n\
              | !fix\n\
              | ^ Remove punctuation from the start of the branch name\n"
@@ -399,7 +400,7 @@ mod tests {
         );
         assert_eq!(violation.position, Position::Branch { column: 4 });
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "|\n\
              | fix!\n\
              |    ^ Remove punctuation from the end of the branch name\n"
@@ -448,7 +449,7 @@ mod tests {
         );
         assert_eq!(violation.position, Position::Branch { column: 1 });
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "|\n\
              | fix-bug\n\
              | ^^^^^^^ Describe the change in more detail\n"

@@ -18,6 +18,7 @@ use structopt::StructOpt;
 mod branch;
 mod command;
 mod commit;
+mod formatter;
 mod git;
 mod logger;
 mod rule;
@@ -26,9 +27,9 @@ mod utils;
 use branch::Branch;
 use command::run_command;
 use commit::Commit;
+use formatter::{formatted_branch_violation, formatted_commit_violation};
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
-use utils::indent_string;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "lintje", verbatim_doc_comment)]
@@ -167,22 +168,7 @@ fn handle_lint_result(
             if !commit.is_valid() {
                 for violation in &commit.violations {
                     violation_count += 1;
-                    println!("{}: {}", violation.rule, violation.message);
-                    print!("  ");
-                    match &commit.short_sha {
-                        Some(sha) => print!("{}", sha),
-                        None => print!("0000000"),
-                    }
-                    if let Some(line_number) = &violation.position.line_number() {
-                        print!(":{}", line_number);
-                    }
-                    if let Some(column) = &violation.position.column() {
-                        print!(":{}", column);
-                    }
-                    print!(": {}", commit.subject);
-                    println!();
-                    print!("{}", indent_string(violation.formatted_context(), 2));
-                    println!();
+                    print!("{}", formatted_commit_violation(&commit, &violation));
                 }
             }
         }
@@ -196,15 +182,7 @@ fn handle_lint_result(
                 if !branch.is_valid() {
                     for violation in &branch.violations {
                         violation_count += 1;
-                        println!("{}: {}", violation.rule, violation.message);
-                        print!("  Branch");
-                        if let Some(column) = &violation.position.column() {
-                            print!(":{}", column);
-                        }
-                        print!(": {}", branch.name);
-                        println!();
-                        print!("{}", indent_string(violation.formatted_context(), 2));
-                        println!();
+                        print!("{}", formatted_branch_violation(&branch, &violation));
                     }
                 }
             }

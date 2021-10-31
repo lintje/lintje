@@ -821,6 +821,7 @@ enum CodeBlockStyle {
 mod tests {
     use super::MOOD_WORDS;
     use crate::commit::Commit;
+    use crate::formatter::formatted_context;
     use crate::rule::{Position, Rule, Violation};
 
     fn commit_with_sha<S: AsRef<str>>(sha: Option<String>, subject: S, message: S) -> Commit {
@@ -956,7 +957,7 @@ mod tests {
         assert_eq!(violation.message, "A remote merge commit was found");
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Merge branch 'develop' of github.com/org/repo into develop\n\
              \x20\x20| ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ \
@@ -979,7 +980,7 @@ mod tests {
         assert_eq!(violation.message, "A fixup commit was found");
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | fixup! I need a rebase\n\
              \x20\x20| ^^^^^^ Rebase fixup commits before pushing or merging\n"
@@ -990,7 +991,7 @@ mod tests {
         assert_eq!(violation.message, "A squash commit was found");
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | squash! I need a rebase\n\
              \x20\x20| ^^^^^^^ Rebase squash commits before pushing or merging\n"
@@ -1013,7 +1014,7 @@ mod tests {
         assert_eq!(violation.message, "The commit has no subject");
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | \n\
              \x20\x20| ^ Add a subject to describe the change\n"
@@ -1027,7 +1028,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | aaaa\n\
              \x20\x20| ^^^^ Describe the change in more detail\n"
@@ -1041,7 +1042,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(51));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
              \x20\x20|                                                   ^ \
@@ -1058,7 +1059,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | A ö̲\n\
              \x20\x20| ^^^ Describe the change in more detail\n"
@@ -1076,7 +1077,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | 👁️‍🗨️\n\
              \x20\x20| ^^ Describe the change in more detail\n"
@@ -1093,7 +1094,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(26));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | ああああああああああああああああああああああああああ\n\
              \x20\x20|                                                   ^^ \
@@ -1138,7 +1139,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Fixing bug\n\
              \x20\x20| ^^^^^^ Use the imperative mood for the subject\n"
@@ -1164,7 +1165,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 |  Fix test\n\
              \x20\x20| ^ Remove the leading whitespace from the subject\n"
@@ -1178,7 +1179,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | \x20Fix test\n\
              \x20\x20| ^ Remove the leading whitespace from the subject\n"
@@ -1192,7 +1193,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 |     Fix test\n\
              \x20\x20| ^^^^ Remove the leading whitespace from the subject\n"
@@ -1222,7 +1223,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | fix test\n\
              \x20\x20| ^ Start the subject with a capital letter\n"
@@ -1307,7 +1308,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | .Fix test\n\
              \x20\x20| ^ Remove punctuation from the start of the subject\n"
@@ -1321,7 +1322,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(9));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Fix test…\n\
              \x20\x20|         ^ Remove punctuation from the end of the subject\n"
@@ -1332,7 +1333,7 @@ mod tests {
         assert_eq!(violation.message, "The subject starts with an emoji");
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | 👍 Fix test\n\
              \x20\x20| ^^ Remove emoji from the start of the subject\n"
@@ -1384,7 +1385,7 @@ mod tests {
         assert_eq!(violation.message, "The subject contains a ticket number");
         assert_eq!(violation.position, subject_position(5));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Fix JIRA-123 about email validation\n\
              \x20\x20|     ^^^^^^^^ Move the ticket number to the message body\n"
@@ -1446,7 +1447,7 @@ mod tests {
         assert_eq!(violation.message, "The subject contains a ticket number");
         assert_eq!(violation.position, subject_position(19));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Email validation: Fixes #123 for good\n\
              \x20\x20|                   ^^^^^^^^^^ Move the ticket number to the message body\n"
@@ -1461,7 +1462,7 @@ mod tests {
         assert_eq!(violation.message, "The subject contains a ticket number");
         assert_eq!(violation.position, subject_position(19));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Email validation: Closed org/repo#123 for good\n\
              \x20\x20|                   ^^^^^^^^^^^^^^^^^^^ Move the ticket number to the message body\n"
@@ -1512,7 +1513,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Fix: bug\n\
              \x20\x20| ^^^^ Remove the prefix from the subject\n"
@@ -1526,7 +1527,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | chore(package)!: some package bug\n\
              \x20\x20| ^^^^^^^^^^^^^^^^ Remove the prefix from the subject\n"
@@ -1590,7 +1591,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(16));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Edit CHANGELOG [skip ci]\n\
              \x20\x20|                ^^^^^^^^^ Move build tag to message body\n"
@@ -1651,7 +1652,7 @@ mod tests {
         );
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | WIP\n\
              \x20\x20| ^^^ Describe the change in more detail\n"
@@ -1661,7 +1662,7 @@ mod tests {
         let violation = find_violation(cliche.violations, &Rule::SubjectCliche);
         assert_eq!(violation.position, subject_position(1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Fixed bug\n\
              \x20\x20| ^^^^^^^^^ Describe the change in more detail\n"
@@ -1687,7 +1688,7 @@ mod tests {
         assert_eq!(violation.message, "No empty line found below the subject");
         assert_eq!(violation.position, message_position(1, 1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Subject\n\
                    2 | No empty line after subject\n\
@@ -1712,7 +1713,7 @@ mod tests {
         assert_eq!(violation.message, "No message body was found");
         assert_eq!(violation.position, message_position(2, 1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    1 | Subject\n\
                    2 | \n\
@@ -1725,7 +1726,7 @@ mod tests {
         assert_eq!(violation.message, "The message body is too short");
         assert_eq!(violation.position, message_position(2, 1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    3 | Short.\n\
              \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
@@ -1736,7 +1737,7 @@ mod tests {
         assert_eq!(violation.message, "The message body is too short");
         assert_eq!(violation.position, message_position(1, 1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    2 | ...\n\
              \x20\x20| ^^^ Add a longer message with context about the change and why it was made\n"
@@ -1747,7 +1748,7 @@ mod tests {
         assert_eq!(violation.message, "The message body is too short");
         assert_eq!(violation.position, message_position(3, 1));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    4 | Short.\n\
              \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
@@ -1781,7 +1782,7 @@ mod tests {
         );
         assert_eq!(violation.position, message_position(3, 73));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    4 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
              \x20\x20|                                                                         ^ Shorten line to maximum 72 characters\n"
@@ -1819,7 +1820,7 @@ mod tests {
         );
         assert_eq!(violation.position, message_position(1, 73));
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "\x20\x20|\n\
                    2 | This a too long line with only protocols http:// https://, not accepted!!\n\
              \x20\x20|                                                                         ^ Shorten line to maximum 72 characters\n"
@@ -1973,7 +1974,7 @@ mod tests {
         assert_eq!(violation.message, "No file changes found");
         assert_eq!(violation.position, Position::Diff);
         assert_eq!(
-            violation.formatted_context(),
+            formatted_context(&violation),
             "|\n\
              | 0 files changed, 0 insertions(+), 0 deletions(-)\n\
              | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add changes to the commit or remove the commit\n"
