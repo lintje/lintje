@@ -196,8 +196,8 @@ impl Branch {
 #[cfg(test)]
 mod tests {
     use crate::branch::Branch;
-    use crate::formatter::formatted_context;
     use crate::rule::{Position, Rule, Violation};
+    use crate::utils::test::formatted_context;
 
     fn validated_branch(name: String) -> Branch {
         let mut branch = Branch::new(name);

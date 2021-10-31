@@ -827,8 +827,8 @@ enum CodeBlockStyle {
 mod tests {
     use super::MOOD_WORDS;
     use crate::commit::Commit;
-    use crate::formatter::formatted_context;
     use crate::rule::{Position, Rule, Violation};
+    use crate::utils::test::formatted_context;
 
     fn commit_with_sha<S: AsRef<str>>(sha: Option<String>, subject: S, message: S) -> Commit {
         Commit::new(

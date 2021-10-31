@@ -10,7 +10,7 @@ extern crate lazy_static;
 
 use log::LevelFilter;
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
@@ -29,6 +29,7 @@ use commit::Commit;
 use formatter::{formatted_branch_violation, formatted_commit_violation};
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
+use termcolor::{ColorChoice, StandardStream, WriteColor};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "lintje", verbatim_doc_comment)]
@@ -71,10 +72,19 @@ struct Lint {
     #[structopt(long = "no-branch")]
     no_branch_validation: bool,
 
+    /// Disable color output
+    #[structopt(long = "no-color")]
+    no_color: bool,
+
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.
     #[structopt(name = "commit (range)")]
     selection: Option<String>,
+}
+
+pub struct Options {
+    debug: bool,
+    color: bool,
 }
 
 fn main() {
@@ -89,7 +99,11 @@ fn main() {
     } else {
         Some(lint_branch())
     };
-    handle_lint_result(commit_result, branch_result, args.debug);
+    let options = Options {
+        debug: args.debug,
+        color: !args.no_color,
+    };
+    handle_result(print_lint_result(commit_result, branch_result, options));
 }
 
 fn lint_branch() -> Result<Branch, String> {
@@ -146,11 +160,19 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
     Ok(commits)
 }
 
-fn handle_lint_result(
+fn handle_result(result: io::Result<()>) {
+    match result {
+        Ok(()) => {}
+        Err(error) => error!("Unexpected error encountered: {}", error),
+    }
+}
+
+fn print_lint_result(
     commit_result: Result<Vec<Commit>, String>,
     branch_result: Option<Result<Branch, String>>,
-    debug: bool,
-) {
+    options: Options,
+) -> io::Result<()> {
+    let mut out = buffer_writer(options.color);
     let mut violation_count = 0;
     let mut commit_count = 0;
     let mut ignored_commit_count = 0;
@@ -167,7 +189,7 @@ fn handle_lint_result(
             if !commit.is_valid() {
                 for violation in &commit.violations {
                     violation_count += 1;
-                    print!("{}", formatted_commit_violation(commit, violation));
+                    formatted_commit_violation(&mut out, commit, violation)?;
                 }
             }
         }
@@ -181,7 +203,7 @@ fn handle_lint_result(
                 if !branch.is_valid() {
                     for violation in &branch.violations {
                         violation_count += 1;
-                        print!("{}", formatted_branch_violation(branch, violation));
+                        formatted_branch_violation(&mut out, branch, violation)?;
                     }
                 }
             }
@@ -190,23 +212,21 @@ fn handle_lint_result(
     }
 
     let commit_plural = if commit_count != 1 { "s" } else { "" };
-    let violation_plural = if violation_count != 1 { "s" } else { "" };
-    print!(
-        "{} commit{}{} inspected",
+    write!(
+        out,
+        "{} commit{}{} inspected, ",
         commit_count, commit_plural, branch_message
-    );
-    print!(
-        ", {} violation{} detected",
-        violation_count, violation_plural
-    );
-    if ignored_commit_count > 0 || debug {
+    )?;
+    print_violation_count(&mut out, violation_count)?;
+    if ignored_commit_count > 0 || options.debug {
         let ignored_plural = if ignored_commit_count != 1 { "s" } else { "" };
-        print!(
+        write!(
+            out,
             " ({} commit{} ignored)",
             ignored_commit_count, ignored_plural
-        );
+        )?;
     }
-    println!();
+    writeln!(out)?;
     let mut has_error = false;
     if let Err(error) = commit_result {
         has_error = true;
@@ -222,6 +242,24 @@ fn handle_lint_result(
     if violation_count > 0 {
         std::process::exit(1)
     }
+    Ok(())
+}
+
+fn print_violation_count(out: &mut impl WriteColor, violation_count: usize) -> io::Result<()> {
+    let violation_plural = if violation_count != 1 { "s" } else { "" };
+    let color = if violation_count > 0 {
+        formatter::red_color()
+    } else {
+        formatter::green_color()
+    };
+    out.set_color(&color)?;
+    write!(
+        out,
+        "{} violation{} detected",
+        violation_count, violation_plural
+    )?;
+    out.reset()?;
+    Ok(())
 }
 
 fn init_logger(debug: bool) {
@@ -242,6 +280,17 @@ fn init_logger(debug: bool) {
             std::process::exit(2)
         }
     }
+}
+
+/// Returns a StandardStream configured to write with color or not based on the config flag set by
+/// the user.
+fn buffer_writer(color: bool) -> StandardStream {
+    let color_choice = if color {
+        ColorChoice::Auto
+    } else {
+        ColorChoice::Never
+    };
+    StandardStream::stdout(color_choice)
 }
 
 #[cfg(test)]
@@ -446,7 +495,11 @@ mod tests {
         let short_sha = sha.get(0..7).expect("Unable to build short commit SHA");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.arg(sha.to_string()).current_dir(dir).assert().failure();
+        let assert = cmd
+            .args(["--no-color", &sha])
+            .current_dir(dir)
+            .assert()
+            .failure();
         assert
             .stdout(
                 predicate::str::is_match(format!("{}:\\d+:\\d+: Test commit", short_sha)).unwrap(),
@@ -462,10 +515,22 @@ mod tests {
         create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
+        assert.stdout("1 commit and branch inspected, 0 violations detected\n");
+    }
+
+    #[test]
+    fn test_single_commit_valid_with_color() {
+        compile_bin();
+        let dir = test_dir("single_commit_valid_with_color");
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
-        assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 violations detected\n",
-        ));
+        assert.stdout(
+            "1 commit and branch inspected, \u{1b}[0m\u{1b}[32m0 violations detected\u{1b}[0m\n",
+        );
     }
 
     #[test]
@@ -476,7 +541,12 @@ mod tests {
         create_commit_with_file(&dir, "Fixing tests", "", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        let assert = cmd
+            .arg("--no-color")
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
 
         let output = normalize_output(&assert.get_output().stdout);
         assert_eq!(
@@ -506,6 +576,43 @@ mod tests {
     }
 
     #[test]
+    fn test_single_commit_invalid_with_color() {
+        compile_bin();
+        let dir = test_dir("with_color");
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Fixing tests", "", "file");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.current_dir(dir).assert().failure().code(1);
+
+        let output = normalize_output(&assert.get_output().stdout);
+        assert_eq!(
+            output,
+            "\u{1b}[0m\u{1b}[31mSubjectCliche\u{1b}[0m: The subject does not explain the change in much detail\n\
+            \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Fixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^^^^^^^^^^^^ Describe the change in more detail\u{1b}[0m\n\
+            \n\
+            \u{1b}[0m\u{1b}[31mSubjectMood\u{1b}[0m: The subject does not use the imperative grammatical mood\n\
+            \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Fixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^^^^^^ Use the imperative mood for the subject\u{1b}[0m\n\
+            \n\
+            \u{1b}[0m\u{1b}[31mMessagePresence\u{1b}[0m: No message body was found\n\
+            \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:3:1:\u{1b}[0m Fixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m  2 |\u{1b}[0m \n\
+            \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m \n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^ Add a message body with context about the change and why it was made\u{1b}[0m\n\
+            \n\
+            1 commit and branch inspected, \u{1b}[0m\u{1b}[31m3 violations detected\u{1b}[0m\n"
+        );
+    }
+
+    #[test]
     fn test_single_commit_invalid_one_violation() {
         compile_bin();
         let dir = test_dir("single_commit_invalid_one_violation");
@@ -513,7 +620,12 @@ mod tests {
         create_commit_with_file(&dir, "Valid commit subject", "", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        let assert = cmd
+            .arg("--no-color")
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
         assert
             .stdout(predicate::str::contains(
                 "MessagePresence: No message body was found",
@@ -531,7 +643,12 @@ mod tests {
         create_commit(&dir, "Valid commit subject", "");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        let assert = cmd
+            .arg("--no-color")
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
         assert
             .stdout(predicate::str::contains(
                 "MessagePresence: No message body was found",
@@ -557,10 +674,25 @@ mod tests {
         );
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
+        assert.stdout("0 commits and branch inspected, 0 violations detected (1 commit ignored)\n");
+    }
+
+    #[test]
+    fn test_single_commit_ignored_with_color() {
+        compile_bin();
+        let dir = test_dir("single_commit_ignored_with_color");
+        create_test_repo(&dir);
+        create_commit_with_file(
+            &dir,
+            "Merge pull request #123 from tombruijn/repo",
+            "",
+            "file",
+        );
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.current_dir(dir).assert().success();
-        assert.stdout(predicate::str::contains(
-            "0 commits and branch inspected, 0 violations detected (1 commit ignored)",
-        ));
+        assert.stdout("0 commits and branch inspected, \u{1b}[0m\u{1b}[32m0 violations detected\u{1b}[0m (1 commit ignored)\n");
     }
 
     #[test]
@@ -571,7 +703,11 @@ mod tests {
         create_commit_with_file(&dir, "Valid commit subject", "Valid message body", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).args(["--debug"]).assert().success();
+        let assert = cmd
+            .args(["--no-color", "--debug"])
+            .current_dir(dir)
+            .assert()
+            .success();
         assert.stdout(predicate::str::contains(
             "1 commit and branch inspected, 0 violations detected (0 commits ignored)",
         ));
@@ -587,7 +723,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg(&"HEAD~2..HEAD")
+            .args(["--no-color", "HEAD~2..HEAD"])
             .current_dir(dir)
             .assert()
             .failure()
@@ -622,7 +758,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg(&format!("--hook-message-file={}", filename))
+            .args(["--no-color", &format!("--hook-message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()
@@ -657,7 +793,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg(&format!("--hook-message-file={}", filename))
+            .args(["--no-color", &format!("--hook-message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .success();
@@ -685,7 +821,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg(&format!("--hook-message-file={}", filename))
+            .args(["--no-color", &format!("--hook-message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()
@@ -713,7 +849,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg(&format!("--hook-message-file={}", filename))
+            .args(["--no-color", &format!("--hook-message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()
@@ -730,7 +866,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg(&format!("--hook-message-file={}", filename))
+            .args(["--no-color", &format!("--hook-message-file={}", filename)])
             .current_dir(dir)
             .assert()
             .failure()
@@ -749,7 +885,7 @@ mod tests {
         checkout_branch(&dir, "my-branch");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().success();
+        let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
         assert.stdout(predicate::str::contains(
             "1 commit and branch inspected, 0 violations detected",
         ));
@@ -764,7 +900,12 @@ mod tests {
         create_commit_with_file(&dir, "Test commit", "I am a test commit.", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        let assert = cmd
+            .arg("--no-color")
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
         assert
             .stdout(predicate::str::contains(
                 "BranchNameTicketNumber: A ticket number was detected in the branch name\n\
@@ -794,7 +935,11 @@ mod tests {
         checkout_branch(&dir, "fix-123");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.arg("--no-branch").current_dir(dir).assert().success();
+        let assert = cmd
+            .args(["--no-color", "--no-branch"])
+            .current_dir(dir)
+            .assert()
+            .success();
         assert.stdout(predicate::str::contains(
             "1 commit inspected, 0 violations detected",
         ));

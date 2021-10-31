@@ -16,6 +16,7 @@ regex = "1.5"
 lazy_static = "1.4"
 unicode-width = "0.1.9"
 unicode-segmentation = "1.8.0"
+termcolor = "1.1"
 
 [dev-dependencies]
 assert_cmd = "1.0"

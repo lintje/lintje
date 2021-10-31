@@ -136,25 +136,31 @@ pub fn character_count_for_bytes_index(string: &str, bytes_index: usize) -> usiz
     }
 }
 
-/// Indent all lines of a string by a number of spaces
-pub fn indent_string(string: String, level: usize) -> String {
-    let mut result = "".to_string();
-    for line in string.lines() {
-        if line.is_empty() {
-            result.push('\n')
-        } else {
-            result.push_str(&format!("{}{}\n", " ".repeat(level), line))
+#[cfg(test)]
+pub mod test {
+    use super::{character_count_for_bytes_index, display_width, line_length_stats, MarkerStats};
+    use crate::formatter::formatted_context as formatted_context_real;
+    use crate::rule::Violation;
+    use termcolor::{BufferWriter, ColorChoice};
+
+    pub fn formatted_context(violation: &Violation) -> String {
+        let bufwtr = BufferWriter::stdout(ColorChoice::Never);
+        let mut out = bufwtr.buffer();
+        match formatted_context_real(&mut out, violation) {
+            Ok(()) => {
+                // Strip off the two leading spaces per line if any
+                // The indenting is tested somewhere else
+                String::from_utf8_lossy(out.as_slice())
+                    .to_string()
+                    .lines()
+                    .into_iter()
+                    .map(|v| v.strip_prefix("  ").unwrap_or(v))
+                    .collect::<Vec<&str>>()
+                    .join("\n")
+            }
+            Err(e) => panic!("Unable to format context violation: {:?}", e),
         }
     }
-    result
-}
-
-#[cfg(test)]
-mod test {
-    use super::{
-        character_count_for_bytes_index, display_width, indent_string, line_length_stats,
-        MarkerStats,
-    };
 
     #[test]
     fn test_character_index_for_bytes() {
@@ -396,22 +402,6 @@ mod test {
                 bytes_index: 15,
                 char_count: 5,
             }
-        );
-    }
-
-    #[test]
-    fn test_indent_string() {
-        assert_eq!(
-            indent_string("line 1\nline 2\nline 3".to_string(), 1),
-            " line 1\n line 2\n line 3\n"
-        );
-        assert_eq!(
-            indent_string("line 1\n\nline 2".to_string(), 1),
-            " line 1\n\n line 2\n"
-        );
-        assert_eq!(
-            indent_string("line 1\n\nline 2".to_string(), 6),
-            "      line 1\n\n      line 2\n"
         );
     }
 }
