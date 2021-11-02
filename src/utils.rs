@@ -25,9 +25,22 @@ pub fn is_punctuation(character: &char) -> bool {
 // This may return some odd results at times where some symbols are counted as more character width
 // than they actually are.
 //
-// This function has exceptions for skin tones and other emoji modifiers to determin a more
+// This function has exceptions for skin tones and other emoji modifiers to determine a more
 // accurate display with.
 pub fn display_width(string: &str) -> usize {
+    // String expressed as a vec of Unicode characters. Characters with accents and emoji may
+    // be multiple characters combined.
+    let unicode_chars = string.graphemes(true);
+    let mut width = 0;
+    for c in unicode_chars.into_iter() {
+        width += display_width_char(c);
+    }
+    width
+}
+
+/// Calculate the render width of a single Unicode character. Unicode characters may consist of
+/// multiple String characters, which is why the function argument takes a string.
+fn display_width_char(string: &str) -> usize {
     // Characters that are used as modifiers on emoji. By themselves they have no width.
     if string == ZERO_WIDTH_JOINER || string == VARIATION_SELECTOR_16 {
         return 0;
@@ -74,7 +87,7 @@ pub fn line_length_stats(line: &str, max_width: usize) -> (usize, MarkerStats) {
     // The total display width of the subject.
     let mut width = 0;
     for c in unicode_chars.into_iter() {
-        width += display_width(c);
+        width += display_width_char(c);
         if width <= max_width {
             char_count += 1;
             bytes_index += c.len();
@@ -187,9 +200,7 @@ mod test {
 
     #[test]
     fn test_display_width() {
-        assert_width("abc", 3);
-        assert_width(&"a".repeat(50), 50);
-        assert_width("!*_-=+|[]`'.,<>():;!@#$%^&{}10/", 31);
+        assert_width("a", 1);
         assert_width("\t", 4);
         assert_width("…", 1);
 
@@ -233,6 +244,7 @@ mod test {
         assert_width("👁", 1); // Eye without variable selector 16
         assert_width("👁️", 2); // Eye + variable selector 16 `\u{fe0f}`
         assert_width("👁️‍🗨️", 2);
+        assert_width("🚀", 2);
 
         // Skin tones
         assert_width("👩", 2);
@@ -248,6 +260,12 @@ mod test {
         assert_width("👨🏻‍❤️‍👨🏿", 2);
         assert_width("🧑‍🦲", 2);
         assert_width("👨🏿‍🦲", 2);
+
+        // Strings with multiple characters
+        assert_width("abc", 3);
+        assert_width(&"a".repeat(50), 50);
+        assert_width("!*_-=+|[]`'.,<>():;!@#$%^&{}10/", 31);
+        assert_width("I am a string with multiple 😁🚀あ", 34);
     }
 
     #[test]
