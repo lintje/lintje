@@ -1,6 +1,6 @@
 # Lintje changelog
 
-## Next version
+## 0.6.0
 
 - Improve Unicode support for SubjectLength and MessageLineLength rules.
     - Characters with accents such as `a̐` are no longer counted as two

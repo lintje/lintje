@@ -1,6 +1,6 @@
 [package]
 name = "lintje"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Tom de Bruijn <tom@tomdebruijn.com>"]
 edition = "2018"
 repository = "https://github.com/tombruijn/lintje"
