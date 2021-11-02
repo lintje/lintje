@@ -412,7 +412,7 @@ impl Commit {
                     )
                 }
                 None => {
-                    error!("SubjectTicketNumber: Unable to fetch ticket number match from subject.")
+                    error!("SubjectPunctuation: Unable to fetch ticket number match from subject.")
                 }
             }
         }
