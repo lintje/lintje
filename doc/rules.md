@@ -611,6 +611,10 @@ Normally they would both be counted towards the width even though only one
 emoji is rendered. This particular scenario is calculated and rendered properly
 as two columns in Lintje.
 
+The heart emoji `❤️`, and similar emoji, will only have a width of one column,
+this is by design as most other (terminal) apps–in which Lintje will print its
+output–will also render it with a width of one column.
+
 [unicode]: #unicode
 [issue tracker]: https://github.com/tombruijn/lintje/issues
 [imperative mood]: https://en.wikipedia.org/wiki/Imperative_mood

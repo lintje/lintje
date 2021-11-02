@@ -486,6 +486,18 @@ mod tests {
                    1 | Aa👍Bb\n\
              \x20\x20|   ^^ Mark emoji\n"
         );
+
+        let v = subject_violation_hint(
+            "Fix ❤️ in controller Fix #123",
+            "Mark fix ticket",
+            Range { start: 25, end: 33 },
+        );
+        assert_eq!(
+            formatted_context(&v),
+            "\x20\x20|\n\
+                   1 | Fix ❤️ in controller Fix #123\n\
+             \x20\x20|                     ^^^^^^^^ Mark fix ticket\n"
+        );
     }
 
     #[test]

@@ -1391,10 +1391,17 @@ mod tests {
              \x20\x20|     ^^^^^^^^ Move the ticket number to the message body\n"
         );
 
-        let ticket_number_unicode = validated_commit("Fix a̐ JIRA-123 about email validation", "");
+        let ticket_number_unicode =
+            validated_commit("Fix ❤\u{fe0f} JIRA-123 about email validation", "");
         let violation =
             find_violation(ticket_number_unicode.violations, &Rule::SubjectTicketNumber);
         assert_eq!(violation.position, subject_position(7));
+        assert_eq!(
+            formatted_context(&violation),
+            "\x20\x20|\n\
+                   1 | Fix ❤️ JIRA-123 about email validation\n\
+             \x20\x20|       ^^^^^^^^ Move the ticket number to the message body\n"
+        );
 
         let invalid_subjects = vec![
             "Fix {}1234",

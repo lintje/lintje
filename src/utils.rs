@@ -45,9 +45,10 @@ fn display_width_char(string: &str) -> usize {
     if string == ZERO_WIDTH_JOINER || string == VARIATION_SELECTOR_16 {
         return 0;
     }
-    // Emoji that are numbers or * or #. They are recognized as normal characters by unicode-width,
-    // and return a render width of 1, instead of 2—which they actually are.
-    if string.contains(VARIATION_SELECTOR_16) || string.contains(ZERO_WIDTH_JOINER) {
+    // Emoji that are representations of combined emoji. They are normally calculated as the
+    // combined width of the emoji, rather than the actual display width. This check fixes that and
+    // returns a width of 2 instead.
+    if string.contains(ZERO_WIDTH_JOINER) {
         return 2;
     }
     // Any character with a skin tone is most likely an emoji.
@@ -226,23 +227,23 @@ mod test {
         // Some of these the assertions below do not return the width according to unicode-width.
         // The `display_width` function will check for things like skin tones and other emoji
         // modifiers to return a differen display width.
-        assert_width("0️⃣", 2);
-        assert_width("1️⃣", 2);
-        assert_width("#️⃣", 2);
+        assert_width("0️⃣", 1);
+        assert_width("1️⃣", 1);
+        assert_width("#️⃣", 1);
         assert_width("﹟", 2);
         assert_width("＃", 2);
-        assert_width("*️⃣", 2);
+        assert_width("*️⃣", 1);
         assert_width("＊", 2);
         assert_width("❗️", 2);
-        assert_width("☁️", 2);
-        assert_width("❤️", 2);
-        assert_width("☂️", 2);
-        assert_width("✏️", 2);
-        assert_width("✂️", 2);
-        assert_width("☎️", 2);
-        assert_width("✈️", 2);
+        assert_width("☁️", 1);
+        assert_width("❤️", 1);
+        assert_width("☂️", 1);
+        assert_width("✏️", 1);
+        assert_width("✂️", 1);
+        assert_width("☎️", 1);
+        assert_width("✈️", 1);
         assert_width("👁", 1); // Eye without variable selector 16
-        assert_width("👁️", 2); // Eye + variable selector 16 `\u{fe0f}`
+        assert_width("👁️", 1); // Eye + variable selector 16 `\u{fe0f}`
         assert_width("👁️‍🗨️", 2);
         assert_width("🚀", 2);
 
@@ -266,6 +267,7 @@ mod test {
         assert_width(&"a".repeat(50), 50);
         assert_width("!*_-=+|[]`'.,<>():;!@#$%^&{}10/", 31);
         assert_width("I am a string with multiple 😁🚀あ", 34);
+        assert_width("👩‍🔬👩‍🔬", 4);
     }
 
     #[test]
