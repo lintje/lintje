@@ -49,11 +49,11 @@ MessagePresence: No message body was found
   3 |
     | ^ Add a message body with context about the change and why it was made
 
-BranchNameCliche: The branch name does not explain the change in much detail
-  Branch:1: fix-bug
+BranchNameTicketNumber: A ticket number was detected in the branch name
+  Branch:1: fix-123
   |
-  | fix-bug
-  | ^^^^^^^ Describe the change in more detail
+  | fix-123
+  | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details
 
 1 commit and branch inspected, 3 violations detected
 ```
