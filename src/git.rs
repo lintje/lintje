@@ -144,7 +144,16 @@ pub fn parse_commit_hook_format(
     debug!("Using config core.commentChar: {:?}", comment_char);
     for (index, mut line) in message.lines().enumerate() {
         match index {
-            0 => subject = Some(line),
+            0 => {
+                // There is no content detected, the subject line (the first line) is the scissor
+                // line, so we can assume the user removed the commit subject and message body to
+                // tell Git to abort creating/amending the commit.
+                // Do not try to parse the scissor line as the subject.
+                if line == scissor_line && cleanup_mode == CleanupMode::Scissors {
+                    break;
+                }
+                subject = Some(line)
+            }
             _ => {
                 match cleanup_mode {
                     CleanupMode::Scissors => {
@@ -679,6 +688,24 @@ mod tests {
             commit.message,
             "\nThis is the message body.\n\nThis is line 2."
         );
+    }
+
+    #[test]
+    fn test_parse_commit_hook_format_with_scissors_empty_message() {
+        let commit = parse_commit_hook_format(
+            "# ------------------------ >8 ------------------------\n\
+            Other things that are not part of the message.\n\
+            ",
+            CleanupMode::Scissors,
+            "#".to_string(),
+            true,
+        );
+
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
+        assert_eq!(commit.subject, "");
+        assert_eq!(commit.message, "");
     }
 
     #[test]

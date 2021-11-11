@@ -7,6 +7,12 @@
   issues will hopefully be resolved in the rebase, such missing message body,
   or subject length. This will reduce the number of violations printed and
   focus on the important violations.
+- The Git scissor line (for cleanup mode scissor) will not be interpreted as
+  the commit subject line, if it's the first line in a Git commit hook file. It
+  will instead consider the commit as having an empty subject and message body.
+  This will prevent any unexpected violations on the scissor line when the Git
+  commit process is aborted by removing the subject and message body from the
+  Git commit message file.
 
 ## 0.6.0
 
