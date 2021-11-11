@@ -1,5 +1,13 @@
 # Lintje changelog
 
+## Next version
+
+- Ignore other rules if a commit has a MergeCommit or NeedsRebase violation.
+  When these violations occur the commit needs to be rebased, so any other
+  issues will hopefully be resolved in the rebase, such missing message body,
+  or subject length. This will reduce the number of violations printed and
+  focus on the important violations.
+
 ## 0.6.0
 
 - Improve Unicode support for SubjectLength and MessageLineLength rules.

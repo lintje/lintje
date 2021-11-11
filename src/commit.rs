@@ -154,18 +154,24 @@ impl Commit {
     pub fn validate(&mut self) {
         self.validate_merge_commit();
         self.validate_needs_rebase();
-        self.validate_subject_cliches();
-        self.validate_subject_line_length();
-        self.validate_subject_mood();
-        self.validate_subject_whitespace();
-        self.validate_subject_prefix();
-        self.validate_subject_capitalization();
-        self.validate_subject_build_tags();
-        self.validate_subject_punctuation();
-        self.validate_subject_ticket_numbers();
-        self.validate_message_empty_first_line();
-        self.validate_message_presence();
-        self.validate_message_line_length();
+
+        // If a commit has a MergeCommit or NeedsRebase violation, other rules are skipped,
+        // because the commit itself will need to be rebased into other commits. So the format
+        // of the commit won't matter.
+        if !self.has_violation(Rule::MergeCommit) && !self.has_violation(Rule::NeedsRebase) {
+            self.validate_subject_cliches();
+            self.validate_subject_line_length();
+            self.validate_subject_mood();
+            self.validate_subject_whitespace();
+            self.validate_subject_prefix();
+            self.validate_subject_capitalization();
+            self.validate_subject_build_tags();
+            self.validate_subject_punctuation();
+            self.validate_subject_ticket_numbers();
+            self.validate_message_empty_first_line();
+            self.validate_message_presence();
+            self.validate_message_line_length();
+        }
         self.validate_changes();
     }
 
@@ -938,7 +944,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_subject_merge_commit() {
+    fn test_validate_merge_commit() {
         assert_commit_subject_as_valid("I am not a merge commit", &Rule::MergeCommit);
         assert_commit_subject_as_valid("Merge pull request #123 from repo", &Rule::MergeCommit);
         // Merge into the project's defaultBranch branch
@@ -969,6 +975,16 @@ mod tests {
             "lintje:disable MergeCommit".to_string(),
         );
         assert_commit_valid_for(&ignore_commit, &Rule::MergeCommit);
+
+        // If commit has a MergeCommit violation, so other rules are skipped
+        assert_commit_subject_as_valid(
+            "Merge branch 'develop' of github.com/org/repo into develop",
+            &Rule::SubjectLength,
+        );
+        assert_commit_subject_as_invalid(
+            "Merge branch 'develop' of github.com/org/repo into develop",
+            &Rule::MergeCommit,
+        );
     }
 
     #[test]
@@ -1002,6 +1018,16 @@ mod tests {
             "lintje:disable NeedsRebase".to_string(),
         );
         assert_commit_valid_for(&ignore_commit, &Rule::NeedsRebase);
+
+        // If commit has a NeedsRebase violation, so other rules are skipped
+        assert_commit_subject_as_valid(
+            "fixup! I do need to be rebased because this is a fixup commit",
+            &Rule::SubjectLength,
+        );
+        assert_commit_subject_as_invalid(
+            "fixup! I do need to be rebased because this is a fixup commit",
+            &Rule::NeedsRebase,
+        );
     }
 
     #[test]
