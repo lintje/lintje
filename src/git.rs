@@ -143,32 +143,34 @@ pub fn parse_commit_hook_format(
     debug!("Using clean up mode: {:?}", cleanup_mode);
     debug!("Using config core.commentChar: {:?}", comment_char);
     for (index, mut line) in message.lines().enumerate() {
+        // A scissor line has been detected.
+        //
+        // A couple reasons why this could happen:
+        //
+        // - A scissor line was found in cleanup mode "scissors". All content after this line is
+        //   ignored.
+        // - A scissor line was found in a different cleanup mode with the `--verbose` option.
+        //   Lintje cannot detect this verbose mode so it assumes it's for the verbose mode
+        //   and ignores all content after this line.
+        // - The commit message is entirely empty, leaving only the comments added to the file by
+        //   Git. Unless `--allow-empty-message` is specified this is the user telling Git it stop
+        //   the commit process.
+        if line == scissor_line {
+            debug!("Found scissors line. Stop parsing message.");
+            break;
+        }
+
         match index {
-            0 => {
-                // There is no content detected, the subject line (the first line) is the scissor
-                // line, so we can assume the user removed the commit subject and message body to
-                // tell Git to abort creating/amending the commit.
-                // Do not try to parse the scissor line as the subject.
-                if line == scissor_line && cleanup_mode == CleanupMode::Scissors {
-                    break;
-                }
-                subject = Some(line)
-            }
+            0 => subject = Some(line),
             _ => {
                 match cleanup_mode {
-                    CleanupMode::Scissors => {
-                        if line == scissor_line {
-                            debug!("Found scissors line. Stop parsing message.");
-                            break;
-                        }
-                    }
+                    CleanupMode::Scissors | CleanupMode::Verbatim => {}
                     CleanupMode::Default | CleanupMode::Strip => {
                         line = line.trim_end();
                         if line.starts_with(&comment_char) {
                             continue;
                         }
                     }
-                    CleanupMode::Verbatim => {}
                     CleanupMode::Whitespace => {
                         line = line.trim_end();
                     }
@@ -768,5 +770,29 @@ mod tests {
             Extra suprise!\
             "
         );
+    }
+
+    #[test]
+    fn test_parse_commit_hook_format_with_strip_and_scissor_line() {
+        // Even in default mode the scissor line is seen as the end of the message.
+        // This can happen when `git commit` is called with the `--verbose` flag.
+        let commit = parse_commit_hook_format(
+            "This is a subject\n\
+            \n\
+            This is the message body.  \n\
+            # This is a comment before scissor line\n\
+            # ------------------------ >8 ------------------------\n\
+            # Other things that are not part of the message.\n\
+            List of file changes",
+            CleanupMode::Strip,
+            "#".to_string(),
+            true,
+        );
+
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
+        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(commit.message, "\nThis is the message body.");
     }
 }
