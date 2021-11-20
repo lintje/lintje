@@ -18,6 +18,8 @@
   support for `git commit`'s `--verbose` flag and `--cleanup` option. In
   verbose mode the scissor line is also present in the Git commit default
   message content, but is not included in the committed message body.
+- Don't consider trailing whitespace as part of the line length in the scissors
+  cleanup mode.
 
 ## 0.6.0
 

@@ -164,7 +164,7 @@ pub fn parse_commit_hook_format(
             0 => subject = Some(line),
             _ => {
                 match cleanup_mode {
-                    CleanupMode::Scissors | CleanupMode::Verbatim => {}
+                    CleanupMode::Scissors => line = line.trim_end(),
                     CleanupMode::Default | CleanupMode::Strip => {
                         line = line.trim_end();
                         if line.starts_with(&comment_char) {
@@ -174,6 +174,7 @@ pub fn parse_commit_hook_format(
                     CleanupMode::Whitespace => {
                         line = line.trim_end();
                     }
+                    CleanupMode::Verbatim => {}
                 }
                 message_lines.push(line)
             }
@@ -671,7 +672,7 @@ mod tests {
         let commit = parse_commit_hook_format(
             "This is a subject\n\
             \n\
-            This is the message body.\n\
+            This is the message body.  \n\
             \n\
             This is line 2.\n\
             # ------------------------ >8 ------------------------\n\
