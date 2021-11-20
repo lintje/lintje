@@ -20,6 +20,14 @@
   message content, but is not included in the committed message body.
 - Don't consider trailing whitespace as part of the line length in the scissors
   cleanup mode.
+- Improve leading empty line detection and ignore these lines in every cleanup
+  mode except "verbatim". This way leading empty lines are not interpreted as
+  subjects and Lintje won't print violations about those empty lines as
+  subjects.
+- Improve leading comment line detection and ignore these lines in the
+  default/"strip" cleanup mode. This way leading comment lines are not
+  interpreted as subjects and Lintje won't print violations about those
+  subjects.
 
 ## 0.6.0
 

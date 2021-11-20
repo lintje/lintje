@@ -92,7 +92,7 @@ fn parse_commit(message: &str) -> Option<Commit> {
                     0 => long_sha = Some(line),
                     1 => email = Some(line.to_string()),
                     2 => subject = Some(line),
-                    _ => message_lines.push(line),
+                    _ => message_lines.push(line.to_string()),
                 }
             }
         }
@@ -138,11 +138,11 @@ pub fn parse_commit_hook_format(
     has_changes: bool,
 ) -> Commit {
     let mut subject = None;
-    let mut message_lines = Vec::<&str>::new();
+    let mut message_lines = vec![];
     let scissor_line = format!("{} {}", comment_char, SCISSORS);
     debug!("Using clean up mode: {:?}", cleanup_mode);
     debug!("Using config core.commentChar: {:?}", comment_char);
-    for (index, mut line) in message.lines().enumerate() {
+    for line in message.lines() {
         // A scissor line has been detected.
         //
         // A couple reasons why this could happen:
@@ -160,45 +160,54 @@ pub fn parse_commit_hook_format(
             break;
         }
 
-        match index {
-            0 => subject = Some(line),
-            _ => {
-                match cleanup_mode {
-                    CleanupMode::Scissors => line = line.trim_end(),
-                    CleanupMode::Default | CleanupMode::Strip => {
-                        line = line.trim_end();
-                        if line.starts_with(&comment_char) {
-                            continue;
-                        }
-                    }
-                    CleanupMode::Whitespace => {
-                        line = line.trim_end();
-                    }
-                    CleanupMode::Verbatim => {}
+        // The first non-empty line is the subject line in every cleanup mode but the Verbatim
+        // mode.
+        if subject.is_none() {
+            if cleanup_mode == CleanupMode::Verbatim {
+                // Set subject, doesn't matter what the content is. Even empty lines are considered
+                // subjects in Verbatim cleanup mode.
+                subject = Some(line.to_string());
+            } else if let Some(cleaned_line) = cleanup_line(&line, &cleanup_mode, &comment_char) {
+                if !cleaned_line.is_empty() {
+                    // Skip leading empty lines in every other cleanup mode than Verbatim.
+                    subject = Some(cleaned_line);
                 }
-                message_lines.push(line)
             }
+            // Skips this line if the cleanup mode is Strip and the line is a comment.
+            // See when the `cleanup_line` function returns `None`.
+            continue;
+        }
+
+        if let Some(cleaned_line) = cleanup_line(&line, &cleanup_mode, &comment_char) {
+            message_lines.push(cleaned_line)
         }
     }
     let used_subject = subject.unwrap_or_else(|| {
         debug!("Commit subject not present in message: {:?}", message);
-        ""
+        "".to_string()
     });
 
-    commit_for(
-        None,
-        None,
-        used_subject.to_string(),
-        message_lines,
-        has_changes,
-    )
+    commit_for(None, None, used_subject, message_lines, has_changes)
+}
+
+fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> Option<String> {
+    match cleanup_mode {
+        CleanupMode::Default | CleanupMode::Strip => {
+            if line.starts_with(&comment_char) {
+                return None;
+            }
+            Some(line.trim_end().to_string())
+        }
+        CleanupMode::Whitespace | CleanupMode::Scissors => Some(line.trim_end().to_string()),
+        CleanupMode::Verbatim => Some(line.to_string()),
+    }
 }
 
 fn commit_for(
     sha: Option<String>,
     email: Option<String>,
     subject: String,
-    message: Vec<&str>,
+    message: Vec<String>,
     has_changes: bool,
 ) -> Commit {
     let mut commit = Commit::new(sha, email, subject, message.join("\n"), has_changes);
@@ -616,7 +625,63 @@ mod tests {
     #[test]
     fn test_parse_commit_hook_format_with_strip() {
         let commit = parse_commit_hook_format(
-            "This is a subject\n\
+            "This is a subject  \n\
+            \n\
+            This is the message body.  \n\
+            # This is a commented line.\n\
+            \n\
+            Another line.\n\
+            \n\
+            # Other things that are not part of the message.\n\
+            ",
+            CleanupMode::Strip,
+            "#".to_string(),
+            true,
+        );
+
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
+        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(
+            commit.message,
+            "\nThis is the message body.\n\nAnother line.\n"
+        );
+    }
+
+    #[test]
+    fn test_parse_commit_hook_format_with_leading_empty_lines() {
+        let commit = parse_commit_hook_format(
+            "  \n\
+            This is a subject  \n\
+            \n\
+            This is the message body.  \n\
+            # This is a commented line.\n\
+            \n\
+            Another line.\n\
+            \n\
+            # Other things that are not part of the message.\n\
+            ",
+            CleanupMode::Strip,
+            "#".to_string(),
+            true,
+        );
+
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
+        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(
+            commit.message,
+            "\nThis is the message body.\n\nAnother line.\n"
+        );
+    }
+
+    #[test]
+    fn test_parse_commit_hook_format_with_leading_comment_lines() {
+        let commit = parse_commit_hook_format(
+            "# This is a comment\n\
+            This is a subject  \n\
             \n\
             This is the message body.  \n\
             # This is a commented line.\n\
@@ -643,7 +708,7 @@ mod tests {
     #[test]
     fn test_parse_commit_hook_format_with_strip_custom_comment_char() {
         let commit = parse_commit_hook_format(
-            "This is a subject\n\
+            "This is a subject  \n\
             \n\
             This is the message body.  \n\
             - This is a commented line.\n\
@@ -670,7 +735,7 @@ mod tests {
     #[test]
     fn test_parse_commit_hook_format_with_scissors() {
         let commit = parse_commit_hook_format(
-            "This is a subject\n\
+            "This is a subject  \n\
             \n\
             This is the message body.  \n\
             \n\
@@ -714,7 +779,7 @@ mod tests {
     #[test]
     fn test_parse_commit_hook_format_with_verbatim() {
         let commit = parse_commit_hook_format(
-            "This is a subject\n\
+            "This is a subject  \n\
             \n\
             This is the message body.\n\
             # This is a comment\n\
@@ -741,9 +806,37 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_commit_hook_format_with_verbatim_leading_empty_lines() {
+        let commit = parse_commit_hook_format(
+            "  \n\
+            This is the message body.\n\
+            # This is a comment\n\
+            # Other things that are not part of the message.\n\
+            Extra suprise!\
+            ",
+            CleanupMode::Verbatim,
+            "#".to_string(),
+            true,
+        );
+
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
+        assert_eq!(commit.subject, "");
+        assert_eq!(
+            commit.message,
+            "This is the message body.\n\
+            # This is a comment\n\
+            # Other things that are not part of the message.\n\
+            Extra suprise!\
+            "
+        );
+    }
+
+    #[test]
     fn test_parse_commit_hook_format_with_whitespace() {
         let commit = parse_commit_hook_format(
-            "This is a subject\n\
+            "This is a subject  \n\
             \n\
             This is the message body.  \n\
             \n\
@@ -774,11 +867,33 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_commit_hook_format_with_whitespace_leading_comment_lines() {
+        let commit = parse_commit_hook_format(
+            "# This is a comment\n\
+            This is a subject  \n\
+            \n\
+            This is the message body.",
+            CleanupMode::Whitespace,
+            "#".to_string(),
+            true,
+        );
+
+        assert_eq!(commit.long_sha, None);
+        assert_eq!(commit.short_sha, None);
+        assert_eq!(commit.email, None);
+        assert_eq!(commit.subject, "# This is a comment");
+        assert_eq!(
+            commit.message,
+            "This is a subject\n\nThis is the message body."
+        );
+    }
+
+    #[test]
     fn test_parse_commit_hook_format_with_strip_and_scissor_line() {
         // Even in default mode the scissor line is seen as the end of the message.
         // This can happen when `git commit` is called with the `--verbose` flag.
         let commit = parse_commit_hook_format(
-            "This is a subject\n\
+            "This is a subject  \n\
             \n\
             This is the message body.  \n\
             # This is a comment before scissor line\n\
