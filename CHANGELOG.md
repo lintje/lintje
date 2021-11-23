@@ -1,6 +1,6 @@
 # Lintje changelog
 
-## Next version
+## 0.6.1
 
 - Ignore other rules if a commit has a MergeCommit or NeedsRebase violation.
   When these violations occur the commit needs to be rebased, so any other
