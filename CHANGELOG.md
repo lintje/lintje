@@ -1,5 +1,9 @@
 # Lintje changelog
 
+## Next version
+
+- Improve output when a Git error is encountered.
+
 ## 0.6.1
 
 - Ignore other rules if a commit has a MergeCommit or NeedsRebase violation.

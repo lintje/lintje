@@ -209,16 +209,13 @@ fn handle_lint_result(
     }
     println!();
     let mut has_error = false;
-    if commit_result.is_err() {
+    if let Err(error) = commit_result {
         has_error = true;
-        error!("An error occurred validating commits: {:?}", commit_result);
+        error!("An error occurred validating commits: {}", error.trim());
     }
-    if branch_error.is_some() {
+    if let Some(error) = branch_error {
         has_error = true;
-        error!(
-            "An error occurred validating the branch: {:?}",
-            &branch_error
-        );
+        error!("An error occurred validating the branch: {}", error.trim());
     }
     if has_error {
         std::process::exit(2)
