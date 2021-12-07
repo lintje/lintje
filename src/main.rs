@@ -1,13 +1,12 @@
+#![deny(unused_crate_dependencies)]
+#![deny(unused_extern_crates)]
+#![deny(unused_import_braces)]
+#![deny(non_ascii_idents)]
+
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate lazy_static;
-
-#[cfg(test)]
-extern crate predicates;
-
-extern crate unicode_segmentation;
-extern crate unicode_width;
 
 use log::LevelFilter;
 use std::fs::File;
