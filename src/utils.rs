@@ -16,7 +16,7 @@ lazy_static! {
 }
 
 pub fn is_punctuation(character: &char) -> bool {
-    character.is_ascii_punctuation() || OTHER_PUNCTUATION.contains(&character)
+    character.is_ascii_punctuation() || OTHER_PUNCTUATION.contains(character)
 }
 
 // Return String display width as rendered in a monospace font according to the Unicode

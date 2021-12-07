@@ -167,7 +167,7 @@ pub fn parse_commit_hook_format(
                 // Set subject, doesn't matter what the content is. Even empty lines are considered
                 // subjects in Verbatim cleanup mode.
                 subject = Some(line.to_string());
-            } else if let Some(cleaned_line) = cleanup_line(&line, &cleanup_mode, &comment_char) {
+            } else if let Some(cleaned_line) = cleanup_line(line, &cleanup_mode, &comment_char) {
                 if !cleaned_line.is_empty() {
                     // Skip leading empty lines in every other cleanup mode than Verbatim.
                     subject = Some(cleaned_line);
@@ -178,7 +178,7 @@ pub fn parse_commit_hook_format(
             continue;
         }
 
-        if let Some(cleaned_line) = cleanup_line(&line, &cleanup_mode, &comment_char) {
+        if let Some(cleaned_line) = cleanup_line(line, &cleanup_mode, &comment_char) {
             message_lines.push(cleaned_line)
         }
     }
@@ -345,7 +345,7 @@ mod tests {
     fn assert_commit_is_ignored(result: &Option<Commit>) {
         match result {
             Some(commit) => {
-                assert_eq!(commit.ignored, true);
+                assert!(commit.ignored);
             }
             None => panic!("Result is not a commit!"),
         }
@@ -354,7 +354,7 @@ mod tests {
     fn assert_commit_is_not_ignored(result: &Option<Commit>) {
         match result {
             Some(commit) => {
-                assert_eq!(commit.ignored, false);
+                assert!(!commit.ignored);
             }
             None => panic!("Result is not a commit!"),
         }
@@ -394,7 +394,7 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
-        assert_eq!(commit.has_changes, true);
+        assert!(commit.has_changes);
         assert!(commit.violations.is_empty());
     }
 
@@ -416,7 +416,7 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
-        assert_eq!(commit.has_changes, true);
+        assert!(commit.has_changes);
         assert!(!commit.violations.is_empty());
     }
 
@@ -434,7 +434,7 @@ mod tests {
         assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "");
         assert_eq!(commit.message, "");
-        assert_eq!(commit.has_changes, false);
+        assert!(!commit.has_changes);
         assert!(!commit.violations.is_empty());
     }
 
@@ -458,7 +458,7 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is a message.");
-        assert_eq!(commit.has_changes, false);
+        assert!(!commit.has_changes);
         assert!(!commit.violations.is_empty());
     }
 

@@ -98,7 +98,7 @@ impl Branch {
     fn validate_punctuation(&mut self) {
         match &self.name.chars().next() {
             Some(character) => {
-                if is_punctuation(&character) {
+                if is_punctuation(character) {
                     let branch = &self.name;
                     let context = vec![Context::branch_hint(
                         branch.to_string(),
@@ -125,7 +125,7 @@ impl Branch {
 
         match &self.name.chars().last() {
             Some(character) => {
-                if is_punctuation(&character) {
+                if is_punctuation(character) {
                     let branch_length = self.name.len();
                     let branch = &self.name;
                     let context = vec![Context::branch_hint(
@@ -255,7 +255,7 @@ mod tests {
         }
     }
 
-    fn has_violation(violations: &Vec<Violation>, rule: &Rule) -> bool {
+    fn has_violation(violations: &[Violation], rule: &Rule) -> bool {
         violations.iter().any(|v| &v.rule == rule)
     }
 
@@ -426,9 +426,9 @@ mod tests {
                 Some(letter) => letter.to_uppercase().collect::<String>() + chars.as_str(),
             };
 
-            invalid_subjects.push(format!("{}", uppercase_word));
-            invalid_subjects.push(format!("{}", capitalized_word));
-            invalid_subjects.push(format!("{}", word));
+            invalid_subjects.push(uppercase_word.to_string());
+            invalid_subjects.push(capitalized_word.to_string());
+            invalid_subjects.push(word.to_string());
             invalid_subjects.push(format!("{}-test", uppercase_word));
             invalid_subjects.push(format!("{}-issue", capitalized_word));
             invalid_subjects.push(format!("{}-bug", word));

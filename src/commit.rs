@@ -653,7 +653,7 @@ impl Commit {
         }
 
         let message = &self.message.trim();
-        let width = display_width(&message);
+        let width = display_width(message);
         if width == 0 {
             let context = vec![
                 Context::subject(self.subject.to_string()),
@@ -902,7 +902,7 @@ mod tests {
         }
     }
 
-    fn has_violation(violations: &Vec<Violation>, rule: &Rule) -> bool {
+    fn has_violation(violations: &[Violation], rule: &Rule) -> bool {
         violations.iter().any(|v| &v.rule == rule)
     }
 
@@ -1127,10 +1127,8 @@ mod tests {
              Shorten the subject to a maximum width of 50 characters\n"
         );
 
-        let ignore_commit = validated_commit(
-            "a".repeat(51).to_string(),
-            "lintje:disable SubjectLength".to_string(),
-        );
+        let ignore_commit =
+            validated_commit("a".repeat(51), "lintje:disable SubjectLength".to_string());
         assert_commit_valid_for(&ignore_commit, &Rule::SubjectLength);
 
         // Already a SubjectCliche violation, so it's skipped.
@@ -1664,9 +1662,9 @@ mod tests {
                 Some(letter) => letter.to_uppercase().collect::<String>() + chars.as_str(),
             };
 
-            invalid_subjects.push(format!("{}", uppercase_word));
-            invalid_subjects.push(format!("{}", capitalized_word));
-            invalid_subjects.push(format!("{}", word));
+            invalid_subjects.push(uppercase_word.to_string());
+            invalid_subjects.push(capitalized_word.to_string());
+            invalid_subjects.push(word.to_string());
             invalid_subjects.push(format!("{} test", uppercase_word));
             invalid_subjects.push(format!("{} issue", capitalized_word));
             invalid_subjects.push(format!("{} bug", word));

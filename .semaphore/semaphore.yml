@@ -9,7 +9,7 @@ agent:
     type: e1-standard-2
   containers:
     - name: main
-      image: 'registry.semaphoreci.com/rust:1.53'
+      image: 'registry.semaphoreci.com/rust:1.57'
 
 global_job_config:
   env_vars:

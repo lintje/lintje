@@ -167,7 +167,7 @@ fn handle_lint_result(
             if !commit.is_valid() {
                 for violation in &commit.violations {
                     violation_count += 1;
-                    print!("{}", formatted_commit_violation(&commit, &violation));
+                    print!("{}", formatted_commit_violation(commit, violation));
                 }
             }
         }
@@ -181,7 +181,7 @@ fn handle_lint_result(
                 if !branch.is_valid() {
                     for violation in &branch.violations {
                         violation_count += 1;
-                        print!("{}", formatted_branch_violation(&branch, &violation));
+                        print!("{}", formatted_branch_violation(branch, violation));
                     }
                 }
             }
@@ -260,7 +260,7 @@ mod tests {
         Path::new(TEST_DIR).join(name)
     }
 
-    fn create_test_repo(dir: &PathBuf) {
+    fn create_test_repo(dir: &Path) {
         if Path::new(&dir).exists() {
             fs::remove_dir_all(&dir).expect("Could not remove test repo dir");
         }
@@ -285,13 +285,13 @@ mod tests {
         create_commit(dir, "Initial commit", "");
     }
 
-    fn checkout_branch(dir: &PathBuf, name: &str) {
+    fn checkout_branch(dir: &Path, name: &str) {
         let output = Command::new("git")
             .args(&["checkout", "-b", name])
             .current_dir(&dir)
             .stdin(Stdio::null())
             .output()
-            .expect(&format!("Could not checkout branch: {}", name));
+            .unwrap_or_else(|_| panic!("Could not checkout branch: {}", name));
         if !output.status.success() {
             panic!(
                 "Failed to checkout branch: {}\nExit code: {}\nSDTOUT: {}\nSTDERR: {}",
@@ -306,7 +306,7 @@ mod tests {
         }
     }
 
-    fn create_commit(dir: &PathBuf, subject: &str, message: &str) {
+    fn create_commit(dir: &Path, subject: &str, message: &str) {
         let mut args = vec![
             "commit".to_string(),
             "--no-gpg-sign".to_string(),
@@ -336,13 +336,13 @@ mod tests {
         }
     }
 
-    fn create_commit_with_file(dir: &PathBuf, subject: &str, message: &str, filename: &str) {
+    fn create_commit_with_file(dir: &Path, subject: &str, message: &str, filename: &str) {
         create_file(&dir.join(&filename));
-        stage_files(&dir);
-        create_commit(&dir, &subject, &message)
+        stage_files(dir);
+        create_commit(dir, subject, message)
     }
 
-    fn create_file(file_path: &PathBuf) {
+    fn create_file(file_path: &Path) {
         let mut file = match File::create(&file_path) {
             Ok(file) => file,
             Err(e) => panic!("Could not create file: {:?}: {}", file_path, e),
@@ -354,7 +354,7 @@ mod tests {
         }
     }
 
-    fn stage_files(dir: &PathBuf) {
+    fn stage_files(dir: &Path) {
         let output = Command::new("git")
             .args(["add", "."])
             .current_dir(dir)
@@ -374,7 +374,7 @@ mod tests {
         }
     }
 
-    fn configure_git_cleanup_mode(dir: &PathBuf, mode: &str) {
+    fn configure_git_cleanup_mode(dir: &Path, mode: &str) {
         let output = Command::new("git")
             .args(&["config", "commit.cleanup", mode])
             .current_dir(&dir)
@@ -394,7 +394,7 @@ mod tests {
         }
     }
 
-    fn configure_git_comment_char(dir: &PathBuf, character: &str) {
+    fn configure_git_comment_char(dir: &Path, character: &str) {
         let output = Command::new("git")
             .args(&["config", "core.commentChar", character])
             .current_dir(&dir)
@@ -414,10 +414,10 @@ mod tests {
         }
     }
 
-    fn normalize_output(output: &Vec<u8>) -> String {
+    fn normalize_output(output: &[u8]) -> String {
         // Replace dynamic commit short SHA with 0000000 dummy placeholder
         let regexp = Regex::new("([a-z0-9]{7})(:\\d:\\d)").unwrap();
-        let raw_output = String::from_utf8_lossy(&output);
+        let raw_output = String::from_utf8_lossy(output);
         regexp.replace_all(&raw_output, "0000000$2").to_string()
     }
 

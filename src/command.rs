@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_command_success() {
-        match run_command("echo", &vec!["-n", "123", "456"]) {
+        match run_command("echo", &["-n", "123", "456"]) {
             Ok(result) => assert_eq!(result, "123 456"),
             Err(e) => panic!("Unexpected failure: {:?}", e),
         }
@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn test_command_exit_failure() {
-        match run_command("support/test/failure_script", &vec!["5", "hello"]) {
+        match run_command("support/test/failure_script", &["5", "hello"]) {
             Ok(result) => panic!("Unexpected success: {:?}", result),
             Err(e) => {
                 let message = "Failed to run command.\n\
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_command_run_does_not_exist() {
-        match run_command("support/test/failure_script", &vec!["127", "hello"]) {
+        match run_command("support/test/failure_script", &["127", "hello"]) {
             Ok(result) => panic!("Unexpected success: {:?}", result),
             Err(e) => {
                 let message = "Failed to run command. Is it installed?\n\
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_command_run_failure() {
-        match run_command("lintje-does-not-exist", &vec!["123", "hello"]) {
+        match run_command("lintje-does-not-exist", &["123", "hello"]) {
             Ok(result) => panic!("Unexpected success: {:?}", result),
             Err(e) => {
                 let message = "Failed to run command. Is it installed?\n\
