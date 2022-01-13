@@ -2,7 +2,7 @@
 name = "lintje"
 version = "0.6.1"
 authors = ["Tom de Bruijn <tom@tomdebruijn.com>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/tombruijn/lintje"
 license = "MIT"
 description = "Lintje is an opinionated linter for Git."

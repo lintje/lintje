@@ -32,7 +32,7 @@ pub fn display_width(string: &str) -> usize {
     // be multiple characters combined.
     let unicode_chars = string.graphemes(true);
     let mut width = 0;
-    for c in unicode_chars.into_iter() {
+    for c in unicode_chars {
         width += display_width_char(c);
     }
     width
@@ -87,7 +87,7 @@ pub fn line_length_stats(line: &str, max_width: usize) -> (usize, MarkerStats) {
     let mut char_count = 0;
     // The total display width of the subject.
     let mut width = 0;
-    for c in unicode_chars.into_iter() {
+    for c in unicode_chars {
         width += display_width_char(c);
         if width <= max_width {
             char_count += 1;

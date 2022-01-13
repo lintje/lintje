@@ -63,9 +63,6 @@ namespace :build do
   task :prepare do
     puts "Installing cross if not installed"
     run "which cross > /dev/null 2>&1 || cargo install cross"
-
-    puts "Configuring Rust version"
-    run "rustup override set 1.57.0"
   end
 
   task :all => :prepare do
