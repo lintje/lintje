@@ -146,10 +146,12 @@ Fix incorrect email validation
 fix incorrect email validation
 ```
 
-*Note: This rule is skipped if a [NeedsRebase](#needsrebase) violation is
-found. To fix a NeedsRebase violation the commit needs to be rebased into the
-commit it's marked to fixup or squash, and there will be no need to fix the
-capitalization.*
+### Notes
+
+- This rule is skipped if a [NeedsRebase](#needsrebase) violation is
+  found. To fix a NeedsRebase violation the commit needs to be rebased into the
+  commit it's marked to fixup or squash, and there will be no need to fix the
+  capitalization.*
 
 ## SubjectPunctuation
 
@@ -332,10 +334,12 @@ The commit's message body is empty or too short. Add a message body to the
 commit to elaborate on _why_ the change was necessary, what alternatives were
 considered and why this particular implementation was chosen as a solution.
 
-*Note: This rule is skipped if a [NeedsRebase](#needsrebase) violation is
-found. To fix a NeedsRebase violation the commit needs to be rebased into the
-commit it's marked to fixup or squash, and there will be no need to add a
-message body.*
+### Notes
+
+- This rule is skipped if a [NeedsRebase](#needsrebase) violation is
+  found. To fix a NeedsRebase violation the commit needs to be rebased into the
+  commit it's marked to fixup or squash, and there will be no need to add a
+  message body.*
 
 ## MessageLineLength
 
