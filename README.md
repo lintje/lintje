@@ -155,6 +155,9 @@ lintje 3a561ef766c2acfe5da478697d91758110b8b24c
 lintje HEAD~5..HEAD
 # Lint the difference between two branches:
 lintje main..develop
+
+# Print output with color
+lintje --color
 ```
 
 It's recommended to add Lintje to your CI setup to lint the range of commits

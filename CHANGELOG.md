@@ -4,8 +4,8 @@
 
 - Improve output when a Git error is encountered.
 - Add color to output. Highlight important output labels, such as rule names,
-  the underlining, and the result status. Color output can be disabled with the
-  new `--no-color` flag.
+  the underlining, and the result status. Experimental color output can be
+  enabled with the new `--color` flag.
 
 ## 0.6.1
 

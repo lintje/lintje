@@ -58,6 +58,9 @@ Lint Git commits and branch name.
 
     lintje --no-branch
       Disable branch name validation.
+
+    lintje --color
+      Enable color output.
 */
 struct Lint {
     /// Prints debug information
@@ -71,6 +74,10 @@ struct Lint {
     /// Disable branch validation
     #[structopt(long = "no-branch")]
     no_branch_validation: bool,
+
+    /// Enable color output
+    #[structopt(long = "color")]
+    color: bool,
 
     /// Disable color output
     #[structopt(long = "no-color")]
@@ -101,9 +108,19 @@ fn main() {
     };
     let options = Options {
         debug: args.debug,
-        color: !args.no_color,
+        color: with_color(args.color, args.no_color),
     };
     handle_result(print_lint_result(commit_result, branch_result, options));
+}
+
+fn with_color(color: bool, no_color: bool) -> bool {
+    if no_color {
+        return false;
+    }
+    if color {
+        return true;
+    }
+    false // By default color is turned off
 }
 
 fn lint_branch() -> Result<Branch, String> {
@@ -295,6 +312,7 @@ fn buffer_writer(color: bool) -> StandardStream {
 
 #[cfg(test)]
 mod tests {
+    use super::with_color;
     use predicates::prelude::*;
     use regex::Regex;
     use std::fs;
@@ -481,6 +499,14 @@ mod tests {
     }
 
     #[test]
+    fn test_color_flags() {
+        assert!(!with_color(true, true)); // Both color flags set, but --no-color is leading
+        assert!(with_color(true, false)); // --color is set
+        assert!(!with_color(false, true)); // --no-color is set
+        assert!(!with_color(false, false)); // No flags are set
+    }
+
+    #[test]
     fn test_commit_by_sha() {
         compile_bin();
         let dir = test_dir("commit_by_sha");
@@ -527,7 +553,7 @@ mod tests {
         create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().success();
+        let assert = cmd.arg("--color").current_dir(dir).assert().success();
         assert.stdout(
             "1 commit and branch inspected, \u{1b}[0m\u{1b}[32m0 violations detected\u{1b}[0m\n",
         );
@@ -583,7 +609,12 @@ mod tests {
         create_commit_with_file(&dir, "Fixing tests", "", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().failure().code(1);
+        let assert = cmd
+            .arg("--color")
+            .current_dir(dir)
+            .assert()
+            .failure()
+            .code(1);
 
         let output = normalize_output(&assert.get_output().stdout);
         assert_eq!(
@@ -691,7 +722,7 @@ mod tests {
         );
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.current_dir(dir).assert().success();
+        let assert = cmd.arg("--color").current_dir(dir).assert().success();
         assert.stdout("0 commits and branch inspected, \u{1b}[0m\u{1b}[32m0 violations detected\u{1b}[0m (1 commit ignored)\n");
     }
 
