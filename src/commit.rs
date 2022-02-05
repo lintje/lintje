@@ -1,4 +1,5 @@
-use crate::rule::{rule_by_name, Context, Position, Rule, Violation};
+use crate::issue::{Context, Issue, Position};
+use crate::rule::{rule_by_name, Rule};
 use crate::utils::{
     character_count_for_bytes_index, display_width, is_punctuation, line_length_stats,
 };
@@ -91,7 +92,7 @@ pub struct Commit {
     pub subject: String,
     pub message: String,
     pub has_changes: bool,
-    pub violations: Vec<Violation>,
+    pub issues: Vec<Issue>,
     pub ignored: bool,
     pub ignored_rules: Vec<Rule>,
 }
@@ -125,7 +126,7 @@ impl Commit {
             has_changes,
             ignored: false,
             ignored_rules,
-            violations: Vec::<Violation>::new(),
+            issues: Vec::<Issue>::new(),
         }
     }
 
@@ -148,17 +149,17 @@ impl Commit {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.violations.is_empty()
+        self.issues.is_empty()
     }
 
     pub fn validate(&mut self) {
         self.validate_merge_commit();
         self.validate_needs_rebase();
 
-        // If a commit has a MergeCommit or NeedsRebase violation, other rules are skipped,
+        // If a commit has a MergeCommit or NeedsRebase issue, other rules are skipped,
         // because the commit itself will need to be rebased into other commits. So the format
         // of the commit won't matter.
-        if !self.has_violation(Rule::MergeCommit) && !self.has_violation(Rule::NeedsRebase) {
+        if !self.has_issue(Rule::MergeCommit) && !self.has_issue(Rule::NeedsRebase) {
             self.validate_subject_cliches();
             self.validate_subject_line_length();
             self.validate_subject_mood();
@@ -190,7 +191,7 @@ impl Commit {
                 Range { start: 0, end: subject_length },
                 "Rebase on the remote branch, rather than merging the remote branch into the local branch".to_string(),
             );
-            self.add_violation(
+            self.add_issue(
                 Rule::MergeCommit,
                 "A remote merge commit was found".to_string(),
                 Position::Subject { column: 1 },
@@ -211,7 +212,7 @@ impl Commit {
                 Range { start: 0, end: 6 },
                 "Rebase fixup commits before pushing or merging".to_string(),
             );
-            self.add_violation(
+            self.add_issue(
                 Rule::NeedsRebase,
                 "A fixup commit was found".to_string(),
                 Position::Subject { column: 1 },
@@ -223,7 +224,7 @@ impl Commit {
                 Range { start: 0, end: 7 },
                 "Rebase squash commits before pushing or merging".to_string(),
             );
-            self.add_violation(
+            self.add_issue(
                 Rule::NeedsRebase,
                 "A squash commit was found".to_string(),
                 Position::Subject { column: 1 },
@@ -233,7 +234,7 @@ impl Commit {
     }
 
     fn validate_subject_line_length(&mut self) {
-        if self.rule_ignored(Rule::SubjectLength) || self.has_violation(Rule::SubjectCliche) {
+        if self.rule_ignored(Rule::SubjectLength) || self.has_issue(Rule::SubjectCliche) {
             return;
         }
 
@@ -245,7 +246,7 @@ impl Commit {
                 Range { start: 0, end: 1 },
                 "Add a subject to describe the change".to_string(),
             );
-            self.add_violation(
+            self.add_issue(
                 Rule::SubjectLength,
                 "The commit has no subject".to_string(),
                 Position::Subject { column: 1 },
@@ -264,7 +265,7 @@ impl Commit {
                 },
                 "Shorten the subject to a maximum width of 50 characters".to_string(),
             );
-            self.add_violation(
+            self.add_issue(
                 Rule::SubjectLength,
                 format!("The subject of `{}` characters wide is too long", width),
                 Position::Subject {
@@ -284,7 +285,7 @@ impl Commit {
                 },
                 "Describe the change in more detail".to_string(),
             );
-            self.add_violation(
+            self.add_issue(
                 Rule::SubjectLength,
                 format!("The subject of `{}` characters wide is too short", width),
                 Position::Subject { column: 1 },
@@ -310,7 +311,7 @@ impl Commit {
                         },
                         "Use the imperative mood for the subject".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectMood,
                         "The subject does not use the imperative grammatical mood".to_string(),
                         Position::Subject { column: 1 },
@@ -328,7 +329,7 @@ impl Commit {
         if self.rule_ignored(Rule::SubjectWhitespace) {
             return;
         }
-        if self.subject.chars().count() == 0 && self.has_violation(Rule::SubjectLength) {
+        if self.subject.chars().count() == 0 && self.has_issue(Rule::SubjectLength) {
             return;
         }
 
@@ -343,7 +344,7 @@ impl Commit {
                         },
                         "Remove the leading whitespace from the subject".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectWhitespace,
                         "The subject starts with a whitespace character such as a space or a tab"
                             .to_string(),
@@ -360,12 +361,12 @@ impl Commit {
 
     fn validate_subject_capitalization(&mut self) {
         if self.rule_ignored(Rule::SubjectCapitalization)
-            || self.has_violation(Rule::NeedsRebase)
-            || self.has_violation(Rule::SubjectPrefix)
+            || self.has_issue(Rule::NeedsRebase)
+            || self.has_issue(Rule::SubjectPrefix)
         {
             return;
         }
-        if self.subject.chars().count() == 0 && self.has_violation(Rule::SubjectLength) {
+        if self.subject.chars().count() == 0 && self.has_issue(Rule::SubjectLength) {
             return;
         }
 
@@ -380,7 +381,7 @@ impl Commit {
                         },
                         "Start the subject with a capital letter".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectCapitalization,
                         "The subject does not start with a capital letter".to_string(),
                         Position::Subject { column: 1 },
@@ -398,7 +399,7 @@ impl Commit {
         if self.rule_ignored(Rule::SubjectPunctuation) {
             return;
         }
-        if self.subject.chars().count() == 0 && self.has_violation(Rule::SubjectLength) {
+        if self.subject.chars().count() == 0 && self.has_issue(Rule::SubjectLength) {
             return;
         }
 
@@ -410,7 +411,7 @@ impl Commit {
                         emoji.range(),
                         "Remove emoji from the start of the subject".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectPunctuation,
                         "The subject starts with an emoji".to_string(),
                         Position::Subject { column: 1 },
@@ -434,7 +435,7 @@ impl Commit {
                         },
                         "Remove punctuation from the start of the subject".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectPunctuation,
                         format!(
                             "The subject starts with a punctuation character: `{}`",
@@ -464,7 +465,7 @@ impl Commit {
                         },
                         "Remove punctuation from the end of the subject".to_string(),
                     );
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectPunctuation,
                         format!(
                             "The subject ends with a punctuation character: `{}`",
@@ -500,7 +501,7 @@ impl Commit {
                         capture.range(),
                         "Move the ticket number to the message body".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectTicketNumber,
                         "The subject contains a ticket number".to_string(),
                         Position::Subject {
@@ -522,7 +523,7 @@ impl Commit {
                         capture.range(),
                         "Move the ticket number to the message body".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectTicketNumber,
                         "The subject contains a ticket number".to_string(),
                         Position::Subject {
@@ -553,7 +554,7 @@ impl Commit {
                         capture.range(),
                         "Remove the prefix from the subject".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectPrefix,
                         format!("Remove the `{}` prefix from the subject", capture.as_str()),
                         Position::Subject { column: 1 },
@@ -579,7 +580,7 @@ impl Commit {
                         tag.range(),
                         "Move build tag to message body".to_string(),
                     );
-                    self.add_violation(
+                    self.add_issue(
                         Rule::SubjectBuildTag,
                         format!("The `{}` build tag was found in the subject", tag.as_str()),
                         Position::Subject {
@@ -609,7 +610,7 @@ impl Commit {
                 },
                 "Describe the change in more detail".to_string(),
             )];
-            self.add_violation(
+            self.add_issue(
                 Rule::SubjectCliche,
                 "The subject does not explain the change in much detail".to_string(),
                 Position::Subject { column: 1 },
@@ -637,7 +638,7 @@ impl Commit {
                         "Add an empty line below the subject line".to_string(),
                     ),
                 ];
-                self.add_violation(
+                self.add_issue(
                     Rule::MessageEmptyFirstLine,
                     "No empty line found below the subject".to_string(),
                     Position::MessageLine { line: 1, column: 1 },
@@ -648,7 +649,7 @@ impl Commit {
     }
 
     fn validate_message_presence(&mut self) {
-        if self.rule_ignored(Rule::MessagePresence) || self.has_violation(Rule::NeedsRebase) {
+        if self.rule_ignored(Rule::MessagePresence) || self.has_issue(Rule::NeedsRebase) {
             return;
         }
 
@@ -666,7 +667,7 @@ impl Commit {
                         .to_string(),
                 ),
             ];
-            self.add_violation(
+            self.add_issue(
                 Rule::MessagePresence,
                 "No message body was found".to_string(),
                 Position::MessageLine { line: 2, column: 1 },
@@ -687,7 +688,7 @@ impl Commit {
                         .to_string(),
                 ));
             }
-            self.add_violation(
+            self.add_issue(
                 Rule::MessagePresence,
                 "The message body is too short".to_string(),
                 Position::MessageLine {
@@ -706,7 +707,7 @@ impl Commit {
 
         let mut code_block_style = CodeBlockStyle::None;
         let mut previous_line_was_empty_line = false;
-        let mut violations = vec![];
+        let mut issues = vec![];
         for (index, raw_line) in self.message.lines().enumerate() {
             let line = raw_line.trim_end();
             let (width, line_stats) = line_length_stats(line, 72);
@@ -748,7 +749,7 @@ impl Commit {
                     },
                     "Shorten line to maximum 72 characters".to_string(),
                 );
-                violations.push((
+                issues.push((
                     Rule::MessageLineLength,
                     format!(
                         "Line {} in the message body is longer than 72 characters",
@@ -764,8 +765,8 @@ impl Commit {
             previous_line_was_empty_line = line.trim() == "";
         }
 
-        for (rule, message, position, context) in violations {
-            self.add_violation(rule, message, position, context)
+        for (rule, message, position, context) in issues {
+            self.add_issue(rule, message, position, context)
         }
     }
 
@@ -785,7 +786,7 @@ impl Commit {
                 },
                 "Add changes to the commit or remove the commit".to_string(),
             );
-            self.add_violation(
+            self.add_issue(
                 Rule::DiffPresence,
                 "No file changes found".to_string(),
                 Position::Diff,
@@ -794,14 +795,14 @@ impl Commit {
         }
     }
 
-    fn add_violation(
+    fn add_issue(
         &mut self,
         rule: Rule,
         message: String,
         position: Position,
         context: Vec<Context>,
     ) {
-        self.violations.push(Violation {
+        self.issues.push(Issue {
             rule,
             message,
             position,
@@ -809,10 +810,8 @@ impl Commit {
         })
     }
 
-    fn has_violation(&self, rule: Rule) -> bool {
-        self.violations
-            .iter()
-            .any(|violation| violation.rule == rule)
+    fn has_issue(&self, rule: Rule) -> bool {
+        self.issues.iter().any(|issue| issue.rule == rule)
     }
 }
 
@@ -827,7 +826,8 @@ enum CodeBlockStyle {
 mod tests {
     use super::MOOD_WORDS;
     use crate::commit::Commit;
-    use crate::rule::{Position, Rule, Violation};
+    use crate::issue::{Issue, Position};
+    use crate::rule::Rule;
     use crate::utils::test::formatted_context;
 
     fn commit_with_sha<S: AsRef<str>>(sha: Option<String>, subject: S, message: S) -> Commit {
@@ -866,7 +866,7 @@ mod tests {
 
     fn assert_commit_valid_for(commit: &Commit, rule: &Rule) {
         assert!(
-            !has_violation(&commit.violations, rule),
+            !has_issue(&commit.issues, rule),
             "Commit was not considered valid: {:?}",
             commit
         );
@@ -874,7 +874,7 @@ mod tests {
 
     fn assert_commit_invalid_for(commit: &Commit, rule: &Rule) {
         assert!(
-            has_violation(&commit.violations, rule),
+            has_issue(&commit.issues, rule),
             "Commit was not considered invalid: {:?}",
             commit
         );
@@ -902,20 +902,20 @@ mod tests {
         }
     }
 
-    fn has_violation(violations: &[Violation], rule: &Rule) -> bool {
-        violations.iter().any(|v| &v.rule == rule)
+    fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
+        issues.iter().any(|v| &v.rule == rule)
     }
 
-    fn find_violation(violations: Vec<Violation>, rule: &Rule) -> Violation {
-        let mut violations = violations.into_iter().filter(|v| &v.rule == rule);
-        let violation = match violations.next() {
-            Some(violation) => violation,
-            None => panic!("No violation of the {} rule found", rule),
+    fn find_issue(issues: Vec<Issue>, rule: &Rule) -> Issue {
+        let mut issues = issues.into_iter().filter(|v| &v.rule == rule);
+        let issue = match issues.next() {
+            Some(issue) => issue,
+            None => panic!("No issue of the {} rule found", rule),
         };
-        if violations.next().is_some() {
-            panic!("More than one violation of the {} rule found", rule)
+        if issues.next().is_some() {
+            panic!("More than one issue of the {} rule found", rule)
         }
-        violation
+        issue
     }
 
     fn subject_position(column: usize) -> Position {
@@ -959,11 +959,11 @@ mod tests {
             "Merge branch 'develop' of github.com/org/repo into develop",
             "",
         );
-        let violation = find_violation(commit.violations, &Rule::MergeCommit);
-        assert_eq!(violation.message, "A remote merge commit was found");
-        assert_eq!(violation.position, subject_position(1));
+        let issue = find_issue(commit.issues, &Rule::MergeCommit);
+        assert_eq!(issue.message, "A remote merge commit was found");
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Merge branch 'develop' of github.com/org/repo into develop\n\
              \x20\x20| ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ \
@@ -976,7 +976,7 @@ mod tests {
         );
         assert_commit_valid_for(&ignore_commit, &Rule::MergeCommit);
 
-        // If commit has a MergeCommit violation, so other rules are skipped
+        // If commit has a MergeCommit issue, so other rules are skipped
         assert_commit_subject_as_valid(
             "Merge branch 'develop' of github.com/org/repo into develop",
             &Rule::SubjectLength,
@@ -992,22 +992,22 @@ mod tests {
         assert_commit_subject_as_valid("I don't need a rebase", &Rule::NeedsRebase);
 
         let fixup = validated_commit("fixup! I need a rebase", "");
-        let violation = find_violation(fixup.violations, &Rule::NeedsRebase);
-        assert_eq!(violation.message, "A fixup commit was found");
-        assert_eq!(violation.position, subject_position(1));
+        let issue = find_issue(fixup.issues, &Rule::NeedsRebase);
+        assert_eq!(issue.message, "A fixup commit was found");
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | fixup! I need a rebase\n\
              \x20\x20| ^^^^^^ Rebase fixup commits before pushing or merging\n"
         );
 
         let squash = validated_commit("squash! I need a rebase", "");
-        let violation = find_violation(squash.violations, &Rule::NeedsRebase);
-        assert_eq!(violation.message, "A squash commit was found");
-        assert_eq!(violation.position, subject_position(1));
+        let issue = find_issue(squash.issues, &Rule::NeedsRebase);
+        assert_eq!(issue.message, "A squash commit was found");
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | squash! I need a rebase\n\
              \x20\x20| ^^^^^^^ Rebase squash commits before pushing or merging\n"
@@ -1019,7 +1019,7 @@ mod tests {
         );
         assert_commit_valid_for(&ignore_commit, &Rule::NeedsRebase);
 
-        // If commit has a NeedsRebase violation, so other rules are skipped
+        // If commit has a NeedsRebase issue, so other rules are skipped
         assert_commit_subject_as_valid(
             "fixup! I do need to be rebased because this is a fixup commit",
             &Rule::SubjectLength,
@@ -1036,39 +1036,39 @@ mod tests {
         assert_commit_subject_as_valid(&"a".repeat(50), &Rule::SubjectLength);
 
         let empty = validated_commit("", "");
-        let violation = find_violation(empty.violations, &Rule::SubjectLength);
-        assert_eq!(violation.message, "The commit has no subject");
-        assert_eq!(violation.position, subject_position(1));
+        let issue = find_issue(empty.issues, &Rule::SubjectLength);
+        assert_eq!(issue.message, "The commit has no subject");
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | \n\
              \x20\x20| ^ Add a subject to describe the change\n"
         );
 
         let short_subject = validated_commit("a".repeat(4).as_str(), "");
-        let violation = find_violation(short_subject.violations, &Rule::SubjectLength);
+        let issue = find_issue(short_subject.issues, &Rule::SubjectLength);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject of `4` characters wide is too short"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | aaaa\n\
              \x20\x20| ^^^^ Describe the change in more detail\n"
         );
 
         let long_subject = validated_commit("a".repeat(51).as_str(), "");
-        let violation = find_violation(long_subject.violations, &Rule::SubjectLength);
+        let issue = find_issue(long_subject.issues, &Rule::SubjectLength);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject of `51` characters wide is too long"
         );
-        assert_eq!(violation.position, subject_position(51));
+        assert_eq!(issue.position, subject_position(51));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
              \x20\x20|                                                   ^ \
@@ -1078,14 +1078,14 @@ mod tests {
         // Character is two characters, but is counted as 1 column
         assert_eq!("ö̲".chars().count(), 2);
         let accent_subject = validated_commit("A ö̲", "");
-        let violation = find_violation(accent_subject.violations, &Rule::SubjectLength);
+        let issue = find_issue(accent_subject.issues, &Rule::SubjectLength);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject of `3` characters wide is too short"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | A ö̲\n\
              \x20\x20| ^^^ Describe the change in more detail\n"
@@ -1096,14 +1096,14 @@ mod tests {
         assert_commit_subject_as_invalid(&"✨".repeat(26), &Rule::SubjectLength);
 
         let emoji_short_subject = validated_commit("👁️‍🗨️", "");
-        let violation = find_violation(emoji_short_subject.violations, &Rule::SubjectLength);
+        let issue = find_issue(emoji_short_subject.issues, &Rule::SubjectLength);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject of `2` characters wide is too short"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | 👁️‍🗨️\n\
              \x20\x20| ^^ Describe the change in more detail\n"
@@ -1113,14 +1113,14 @@ mod tests {
         assert_commit_subject_as_valid(&"あ".repeat(25), &Rule::SubjectLength);
 
         let hiragana_long_subject = validated_commit("あ".repeat(26).as_str(), "");
-        let violation = find_violation(hiragana_long_subject.violations, &Rule::SubjectLength);
+        let issue = find_issue(hiragana_long_subject.issues, &Rule::SubjectLength);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject of `52` characters wide is too long"
         );
-        assert_eq!(violation.position, subject_position(26));
+        assert_eq!(issue.position, subject_position(26));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | ああああああああああああああああああああああああああ\n\
              \x20\x20|                                                   ^^ \
@@ -1131,7 +1131,7 @@ mod tests {
             validated_commit("a".repeat(51), "lintje:disable SubjectLength".to_string());
         assert_commit_valid_for(&ignore_commit, &Rule::SubjectLength);
 
-        // Already a SubjectCliche violation, so it's skipped.
+        // Already a SubjectCliche issue, so it's skipped.
         assert_commit_subject_as_valid("wip", &Rule::SubjectLength);
         assert_commit_subject_as_invalid("wip", &Rule::SubjectCliche);
     }
@@ -1156,14 +1156,14 @@ mod tests {
         }
 
         let subject = validated_commit("Fixing bug", "");
-        let violation = find_violation(subject.violations, &Rule::SubjectMood);
+        let issue = find_issue(subject.issues, &Rule::SubjectMood);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject does not use the imperative grammatical mood"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fixing bug\n\
              \x20\x20| ^^^^^^ Use the imperative mood for the subject\n"
@@ -1182,48 +1182,48 @@ mod tests {
         assert_commit_subjects_as_valid(subjects, &Rule::SubjectWhitespace);
 
         let space = validated_commit(" Fix test", "");
-        let violation = find_violation(space.violations, &Rule::SubjectWhitespace);
+        let issue = find_issue(space.issues, &Rule::SubjectWhitespace);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject starts with a whitespace character such as a space or a tab"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 |  Fix test\n\
              \x20\x20| ^ Remove the leading whitespace from the subject\n"
         );
 
         let space = validated_commit("\x20Fix test", "");
-        let violation = find_violation(space.violations, &Rule::SubjectWhitespace);
+        let issue = find_issue(space.issues, &Rule::SubjectWhitespace);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject starts with a whitespace character such as a space or a tab"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | \x20Fix test\n\
              \x20\x20| ^ Remove the leading whitespace from the subject\n"
         );
 
         let tab = validated_commit("\tFix test", "");
-        let violation = find_violation(tab.violations, &Rule::SubjectWhitespace);
+        let issue = find_issue(tab.issues, &Rule::SubjectWhitespace);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject starts with a whitespace character such as a space or a tab"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 |     Fix test\n\
              \x20\x20| ^^^^ Remove the leading whitespace from the subject\n"
         );
 
-        // Rule is ignored because the subject is empty, a SubjectLength violation
+        // Rule is ignored because the subject is empty, a SubjectLength issue
         assert_commit_subject_as_invalid("", &Rule::SubjectLength);
         assert_commit_subject_as_valid("", &Rule::SubjectWhitespace);
 
@@ -1240,14 +1240,14 @@ mod tests {
         assert_commit_subjects_as_valid(subjects, &Rule::SubjectCapitalization);
 
         let subject = validated_commit("fix test", "");
-        let violation = find_violation(subject.violations, &Rule::SubjectCapitalization);
+        let issue = find_issue(subject.issues, &Rule::SubjectCapitalization);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject does not start with a capital letter"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | fix test\n\
              \x20\x20| ^ Start the subject with a capital letter\n"
@@ -1259,17 +1259,17 @@ mod tests {
         );
         assert_commit_valid_for(&ignore_commit, &Rule::SubjectCapitalization);
 
-        // Already a SubjectLength violation, so it's skipped
+        // Already a SubjectLength issue, so it's skipped
         assert_commit_subject_as_invalid("", &Rule::SubjectLength);
         assert_commit_subject_as_valid("", &Rule::SubjectCapitalization);
 
-        // Already a NeedsRebase violation, so it's skipped
+        // Already a NeedsRebase issue, so it's skipped
         let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
         assert_commit_valid_for(&rebase_commit, &Rule::SubjectCapitalization);
         let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
         assert_commit_invalid_for(&rebase_commit, &Rule::NeedsRebase);
 
-        // Already a SubjectPrefix violation, so it's skippe.
+        // Already a SubjectPrefix issue, so it's skippe.
         let prefix_commit = validated_commit("chore: foo".to_string(), "".to_string());
         assert_commit_valid_for(&prefix_commit, &Rule::SubjectCapitalization);
         let prefix_commit = validated_commit("chore: foo".to_string(), "".to_string());
@@ -1325,45 +1325,45 @@ mod tests {
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPunctuation);
 
         let start = validated_commit(".Fix test", "");
-        let violation = find_violation(start.violations, &Rule::SubjectPunctuation);
+        let issue = find_issue(start.issues, &Rule::SubjectPunctuation);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject starts with a punctuation character: `.`"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | .Fix test\n\
              \x20\x20| ^ Remove punctuation from the start of the subject\n"
         );
 
         let end = validated_commit("Fix test…", "");
-        let violation = find_violation(end.violations, &Rule::SubjectPunctuation);
+        let issue = find_issue(end.issues, &Rule::SubjectPunctuation);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject ends with a punctuation character: `…`"
         );
-        assert_eq!(violation.position, subject_position(9));
+        assert_eq!(issue.position, subject_position(9));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fix test…\n\
              \x20\x20|         ^ Remove punctuation from the end of the subject\n"
         );
 
         let emoji = validated_commit("👍 Fix test", "");
-        let violation = find_violation(emoji.violations, &Rule::SubjectPunctuation);
-        assert_eq!(violation.message, "The subject starts with an emoji");
-        assert_eq!(violation.position, subject_position(1));
+        let issue = find_issue(emoji.issues, &Rule::SubjectPunctuation);
+        assert_eq!(issue.message, "The subject starts with an emoji");
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | 👍 Fix test\n\
              \x20\x20| ^^ Remove emoji from the start of the subject\n"
         );
 
-        // Already a empty SubjectLength violation, so it's skipped
+        // Already a empty SubjectLength issue, so it's skipped
         assert_commit_subject_as_invalid("", &Rule::SubjectLength);
         assert_commit_subject_as_valid("", &Rule::SubjectPunctuation);
 
@@ -1405,11 +1405,11 @@ mod tests {
         assert_commit_subjects_as_invalid(invalid_ticket_subjects, &Rule::SubjectTicketNumber);
 
         let ticket_number = validated_commit("Fix JIRA-123 about email validation", "");
-        let violation = find_violation(ticket_number.violations, &Rule::SubjectTicketNumber);
-        assert_eq!(violation.message, "The subject contains a ticket number");
-        assert_eq!(violation.position, subject_position(5));
+        let issue = find_issue(ticket_number.issues, &Rule::SubjectTicketNumber);
+        assert_eq!(issue.message, "The subject contains a ticket number");
+        assert_eq!(issue.position, subject_position(5));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fix JIRA-123 about email validation\n\
              \x20\x20|     ^^^^^^^^ Move the ticket number to the message body\n"
@@ -1417,11 +1417,10 @@ mod tests {
 
         let ticket_number_unicode =
             validated_commit("Fix ❤\u{fe0f} JIRA-123 about email validation", "");
-        let violation =
-            find_violation(ticket_number_unicode.violations, &Rule::SubjectTicketNumber);
-        assert_eq!(violation.position, subject_position(7));
+        let issue = find_issue(ticket_number_unicode.issues, &Rule::SubjectTicketNumber);
+        assert_eq!(issue.position, subject_position(7));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fix ❤️ JIRA-123 about email validation\n\
              \x20\x20|       ^^^^^^^^ Move the ticket number to the message body\n"
@@ -1474,26 +1473,26 @@ mod tests {
         );
 
         let fix_ticket = validated_commit("Email validation: Fixes #123 for good", "");
-        let violation = find_violation(fix_ticket.violations, &Rule::SubjectTicketNumber);
-        assert_eq!(violation.message, "The subject contains a ticket number");
-        assert_eq!(violation.position, subject_position(19));
+        let issue = find_issue(fix_ticket.issues, &Rule::SubjectTicketNumber);
+        assert_eq!(issue.message, "The subject contains a ticket number");
+        assert_eq!(issue.position, subject_position(19));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Email validation: Fixes #123 for good\n\
              \x20\x20|                   ^^^^^^^^^^ Move the ticket number to the message body\n"
         );
 
         let fix_ticket_unicode = validated_commit("Email validatiｏn: Fixes #123", "");
-        let violation = find_violation(fix_ticket_unicode.violations, &Rule::SubjectTicketNumber);
-        assert_eq!(violation.position, subject_position(19));
+        let issue = find_issue(fix_ticket_unicode.issues, &Rule::SubjectTicketNumber);
+        assert_eq!(issue.position, subject_position(19));
 
         let fix_link = validated_commit("Email validation: Closed org/repo#123 for good", "");
-        let violation = find_violation(fix_link.violations, &Rule::SubjectTicketNumber);
-        assert_eq!(violation.message, "The subject contains a ticket number");
-        assert_eq!(violation.position, subject_position(19));
+        let issue = find_issue(fix_link.issues, &Rule::SubjectTicketNumber);
+        assert_eq!(issue.message, "The subject contains a ticket number");
+        assert_eq!(issue.position, subject_position(19));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Email validation: Closed org/repo#123 for good\n\
              \x20\x20|                   ^^^^^^^^^^^^^^^^^^^ Move the ticket number to the message body\n"
@@ -1537,28 +1536,25 @@ mod tests {
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPrefix);
 
         let prefix = validated_commit("Fix: bug", "");
-        let violation = find_violation(prefix.violations, &Rule::SubjectPrefix);
+        let issue = find_issue(prefix.issues, &Rule::SubjectPrefix);
+        assert_eq!(issue.message, "Remove the `Fix:` prefix from the subject");
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            violation.message,
-            "Remove the `Fix:` prefix from the subject"
-        );
-        assert_eq!(violation.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fix: bug\n\
              \x20\x20| ^^^^ Remove the prefix from the subject\n"
         );
 
         let scoped = validated_commit("chore(package)!: some package bug", "");
-        let violation = find_violation(scoped.violations, &Rule::SubjectPrefix);
+        let issue = find_issue(scoped.issues, &Rule::SubjectPrefix);
         assert_eq!(
-            violation.message,
+            issue.message,
             "Remove the `chore(package)!:` prefix from the subject"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | chore(package)!: some package bug\n\
              \x20\x20| ^^^^^^^^^^^^^^^^ Remove the prefix from the subject\n"
@@ -1615,14 +1611,14 @@ mod tests {
         assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectBuildTag);
 
         let build_tag = validated_commit("Edit CHANGELOG [skip ci]", "");
-        let violation = find_violation(build_tag.violations, &Rule::SubjectBuildTag);
+        let issue = find_issue(build_tag.issues, &Rule::SubjectBuildTag);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The `[skip ci]` build tag was found in the subject"
         );
-        assert_eq!(violation.position, subject_position(16));
+        assert_eq!(issue.position, subject_position(16));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Edit CHANGELOG [skip ci]\n\
              \x20\x20|                ^^^^^^^^^ Move build tag to message body\n"
@@ -1676,24 +1672,24 @@ mod tests {
         }
 
         let wip = validated_commit("WIP", "");
-        let violation = find_violation(wip.violations, &Rule::SubjectCliche);
+        let issue = find_issue(wip.issues, &Rule::SubjectCliche);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The subject does not explain the change in much detail"
         );
-        assert_eq!(violation.position, subject_position(1));
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | WIP\n\
              \x20\x20| ^^^ Describe the change in more detail\n"
         );
 
         let cliche = validated_commit("Fixed bug", "");
-        let violation = find_violation(cliche.violations, &Rule::SubjectCliche);
-        assert_eq!(violation.position, subject_position(1));
+        let issue = find_issue(cliche.issues, &Rule::SubjectCliche);
+        assert_eq!(issue.position, subject_position(1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fixed bug\n\
              \x20\x20| ^^^^^^^^^ Describe the change in more detail\n"
@@ -1715,11 +1711,11 @@ mod tests {
         assert_commit_valid_for(&with_empty_line, &Rule::MessageEmptyFirstLine);
 
         let without_empty_line = validated_commit("Subject", "No empty line after subject");
-        let violation = find_violation(without_empty_line.violations, &Rule::MessageEmptyFirstLine);
-        assert_eq!(violation.message, "No empty line found below the subject");
-        assert_eq!(violation.position, message_position(1, 1));
+        let issue = find_issue(without_empty_line.issues, &Rule::MessageEmptyFirstLine);
+        assert_eq!(issue.message, "No empty line found below the subject");
+        assert_eq!(issue.position, message_position(1, 1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Subject\n\
                    2 | No empty line after subject\n\
@@ -1740,11 +1736,11 @@ mod tests {
         assert_commit_valid_for(&with_message, &Rule::MessagePresence);
 
         let without_message = validated_commit("Subject", "");
-        let violation = find_violation(without_message.violations, &Rule::MessagePresence);
-        assert_eq!(violation.message, "No message body was found");
-        assert_eq!(violation.position, message_position(2, 1));
+        let issue = find_issue(without_message.issues, &Rule::MessagePresence);
+        assert_eq!(issue.message, "No message body was found");
+        assert_eq!(issue.position, message_position(2, 1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Subject\n\
                    2 | \n\
@@ -1753,33 +1749,33 @@ mod tests {
         );
 
         let short = validated_commit("Subject", "\nShort.");
-        let violation = find_violation(short.violations, &Rule::MessagePresence);
-        assert_eq!(violation.message, "The message body is too short");
-        assert_eq!(violation.position, message_position(2, 1));
+        let issue = find_issue(short.issues, &Rule::MessagePresence);
+        assert_eq!(issue.message, "The message body is too short");
+        assert_eq!(issue.position, message_position(2, 1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    3 | Short.\n\
              \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
         );
 
         let very_short = validated_commit("Subject".to_string(), "...".to_string());
-        let violation = find_violation(very_short.violations, &Rule::MessagePresence);
-        assert_eq!(violation.message, "The message body is too short");
-        assert_eq!(violation.position, message_position(1, 1));
+        let issue = find_issue(very_short.issues, &Rule::MessagePresence);
+        assert_eq!(issue.message, "The message body is too short");
+        assert_eq!(issue.position, message_position(1, 1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    2 | ...\n\
              \x20\x20| ^^^ Add a longer message with context about the change and why it was made\n"
         );
 
         let very_short = validated_commit("Subject".to_string(), ".\n.\nShort.\n".to_string());
-        let violation = find_violation(very_short.violations, &Rule::MessagePresence);
-        assert_eq!(violation.message, "The message body is too short");
-        assert_eq!(violation.position, message_position(3, 1));
+        let issue = find_issue(very_short.issues, &Rule::MessagePresence);
+        assert_eq!(issue.message, "The message body is too short");
+        assert_eq!(issue.position, message_position(3, 1));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    4 | Short.\n\
              \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
@@ -1791,7 +1787,7 @@ mod tests {
         );
         assert_commit_valid_for(&ignore_commit, &Rule::MessagePresence);
 
-        // Already a NeedsRebase violation, so it's skipped.
+        // Already a NeedsRebase issue, so it's skipped.
         let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
         assert_commit_valid_for(&rebase_commit, &Rule::MessagePresence);
         let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
@@ -1806,14 +1802,14 @@ mod tests {
 
         let long_message = ["".to_string(), "a".repeat(72), "a".repeat(73)].join("\n");
         let long_line = validated_commit("Subject", &long_message);
-        let violation = find_violation(long_line.violations, &Rule::MessageLineLength);
+        let issue = find_issue(long_line.issues, &Rule::MessageLineLength);
         assert_eq!(
-            violation.message,
+            issue.message,
             "Line 4 in the message body is longer than 72 characters"
         );
-        assert_eq!(violation.position, message_position(3, 73));
+        assert_eq!(issue.position, message_position(3, 73));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    4 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
              \x20\x20|                                                                         ^ Shorten line to maximum 72 characters\n"
@@ -1844,14 +1840,14 @@ mod tests {
         let long_message =
             "This a too long line with only protocols http:// https://, not accepted!!".to_string();
         let long_line = validated_commit("Subject", &long_message);
-        let violation = find_violation(long_line.violations, &Rule::MessageLineLength);
+        let issue = find_issue(long_line.issues, &Rule::MessageLineLength);
         assert_eq!(
-            violation.message,
+            issue.message,
             "Line 2 in the message body is longer than 72 characters"
         );
-        assert_eq!(violation.position, message_position(1, 73));
+        assert_eq!(issue.position, message_position(1, 73));
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20|\n\
                    2 | This a too long line with only protocols http:// https://, not accepted!!\n\
              \x20\x20|                                                                         ^ Shorten line to maximum 72 characters\n"
@@ -2001,11 +1997,11 @@ mod tests {
 
         let mut without_changes = commit_without_file_changes("\nSome Message".to_string());
         without_changes.validate();
-        let violation = find_violation(without_changes.violations, &Rule::DiffPresence);
-        assert_eq!(violation.message, "No file changes found");
-        assert_eq!(violation.position, Position::Diff);
+        let issue = find_issue(without_changes.issues, &Rule::DiffPresence);
+        assert_eq!(issue.message, "No file changes found");
+        assert_eq!(issue.position, Position::Diff);
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | 0 files changed, 0 insertions(+), 0 deletions(-)\n\
              | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add changes to the commit or remove the commit\n"

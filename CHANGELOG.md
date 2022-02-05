@@ -6,6 +6,8 @@
 - Add color to output. Highlight important output labels, such as rule names,
   the underlining, and the result status. Experimental color output can be
   enabled with the new `--color` flag.
+- Change "violations" to "issues" in preparation for different types issues
+  Lintje can return in the future.
 
 ## 0.6.1
 

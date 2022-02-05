@@ -395,7 +395,7 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
         assert!(commit.has_changes);
-        assert!(commit.violations.is_empty());
+        assert!(commit.issues.is_empty());
     }
 
     #[test]
@@ -417,7 +417,7 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
         assert!(commit.has_changes);
-        assert!(!commit.violations.is_empty());
+        assert!(!commit.issues.is_empty());
     }
 
     #[test]
@@ -435,7 +435,7 @@ mod tests {
         assert_eq!(commit.subject, "");
         assert_eq!(commit.message, "");
         assert!(!commit.has_changes);
-        assert!(!commit.violations.is_empty());
+        assert!(!commit.issues.is_empty());
     }
 
     #[test]
@@ -459,7 +459,7 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is a message.");
         assert!(!commit.has_changes);
-        assert!(!commit.violations.is_empty());
+        assert!(!commit.issues.is_empty());
     }
 
     #[test]

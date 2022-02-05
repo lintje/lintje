@@ -70,7 +70,7 @@ One day I woke up and found the solution to this year old bug, the solution...
 
 ### Notes
 
-- This rule is skipped if a [SubjectCliche](#subjectcliche) violation is found.
+- This rule is skipped if a [SubjectCliche](#subjectcliche) issue is found.
 - Certain characters like emoji are counted as multiple characters in this
   rule. Read more about [Unicode support][unicode].
 
@@ -148,10 +148,9 @@ fix incorrect email validation
 
 ### Notes
 
-- This rule is skipped if a [NeedsRebase](#needsrebase) violation is
-  found. To fix a NeedsRebase violation the commit needs to be rebased into the
-  commit it's marked to fixup or squash, and there will be no need to fix the
-  capitalization.*
+- This rule is skipped if a [NeedsRebase](#needsrebase) issue is found. To fix
+  a NeedsRebase issue the commit needs to be rebased into the commit it's marked
+  to fixup or squash, and there will be no need to fix the capitalization.*
 
 ## SubjectPunctuation
 
@@ -276,8 +275,8 @@ little meaning. This rule scans for subjects that only use two words to
 describe a change, usually "fix bug" and "update code" types of subjects. The
 words in the example below are the words it scans for.
 
-To resolve this violation, expand the subject to explain the change in more
-detail. Describe what type of bug was fixed and what type of change was made.
+To resolve this issue, expand the subject to explain the change in more detail.
+Describe what type of bug was fixed and what type of change was made.
 
 ```
 # Bad
@@ -336,10 +335,9 @@ considered and why this particular implementation was chosen as a solution.
 
 ### Notes
 
-- This rule is skipped if a [NeedsRebase](#needsrebase) violation is
-  found. To fix a NeedsRebase violation the commit needs to be rebased into the
-  commit it's marked to fixup or squash, and there will be no need to add a
-  message body.*
+- This rule is skipped if a [NeedsRebase](#needsrebase) issue is found. To fix
+  a NeedsRebase issue the commit needs to be rebased into the commit it's
+  marked to fixup or squash, and there will be no need to add a message body.*
 
 ## MessageLineLength
 
@@ -403,7 +401,7 @@ empty commits in the Git history. Empty commits can be left over after a rebase
 after all its changes have been applied already in another commit.
 
 Add the intended files changes to the empty commit, or remove the commit from
-the Git history to fix this violation.
+the Git history to fix this issue.
 
 ## MergeCommit
 
@@ -549,7 +547,7 @@ meaning. This rule scans for branch names that only use two words to describe a
 change, usually "fix-bug" and "add_test" types of branch names. The words in
 the example below are the words it scans for.
 
-To resolve this violation, expand the branch name to explain the change in more
+To resolve this issue, expand the branch name to explain the change in more
 detail. Describe what type of bug was fixed and what type of change was made.
 
 ```

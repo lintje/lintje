@@ -1,4 +1,5 @@
-use crate::rule::{Context, Position, Rule, Violation};
+use crate::issue::{Context, Issue, Position};
+use crate::rule::Rule;
 use crate::utils::{character_count_for_bytes_index, display_width, is_punctuation};
 use core::ops::Range;
 use regex::{Regex, RegexBuilder};
@@ -23,19 +24,19 @@ lazy_static! {
 #[derive(Debug)]
 pub struct Branch {
     pub name: String,
-    pub violations: Vec<Violation>,
+    pub issues: Vec<Issue>,
 }
 
 impl Branch {
     pub fn new(name: String) -> Self {
         Self {
             name,
-            violations: Vec::<Violation>::new(),
+            issues: Vec::<Issue>::new(),
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.violations.is_empty()
+        self.issues.is_empty()
     }
 
     pub fn validate(&mut self) {
@@ -57,7 +58,7 @@ impl Branch {
                 },
                 "Describe the change in more detail".to_string(),
             )];
-            self.add_violation(
+            self.add_issue(
                 Rule::BranchNameLength,
                 format!("Branch name of {} characters is too short", width),
                 Position::Branch { column: 1 },
@@ -85,7 +86,7 @@ impl Branch {
                     },
                     "Remove the ticket number from the branch name or expand the branch name with more details".to_string(),
                 )];
-                self.add_violation(
+                self.add_issue(
                     Rule::BranchNameTicketNumber,
                     "A ticket number was detected in the branch name".to_string(),
                     Position::Branch { column: 1 },
@@ -108,7 +109,7 @@ impl Branch {
                         },
                         "Remove punctuation from the start of the branch name".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::BranchNamePunctuation,
                         "The branch name starts with a punctuation character".to_string(),
                         Position::Branch { column: 1 },
@@ -136,7 +137,7 @@ impl Branch {
                         },
                         "Remove punctuation from the end of the branch name".to_string(),
                     )];
-                    self.add_violation(
+                    self.add_issue(
                         Rule::BranchNamePunctuation,
                         "The branch name ends with a punctuation character".to_string(),
                         Position::Branch {
@@ -168,7 +169,7 @@ impl Branch {
                 },
                 "Describe the change in more detail".to_string(),
             )];
-            self.add_violation(
+            self.add_issue(
                 Rule::BranchNameCliche,
                 "The branch name does not explain the change in much detail".to_string(),
                 Position::Branch { column: 1 },
@@ -177,14 +178,14 @@ impl Branch {
         }
     }
 
-    fn add_violation(
+    fn add_issue(
         &mut self,
         rule: Rule,
         message: String,
         position: Position,
         context: Vec<Context>,
     ) {
-        self.violations.push(Violation {
+        self.issues.push(Issue {
             rule,
             message,
             position,
@@ -196,7 +197,8 @@ impl Branch {
 #[cfg(test)]
 mod tests {
     use crate::branch::Branch;
-    use crate::rule::{Position, Rule, Violation};
+    use crate::issue::{Issue, Position};
+    use crate::rule::Rule;
     use crate::utils::test::formatted_context;
 
     fn validated_branch(name: String) -> Branch {
@@ -205,21 +207,21 @@ mod tests {
         branch
     }
 
-    fn find_violation(violations: Vec<Violation>, rule: &Rule) -> Violation {
-        let mut violations = violations.into_iter().filter(|v| &v.rule == rule);
-        let violation = match violations.next() {
-            Some(violation) => violation,
-            None => panic!("No violation of the {} rule found", rule),
+    fn find_issue(issues: Vec<Issue>, rule: &Rule) -> Issue {
+        let mut issues = issues.into_iter().filter(|v| &v.rule == rule);
+        let issue = match issues.next() {
+            Some(issue) => issue,
+            None => panic!("No issue of the {} rule found", rule),
         };
-        if violations.next().is_some() {
-            panic!("More than one violation of the {} rule found", rule)
+        if issues.next().is_some() {
+            panic!("More than one issue of the {} rule found", rule)
         }
-        violation
+        issue
     }
 
     fn assert_branch_valid_for(branch: Branch, rule: &Rule) {
         assert!(
-            !has_violation(&branch.violations, rule),
+            !has_issue(&branch.issues, rule),
             "Branch was not considered valid: {:?}",
             branch
         );
@@ -227,7 +229,7 @@ mod tests {
 
     fn assert_branch_invalid_for(branch: Branch, rule: &Rule) {
         assert!(
-            has_violation(&branch.violations, rule),
+            has_issue(&branch.issues, rule),
             "Branch was not considered invalid: {:?}",
             branch
         );
@@ -255,8 +257,8 @@ mod tests {
         }
     }
 
-    fn has_violation(violations: &[Violation], rule: &Rule) -> bool {
-        violations.iter().any(|v| &v.rule == rule)
+    fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
+        issues.iter().any(|v| &v.rule == rule)
     }
 
     #[test]
@@ -275,14 +277,11 @@ mod tests {
         assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameLength);
 
         let branch = validated_branch("abc".to_string());
-        let violation = find_violation(branch.violations, &Rule::BranchNameLength);
+        let issue = find_issue(branch.issues, &Rule::BranchNameLength);
+        assert_eq!(issue.message, "Branch name of 3 characters is too short");
+        assert_eq!(issue.position, Position::Branch { column: 1 });
         assert_eq!(
-            violation.message,
-            "Branch name of 3 characters is too short"
-        );
-        assert_eq!(violation.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | abc\n\
              | ^^^ Describe the change in more detail\n"
@@ -325,14 +324,14 @@ mod tests {
         assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameTicketNumber);
 
         let branch = validated_branch("fix-123".to_string());
-        let violation = find_violation(branch.violations, &Rule::BranchNameTicketNumber);
+        let issue = find_issue(branch.issues, &Rule::BranchNameTicketNumber);
         assert_eq!(
-            violation.message,
+            issue.message,
             "A ticket number was detected in the branch name"
         );
-        assert_eq!(violation.position, Position::Branch { column: 1 });
+        assert_eq!(issue.position, Position::Branch { column: 1 });
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | fix-123\n\
              | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
@@ -379,28 +378,28 @@ mod tests {
         assert_branch_names_as_invalid(invalid_subjects, &Rule::BranchNamePunctuation);
 
         let punctuation_start = validated_branch("!fix".to_string());
-        let violation = find_violation(punctuation_start.violations, &Rule::BranchNamePunctuation);
+        let issue = find_issue(punctuation_start.issues, &Rule::BranchNamePunctuation);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The branch name starts with a punctuation character"
         );
-        assert_eq!(violation.position, Position::Branch { column: 1 });
+        assert_eq!(issue.position, Position::Branch { column: 1 });
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | !fix\n\
              | ^ Remove punctuation from the start of the branch name\n"
         );
 
         let punctuation_end = validated_branch("fix!".to_string());
-        let violation = find_violation(punctuation_end.violations, &Rule::BranchNamePunctuation);
+        let issue = find_issue(punctuation_end.issues, &Rule::BranchNamePunctuation);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The branch name ends with a punctuation character"
         );
-        assert_eq!(violation.position, Position::Branch { column: 4 });
+        assert_eq!(issue.position, Position::Branch { column: 4 });
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | fix!\n\
              |    ^ Remove punctuation from the end of the branch name\n"
@@ -442,14 +441,14 @@ mod tests {
         }
 
         let branch = validated_branch("fix-bug".to_string());
-        let violation = find_violation(branch.violations, &Rule::BranchNameCliche);
+        let issue = find_issue(branch.issues, &Rule::BranchNameCliche);
         assert_eq!(
-            violation.message,
+            issue.message,
             "The branch name does not explain the change in much detail"
         );
-        assert_eq!(violation.position, Position::Branch { column: 1 });
+        assert_eq!(issue.position, Position::Branch { column: 1 });
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | fix-bug\n\
              | ^^^^^^^ Describe the change in more detail\n"

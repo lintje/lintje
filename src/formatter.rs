@@ -3,7 +3,7 @@ use termcolor::{Color, ColorSpec, WriteColor};
 
 use crate::branch::Branch;
 use crate::commit::Commit;
-use crate::rule::Violation;
+use crate::issue::Issue;
 use crate::utils::display_width;
 
 pub fn red_color() -> ColorSpec {
@@ -32,15 +32,15 @@ fn muted_color() -> ColorSpec {
     cs
 }
 
-pub fn formatted_commit_violation(
+pub fn formatted_commit_issue(
     out: &mut impl WriteColor,
     commit: &Commit,
-    violation: &Violation,
+    issue: &Issue,
 ) -> io::Result<()> {
     out.set_color(&red_color())?;
-    write!(out, "{}", violation.rule)?;
+    write!(out, "{}", issue.rule)?;
     out.reset()?;
-    writeln!(out, ": {}", violation.message)?;
+    writeln!(out, ": {}", issue.message)?;
     write!(out, "  ")?;
     let sha = match &commit.short_sha {
         Some(sha) => sha,
@@ -48,46 +48,46 @@ pub fn formatted_commit_violation(
     };
     out.set_color(&muted_color())?;
     write!(out, "{}", sha)?;
-    if let Some(line_number) = &violation.position.line_number() {
+    if let Some(line_number) = &issue.position.line_number() {
         write!(out, ":{}", line_number)?;
     }
-    if let Some(column) = &violation.position.column() {
+    if let Some(column) = &issue.position.column() {
         write!(out, ":{}", column)?;
     }
     write!(out, ":")?;
     out.reset()?;
     write!(out, " {}", commit.subject)?;
     writeln!(out)?;
-    formatted_context(out, violation)?;
+    formatted_context(out, issue)?;
 
     Ok(())
 }
 
-pub fn formatted_branch_violation(
+pub fn formatted_branch_issue(
     out: &mut impl WriteColor,
     branch: &Branch,
-    violation: &Violation,
+    issue: &Issue,
 ) -> io::Result<()> {
     out.set_color(&red_color())?;
-    write!(out, "{}", violation.rule)?;
+    write!(out, "{}", issue.rule)?;
     out.reset()?;
-    writeln!(out, ": {}", violation.message)?;
+    writeln!(out, ": {}", issue.message)?;
 
     out.set_color(&muted_color())?;
     write!(out, "  Branch")?;
-    if let Some(column) = &violation.position.column() {
+    if let Some(column) = &issue.position.column() {
         write!(out, ":{}", column)?;
     }
     write!(out, ":")?;
     out.reset()?;
     writeln!(out, " {}", branch.name)?;
-    formatted_context(out, violation)?;
+    formatted_context(out, issue)?;
     Ok(())
 }
 
-pub fn formatted_context(out: &mut impl WriteColor, violation: &Violation) -> io::Result<()> {
+pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result<()> {
     let mut first_line = true;
-    let line_number_width = &violation
+    let line_number_width = &issue
         .context
         .iter()
         .map(|l| match l.source.line_number() {
@@ -98,7 +98,7 @@ pub fn formatted_context(out: &mut impl WriteColor, violation: &Violation) -> io
         .unwrap_or(0)
         + 2;
 
-    for context in &violation.context {
+    for context in &issue.context {
         let plain_line_number = if let Some(line_number) = context.source.line_number() {
             format!("{} ", line_number + 1)
         } else {
@@ -107,7 +107,7 @@ pub fn formatted_context(out: &mut impl WriteColor, violation: &Violation) -> io
         let line_prefix = format!("{:>spaces$}", plain_line_number, spaces = line_number_width);
         let empty_prefix = " ".repeat(line_prefix.len());
         if first_line {
-            // Add empty line to give some space between violation and commit lines
+            // Add empty line to give some space between issue and commit lines
             out.set_color(&muted_color())?;
             write!(out, "{}|", empty_prefix)?;
             out.reset()?;
@@ -117,7 +117,7 @@ pub fn formatted_context(out: &mut impl WriteColor, violation: &Violation) -> io
         out.set_color(&muted_color())?;
         write!(out, "{}|", line_prefix)?;
         out.reset()?;
-        // Add line that provides context to the violation
+        // Add line that provides context to the issue
         let content = &context.source.content();
         // Print tabs as 4 spaces because that will render more consistently than render the tab
         // character
@@ -154,10 +154,11 @@ pub fn formatted_context(out: &mut impl WriteColor, violation: &Violation) -> io
 
 #[cfg(test)]
 pub mod tests {
-    use super::{formatted_branch_violation, formatted_commit_violation};
+    use super::{formatted_branch_issue, formatted_commit_issue};
     use crate::branch::Branch;
     use crate::commit::Commit;
-    use crate::rule::{Context, Position, Rule, Violation};
+    use crate::issue::{Context, Issue, Position};
+    use crate::rule::Rule;
     use crate::utils::test::formatted_context;
     use core::ops::Range;
     use termcolor::{BufferWriter, ColorChoice};
@@ -172,9 +173,9 @@ pub mod tests {
         )
     }
 
-    fn subject_violation_hint(value: &str, message: &str, range: Range<usize>) -> Violation {
+    fn subject_issue_hint(value: &str, message: &str, range: Range<usize>) -> Issue {
         let context = Context::subject_hint(value.to_string(), range, message.to_string());
-        Violation {
+        Issue {
             rule: Rule::SubjectLength,
             message: "Dummy message".to_string(),
             position: Position::Subject { column: 0 },
@@ -182,44 +183,44 @@ pub mod tests {
         }
     }
 
-    fn commit_violation(commit: &Commit, violation: &Violation) -> String {
+    fn commit_issue(commit: &Commit, issue: &Issue) -> String {
         let bufwtr = BufferWriter::stdout(ColorChoice::Never);
         let mut out = bufwtr.buffer();
-        match formatted_commit_violation(&mut out, commit, violation) {
+        match formatted_commit_issue(&mut out, commit, issue) {
             Ok(()) => String::from_utf8_lossy(out.as_slice()).to_string(),
-            Err(e) => panic!("Unable to format commit violation: {:?}", e),
+            Err(e) => panic!("Unable to format commit issue: {:?}", e),
         }
     }
 
-    fn commit_violation_color(commit: &Commit, violation: &Violation) -> String {
+    fn commit_issue_color(commit: &Commit, issue: &Issue) -> String {
         let bufwtr = BufferWriter::stdout(ColorChoice::Always);
         let mut out = bufwtr.buffer();
-        match formatted_commit_violation(&mut out, commit, violation) {
+        match formatted_commit_issue(&mut out, commit, issue) {
             Ok(()) => String::from_utf8_lossy(out.as_slice()).to_string(),
-            Err(e) => panic!("Unable to format commit violation: {:?}", e),
+            Err(e) => panic!("Unable to format commit issue: {:?}", e),
         }
     }
 
-    fn branch_violation(branch: &Branch, violation: &Violation) -> String {
+    fn branch_issue(branch: &Branch, issue: &Issue) -> String {
         let bufwtr = BufferWriter::stdout(ColorChoice::Never);
         let mut out = bufwtr.buffer();
-        match formatted_branch_violation(&mut out, branch, violation) {
+        match formatted_branch_issue(&mut out, branch, issue) {
             Ok(()) => String::from_utf8_lossy(out.as_slice()).to_string(),
-            Err(e) => panic!("Unable to format branch violation: {:?}", e),
+            Err(e) => panic!("Unable to format branch issue: {:?}", e),
         }
     }
 
-    fn branch_violation_color(branch: &Branch, violation: &Violation) -> String {
+    fn branch_issue_color(branch: &Branch, issue: &Issue) -> String {
         let bufwtr = BufferWriter::stdout(ColorChoice::Always);
         let mut out = bufwtr.buffer();
-        match formatted_branch_violation(&mut out, branch, violation) {
+        match formatted_branch_issue(&mut out, branch, issue) {
             Ok(()) => String::from_utf8_lossy(out.as_slice()).to_string(),
-            Err(e) => panic!("Unable to format branch violation: {:?}", e),
+            Err(e) => panic!("Unable to format branch issue: {:?}", e),
         }
     }
 
     #[test]
-    fn test_formatted_commit_violation_with_color() {
+    fn test_formatted_commit_issue_with_color() {
         let commit = commit(None, "Subject", "Message");
         let context = vec![
             Context::subject("Subject".to_string()),
@@ -231,13 +232,13 @@ pub mod tests {
                 "The hint".to_string(),
             ),
         ];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::SubjectLength,
             message: "The error message".to_string(),
             position: Position::Subject { column: 1 },
             context,
         };
-        let output = commit_violation_color(&commit, &violation);
+        let output = commit_issue_color(&commit, &issue);
         assert_eq!(
             output,
             "\u{1b}[0m\u{1b}[31mSubjectLength\u{1b}[0m: The error message\n\
@@ -251,16 +252,16 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_violation_without_sha() {
+    fn test_formatted_commit_issue_without_sha() {
         let commit = commit(None, "Subject", "Message");
         let context = vec![Context::subject("Subject".to_string())];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::SubjectLength,
             message: "The error message".to_string(),
             position: Position::Subject { column: 1 },
             context,
         };
-        let output = commit_violation(&commit, &violation);
+        let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
             "SubjectLength: The error message\n\
@@ -271,16 +272,16 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_violation_subject() {
+    fn test_formatted_commit_issue_subject() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![Context::subject("Subject".to_string())];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::SubjectLength,
             message: "The error message".to_string(),
             position: Position::Subject { column: 1 },
             context,
         };
-        let output = commit_violation(&commit, &violation);
+        let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
             "SubjectLength: The error message\n\
@@ -291,20 +292,20 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_violation_subject_hint() {
+    fn test_formatted_commit_issue_subject_hint() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![Context::subject_hint(
             "Subject".to_string(),
             Range { start: 1, end: 3 },
             "The hint".to_string(),
         )];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::SubjectMood,
             message: "The error message".to_string(),
             position: Position::Subject { column: 2 },
             context,
         };
-        let output = commit_violation(&commit, &violation);
+        let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
             "SubjectMood: The error message\n\
@@ -316,10 +317,10 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_violation_message_line() {
+    fn test_formatted_commit_issue_message_line() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![Context::message_line(9, "Message line".to_string())];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::MessageLineLength,
             message: "The error message".to_string(),
             position: Position::MessageLine {
@@ -328,7 +329,7 @@ pub mod tests {
             },
             context,
         };
-        let output = commit_violation(&commit, &violation);
+        let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
             "MessageLineLength: The error message\n\
@@ -339,7 +340,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_violation_message_line_hint() {
+    fn test_formatted_commit_issue_message_line_hint() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![
             Context::message_line(9, "Message line".to_string()),
@@ -350,7 +351,7 @@ pub mod tests {
                 "My hint".to_string(),
             ),
         ];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::MessageLineLength,
             message: "The error message".to_string(),
             position: Position::MessageLine {
@@ -359,7 +360,7 @@ pub mod tests {
             },
             context,
         };
-        let output = commit_violation(&commit, &violation);
+        let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
             "MessageLineLength: The error message\n\
@@ -372,20 +373,20 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_violation_diff_hint() {
+    fn test_formatted_commit_issue_diff_hint() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![Context::diff_hint(
             "Diff line".to_string(),
             Range { start: 3, end: 5 },
             "My hint".to_string(),
         )];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::DiffPresence,
             message: "The error message".to_string(),
             position: Position::Diff,
             context,
         };
-        let output = commit_violation(&commit, &violation);
+        let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
             "DiffPresence: The error message\n\
@@ -397,20 +398,20 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_branch_violation_branch_hint() {
+    fn test_formatted_branch_issue_branch_hint() {
         let branch = Branch::new("branch-name".to_string());
         let context = vec![Context::branch_hint(
             "branch-name".to_string(),
             Range { start: 3, end: 5 },
             "My hint".to_string(),
         )];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::BranchNameLength,
             message: "The error message".to_string(),
             position: Position::Branch { column: 3 },
             context,
         };
-        let output = branch_violation(&branch, &violation);
+        let output = branch_issue(&branch, &issue);
         assert_eq!(
             output,
             "BranchNameLength: The error message\n\
@@ -422,20 +423,20 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_branch_violation_branch_hint_with_color() {
+    fn test_formatted_branch_issue_branch_hint_with_color() {
         let branch = Branch::new("branch-name".to_string());
         let context = vec![Context::branch_hint(
             "branch-name".to_string(),
             Range { start: 3, end: 5 },
             "My hint".to_string(),
         )];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::BranchNameLength,
             message: "The error message".to_string(),
             position: Position::Branch { column: 3 },
             context,
         };
-        let output = branch_violation_color(&branch, &violation);
+        let output = branch_issue_color(&branch, &issue);
         assert_eq!(
             output,
             "\u{1b}[0m\u{1b}[31mBranchNameLength\u{1b}[0m: The error message\n\
@@ -453,14 +454,14 @@ pub mod tests {
             Context::message_line(0, "".to_string()),
             Context::message_line(1, "Line 1".to_string()),
         ];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::SubjectLength,
             message: "Dummy message".to_string(),
             position: Position::MessageLine { line: 0, column: 0 },
             context,
         };
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20 |\n\
                 1 | Subject\n\
                 2 | \n\
@@ -481,14 +482,14 @@ pub mod tests {
                 "Message".to_string(),
             ),
         ];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::SubjectLength,
             message: "Dummy message".to_string(),
             position: Position::MessageLine { line: 0, column: 0 },
             context,
         };
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "\x20\x20 |\n\
                 \x209 | Line 9\n\
                    10 | Line 10\n\
@@ -505,14 +506,14 @@ pub mod tests {
             Range { start: 1, end: 3 },
             "A message".to_string(),
         )];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::BranchNameLength,
             message: "Dummy message".to_string(),
             position: Position::Branch { column: 0 },
             context,
         };
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | branch-name\n\
              |  ^^ A message\n"
@@ -526,14 +527,14 @@ pub mod tests {
             Range { start: 1, end: 3 },
             "A message".to_string(),
         )];
-        let violation = Violation {
+        let issue = Issue {
             rule: Rule::DiffPresence,
             message: "Dummy message".to_string(),
             position: Position::Diff,
             context,
         };
         assert_eq!(
-            formatted_context(&violation),
+            formatted_context(&issue),
             "|\n\
              | Some diff\n\
              |  ^^ A message\n"
@@ -542,7 +543,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_ascii() {
-        let v_start = subject_violation_hint("Lorem ipsum", "A lorem", Range { start: 0, end: 5 });
+        let v_start = subject_issue_hint("Lorem ipsum", "A lorem", Range { start: 0, end: 5 });
         assert_eq!(
             formatted_context(&v_start),
             "\x20\x20|\n\
@@ -550,7 +551,7 @@ pub mod tests {
              \x20\x20| ^^^^^ A lorem\n"
         );
 
-        let v_end = subject_violation_hint("Lorem ipsum", "A sum", Range { start: 8, end: 11 });
+        let v_end = subject_issue_hint("Lorem ipsum", "A sum", Range { start: 8, end: 11 });
         assert_eq!(
             formatted_context(&v_end),
             "\x20\x20|\n\
@@ -558,7 +559,7 @@ pub mod tests {
              \x20\x20|         ^^^ A sum\n"
         );
 
-        let v_middle = subject_violation_hint("Lorem ipsum", "A space", Range { start: 5, end: 6 });
+        let v_middle = subject_issue_hint("Lorem ipsum", "A space", Range { start: 5, end: 6 });
         assert_eq!(
             formatted_context(&v_middle),
             "\x20\x20|\n\
@@ -569,7 +570,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_whitespace() {
-        let v_space = subject_violation_hint(" Lorem ipsum", "A space", Range { start: 0, end: 1 });
+        let v_space = subject_issue_hint(" Lorem ipsum", "A space", Range { start: 0, end: 1 });
         assert_eq!(
             formatted_context(&v_space),
             "\x20\x20|\n\
@@ -577,8 +578,7 @@ pub mod tests {
              \x20\x20| ^ A space\n"
         );
 
-        let v_space =
-            subject_violation_hint("\x20Lorem ipsum", "A space", Range { start: 0, end: 1 });
+        let v_space = subject_issue_hint("\x20Lorem ipsum", "A space", Range { start: 0, end: 1 });
         assert_eq!(
             formatted_context(&v_space),
             "\x20\x20|\n\
@@ -586,7 +586,7 @@ pub mod tests {
              \x20\x20| ^ A space\n"
         );
 
-        let v_tab = subject_violation_hint(
+        let v_tab = subject_issue_hint(
             "\tLorem ipsum",
             "A tab",
             Range {
@@ -609,7 +609,7 @@ pub mod tests {
         //
         // This test makes sure the formatted_context function points to the single column, because
         // it has a display width of one, and not two columns because it's two characters.
-        let v = subject_violation_hint(
+        let v = subject_issue_hint(
             "This is a̐ char with an accent",
             "Mark accent",
             Range { start: 8, end: 11 },
@@ -624,7 +624,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_emoji() {
-        let v = subject_violation_hint("Aa😀Bb", "Mark emoji", Range { start: 2, end: 4 });
+        let v = subject_issue_hint("Aa😀Bb", "Mark emoji", Range { start: 2, end: 4 });
         assert_eq!(
             formatted_context(&v),
             "\x20\x20|\n\
@@ -632,7 +632,7 @@ pub mod tests {
              \x20\x20|   ^^ Mark emoji\n"
         );
 
-        let v = subject_violation_hint("Aa👍Bb", "Mark emoji", Range { start: 2, end: 4 });
+        let v = subject_issue_hint("Aa👍Bb", "Mark emoji", Range { start: 2, end: 4 });
         assert_eq!(
             formatted_context(&v),
             "\x20\x20|\n\
@@ -640,7 +640,7 @@ pub mod tests {
              \x20\x20|   ^^ Mark emoji\n"
         );
 
-        let v = subject_violation_hint(
+        let v = subject_issue_hint(
             "Fix ❤️ in controller Fix #123",
             "Mark fix ticket",
             Range { start: 25, end: 33 },
@@ -655,7 +655,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_double_width() {
-        let v = subject_violation_hint(
+        let v = subject_issue_hint(
             "ああああああああああああああああああああああああああ",
             "Mark double width character",
             Range { start: 75, end: 78 },

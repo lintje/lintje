@@ -19,6 +19,7 @@ mod command;
 mod commit;
 mod formatter;
 mod git;
+mod issue;
 mod logger;
 mod rule;
 mod utils;
@@ -26,7 +27,7 @@ mod utils;
 use branch::Branch;
 use command::run_command;
 use commit::Commit;
-use formatter::{formatted_branch_violation, formatted_commit_violation};
+use formatter::{formatted_branch_issue, formatted_commit_issue};
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use logger::Logger;
 use termcolor::{ColorChoice, StandardStream, WriteColor};
@@ -190,7 +191,7 @@ fn print_lint_result(
     options: Options,
 ) -> io::Result<()> {
     let mut out = buffer_writer(options.color);
-    let mut violation_count = 0;
+    let mut issue_count = 0;
     let mut commit_count = 0;
     let mut ignored_commit_count = 0;
     let mut branch_message = "";
@@ -204,9 +205,9 @@ fn print_lint_result(
             }
             commit_count += 1;
             if !commit.is_valid() {
-                for violation in &commit.violations {
-                    violation_count += 1;
-                    formatted_commit_violation(&mut out, commit, violation)?;
+                for issue in &commit.issues {
+                    issue_count += 1;
+                    formatted_commit_issue(&mut out, commit, issue)?;
                 }
             }
         }
@@ -218,9 +219,9 @@ fn print_lint_result(
                 debug!("Branch: {:?}", branch);
                 branch_message = " and branch";
                 if !branch.is_valid() {
-                    for violation in &branch.violations {
-                        violation_count += 1;
-                        formatted_branch_violation(&mut out, branch, violation)?;
+                    for issue in &branch.issues {
+                        issue_count += 1;
+                        formatted_branch_issue(&mut out, branch, issue)?;
                     }
                 }
             }
@@ -234,7 +235,7 @@ fn print_lint_result(
         "{} commit{}{} inspected, ",
         commit_count, commit_plural, branch_message
     )?;
-    print_violation_count(&mut out, violation_count)?;
+    print_issue_count(&mut out, issue_count)?;
     if ignored_commit_count > 0 || options.debug {
         let ignored_plural = if ignored_commit_count != 1 { "s" } else { "" };
         write!(
@@ -256,25 +257,21 @@ fn print_lint_result(
     if has_error {
         std::process::exit(2)
     }
-    if violation_count > 0 {
+    if issue_count > 0 {
         std::process::exit(1)
     }
     Ok(())
 }
 
-fn print_violation_count(out: &mut impl WriteColor, violation_count: usize) -> io::Result<()> {
-    let violation_plural = if violation_count != 1 { "s" } else { "" };
-    let color = if violation_count > 0 {
+fn print_issue_count(out: &mut impl WriteColor, issue_count: usize) -> io::Result<()> {
+    let issue_plural = if issue_count != 1 { "s" } else { "" };
+    let color = if issue_count > 0 {
         formatter::red_color()
     } else {
         formatter::green_color()
     };
     out.set_color(&color)?;
-    write!(
-        out,
-        "{} violation{} detected",
-        violation_count, violation_plural
-    )?;
+    write!(out, "{} issue{} detected", issue_count, issue_plural)?;
     out.reset()?;
     Ok(())
 }
@@ -542,7 +539,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
-        assert.stdout("1 commit and branch inspected, 0 violations detected\n");
+        assert.stdout("1 commit and branch inspected, 0 issues detected\n");
     }
 
     #[test]
@@ -555,7 +552,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--color").current_dir(dir).assert().success();
         assert.stdout(
-            "1 commit and branch inspected, \u{1b}[0m\u{1b}[32m0 violations detected\u{1b}[0m\n",
+            "1 commit and branch inspected, \u{1b}[0m\u{1b}[32m0 issues detected\u{1b}[0m\n",
         );
     }
 
@@ -597,7 +594,7 @@ mod tests {
             \x20\x203 | \n\
             \x20\x20  | ^ Add a message body with context about the change and why it was made\n\
             \n\
-            1 commit and branch inspected, 3 violations detected\n"
+            1 commit and branch inspected, 3 issues detected\n"
         );
     }
 
@@ -639,14 +636,14 @@ mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m \n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^ Add a message body with context about the change and why it was made\u{1b}[0m\n\
             \n\
-            1 commit and branch inspected, \u{1b}[0m\u{1b}[31m3 violations detected\u{1b}[0m\n"
+            1 commit and branch inspected, \u{1b}[0m\u{1b}[31m3 issues detected\u{1b}[0m\n"
         );
     }
 
     #[test]
-    fn test_single_commit_invalid_one_violation() {
+    fn test_single_commit_invalid_one_issue() {
         compile_bin();
-        let dir = test_dir("single_commit_invalid_one_violation");
+        let dir = test_dir("single_commit_invalid_one_issue");
         create_test_repo(&dir);
         create_commit_with_file(&dir, "Valid commit subject", "", "file");
 
@@ -662,7 +659,7 @@ mod tests {
                 "MessagePresence: No message body was found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 1 violation detected",
+                "1 commit and branch inspected, 1 issue detected",
             ));
     }
 
@@ -688,7 +685,7 @@ mod tests {
                 "DiffPresence: No file changes found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 2 violations detected",
+                "1 commit and branch inspected, 2 issues detected",
             ));
     }
 
@@ -706,7 +703,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
-        assert.stdout("0 commits and branch inspected, 0 violations detected (1 commit ignored)\n");
+        assert.stdout("0 commits and branch inspected, 0 issues detected (1 commit ignored)\n");
     }
 
     #[test]
@@ -723,7 +720,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--color").current_dir(dir).assert().success();
-        assert.stdout("0 commits and branch inspected, \u{1b}[0m\u{1b}[32m0 violations detected\u{1b}[0m (1 commit ignored)\n");
+        assert.stdout("0 commits and branch inspected, \u{1b}[0m\u{1b}[32m0 issues detected\u{1b}[0m (1 commit ignored)\n");
     }
 
     #[test]
@@ -740,7 +737,7 @@ mod tests {
             .assert()
             .success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 violations detected (0 commits ignored)",
+            "1 commit and branch inspected, 0 issues detected (0 commits ignored)",
         ));
     }
 
@@ -772,7 +769,7 @@ mod tests {
         )
         .eval(&output));
         assert.stdout(predicate::str::contains(
-            "2 commits and branch inspected, 5 violations detected",
+            "2 commits and branch inspected, 5 issues detected",
         ));
     }
 
@@ -805,7 +802,7 @@ mod tests {
                 "DiffPresence: No file changes found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 3 violations detected",
+                "1 commit and branch inspected, 3 issues detected",
             ));
     }
 
@@ -829,7 +826,7 @@ mod tests {
             .assert()
             .success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 violations detected",
+            "1 commit and branch inspected, 0 issues detected",
         ));
     }
 
@@ -918,7 +915,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 violations detected",
+            "1 commit and branch inspected, 0 issues detected",
         ));
     }
 
@@ -953,7 +950,7 @@ mod tests {
                 \x20\x20| ^^^^^^^ Describe the change in more detail\n"
             ))
             .stdout(predicate::str::contains(
-                    "1 commit and branch inspected, 2 violations detected",
+                    "1 commit and branch inspected, 2 issues detected",
             ));
     }
 
@@ -972,7 +969,7 @@ mod tests {
             .assert()
             .success();
         assert.stdout(predicate::str::contains(
-            "1 commit inspected, 0 violations detected",
+            "1 commit inspected, 0 issues detected",
         ));
     }
 }

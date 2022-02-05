@@ -55,7 +55,7 @@ BranchNameTicketNumber: A ticket number was detected in the branch name
   | fix-123
   | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details
 
-1 commit and branch inspected, 3 violations detected
+1 commit and branch inspected, 3 issues detected
 ```
 
 For more usage examples, see the [usage](#usage) section.
@@ -169,8 +169,8 @@ See also the [examples page][examples] for more usage examples.
 
 Lintje will exit with the following status codes in these situations:
 
-- `0` (Success) - No violations have been found. The commit is accepted.
-- `1` (Failure) - One or more violations have been found. The commit is not
+- `0` (Success) - No issues have been found. The commit is accepted.
+- `1` (Failure) - One or more issues have been found. The commit is not
   accepted.
 - `2` (Error) - An internal error occurred and the program had to exit. This is
   probably a bug, please report it in the [issue tracker][issues].

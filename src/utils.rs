@@ -140,13 +140,13 @@ pub fn character_count_for_bytes_index(string: &str, bytes_index: usize) -> usiz
 pub mod test {
     use super::{character_count_for_bytes_index, display_width, line_length_stats, MarkerStats};
     use crate::formatter::formatted_context as formatted_context_real;
-    use crate::rule::Violation;
+    use crate::issue::Issue;
     use termcolor::{BufferWriter, ColorChoice};
 
-    pub fn formatted_context(violation: &Violation) -> String {
+    pub fn formatted_context(issue: &Issue) -> String {
         let bufwtr = BufferWriter::stdout(ColorChoice::Never);
         let mut out = bufwtr.buffer();
-        match formatted_context_real(&mut out, violation) {
+        match formatted_context_real(&mut out, issue) {
             Ok(()) => {
                 // Strip off the two leading spaces per line if any
                 // The indenting is tested somewhere else
@@ -158,7 +158,7 @@ pub mod test {
                     .collect::<Vec<&str>>()
                     .join("\n")
             }
-            Err(e) => panic!("Unable to format context violation: {:?}", e),
+            Err(e) => panic!("Unable to format context issue: {:?}", e),
         }
     }
 
