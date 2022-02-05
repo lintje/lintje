@@ -9,7 +9,7 @@ agent:
     type: e1-standard-2
   containers:
     - name: main
-      image: 'registry.semaphoreci.com/rust:1.58'
+      image: 'registry.semaphoreci.com/rust:1.58.1'
 
 global_job_config:
   env_vars:
@@ -38,9 +38,9 @@ blocks:
         commands:
           - git config --global user.email "test@test.com"
           - git config --global user.name "My Test user"
-          - cache restore v1-cargo-$(checksum Cargo.lock)
+          - cache restore v1-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock)
           - cargo test
-          - cache store v1-cargo-$(checksum Cargo.lock) $CARGO_HOME
+          - cache store v1-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock) $CARGO_HOME
           - artifact push workflow target/debug/lintje --expire-in 1w
   - name: Test run the project
     dependencies: ["Build"]
