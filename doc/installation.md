@@ -1,6 +1,25 @@
 # Installation methods
 
+- [Homebrew for Linux](#homebrew-for-linux)
 - [Debian](#debian) - Debian / Ubuntu
+
+## Homebrew for Linux
+
+To install Lintje on Linux use the [Homebrew](https://brew.sh) tap.
+
+```
+brew tap tombruijn/lintje
+brew install lintje
+```
+
+Whenever a new version comes out run the following:
+
+```
+brew update
+brew upgrade lintje
+```
+
+## Cloudsmith hosting
 
 [![Hosted By: Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat-square)][Cloudsmith]
 
