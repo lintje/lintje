@@ -3,7 +3,7 @@ use termcolor::{Color, ColorSpec, WriteColor};
 
 use crate::branch::Branch;
 use crate::commit::Commit;
-use crate::issue::Issue;
+use crate::issue::{Issue, Position};
 use crate::utils::display_width;
 
 pub fn red_color() -> ColorSpec {
@@ -32,6 +32,23 @@ fn muted_color() -> ColorSpec {
     cs
 }
 
+pub fn formatted_position(out: &mut impl WriteColor, position: &Position) -> io::Result<()> {
+    match position {
+        Position::Subject { line, column } => {
+            write!(out, ":{}:{}", line, column)?;
+        }
+        Position::MessageLine { line, column } => {
+            write!(out, ":{}:{}", line, column)?;
+        }
+        Position::Branch { column } => {
+            write!(out, ":{}", column)?;
+        }
+        Position::Diff => (),
+    }
+
+    Ok(())
+}
+
 pub fn formatted_commit_issue(
     out: &mut impl WriteColor,
     commit: &Commit,
@@ -48,12 +65,7 @@ pub fn formatted_commit_issue(
     };
     out.set_color(&muted_color())?;
     write!(out, "{}", sha)?;
-    if let Some(line_number) = &issue.position.line_number() {
-        write!(out, ":{}", line_number)?;
-    }
-    if let Some(column) = &issue.position.column() {
-        write!(out, ":{}", column)?;
-    }
+    formatted_position(out, &issue.position)?;
     write!(out, ":")?;
     out.reset()?;
     write!(out, " {}", commit.subject)?;
@@ -75,9 +87,7 @@ pub fn formatted_branch_issue(
 
     out.set_color(&muted_color())?;
     write!(out, "  Branch")?;
-    if let Some(column) = &issue.position.column() {
-        write!(out, ":{}", column)?;
-    }
+    formatted_position(out, &issue.position)?;
     write!(out, ":")?;
     out.reset()?;
     writeln!(out, " {}", branch.name)?;
@@ -90,7 +100,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
     let line_number_width = &issue
         .context
         .iter()
-        .map(|l| match l.source.line_number() {
+        .map(|l| match l.line {
             Some(line_number) => (line_number + 1).to_string().chars().count() + 1,
             None => 0,
         })
@@ -99,8 +109,8 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         + 2;
 
     for context in &issue.context {
-        let plain_line_number = if let Some(line_number) = context.source.line_number() {
-            format!("{} ", line_number + 1)
+        let plain_line_number = if let Some(line_number) = context.line {
+            format!("{} ", line_number)
         } else {
             "".to_string()
         };
@@ -118,33 +128,36 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         write!(out, "{}|", line_prefix)?;
         out.reset()?;
         // Add line that provides context to the issue
-        let content = &context.source.content();
+        let content = &context.content;
         // Print tabs as 4 spaces because that will render more consistently than render the tab
         // character
         let formatted_content = content.replace("\t", "    ");
         writeln!(out, " {}", formatted_content)?;
 
-        // Add a hint if any
-        if let Some(hint) = &context.hint {
-            let range_start = hint.range.start;
-            let leading = match content.get(0..range_start) {
-                Some(v) => display_width(v),
-                None => range_start,
-            };
-            let range_end = hint.range.end;
-            let rest = match content.get(range_start..range_end) {
-                Some(v) => display_width(v),
-                None => hint.range.len(),
-            };
+        // Add a message if any
+        match (&context.message, &context.range) {
+            (Some(message), Some(range)) => {
+                let range_start = range.start;
+                let leading = match content.get(0..range_start) {
+                    Some(v) => display_width(v),
+                    None => range_start,
+                };
+                let range_end = range.end;
+                let rest = match content.get(range_start..range_end) {
+                    Some(v) => display_width(v),
+                    None => range.len(),
+                };
 
-            let leading_spaces = " ".repeat(leading);
-            let underline = "^".repeat(rest);
-            out.set_color(&muted_color())?;
-            write!(out, "{}|", empty_prefix)?;
-            out.set_color(&bright_red_color())?;
-            write!(out, " {}{} {}", leading_spaces, underline, hint.message)?;
-            out.reset()?;
-            writeln!(out)?;
+                let leading_spaces = " ".repeat(leading);
+                let underline = "^".repeat(rest);
+                out.set_color(&muted_color())?;
+                write!(out, "{}|", empty_prefix)?;
+                out.set_color(&bright_red_color())?;
+                write!(out, " {}{} {}", leading_spaces, underline, message)?;
+                out.reset()?;
+                writeln!(out)?;
+            }
+            (_, _) => (),
         }
         first_line = false;
     }
@@ -175,12 +188,12 @@ pub mod tests {
 
     fn subject_issue_hint(value: &str, message: &str, range: Range<usize>) -> Issue {
         let context = Context::subject_hint(value.to_string(), range, message.to_string());
-        Issue {
-            rule: Rule::SubjectLength,
-            message: "Dummy message".to_string(),
-            position: Position::Subject { column: 0 },
-            context: vec![context],
-        }
+        Issue::error(
+            Rule::SubjectLength,
+            "Dummy message".to_string(),
+            Position::Subject { line: 1, column: 0 },
+            vec![context],
+        )
     }
 
     fn commit_issue(commit: &Commit, issue: &Issue) -> String {
@@ -224,20 +237,20 @@ pub mod tests {
         let commit = commit(None, "Subject", "Message");
         let context = vec![
             Context::subject("Subject".to_string()),
-            Context::message_line(0, "Message body".to_string()),
+            Context::message_line(2, "Message body".to_string()),
             Context::message_line_hint(
-                1,
+                3,
                 "Message body line".to_string(),
                 Range { start: 1, end: 3 },
                 "The hint".to_string(),
             ),
         ];
-        let issue = Issue {
-            rule: Rule::SubjectLength,
-            message: "The error message".to_string(),
-            position: Position::Subject { column: 1 },
+        let issue = Issue::error(
+            Rule::SubjectLength,
+            "The error message".to_string(),
+            Position::Subject { line: 1, column: 1 },
             context,
-        };
+        );
         let output = commit_issue_color(&commit, &issue);
         assert_eq!(
             output,
@@ -255,12 +268,12 @@ pub mod tests {
     fn test_formatted_commit_issue_without_sha() {
         let commit = commit(None, "Subject", "Message");
         let context = vec![Context::subject("Subject".to_string())];
-        let issue = Issue {
-            rule: Rule::SubjectLength,
-            message: "The error message".to_string(),
-            position: Position::Subject { column: 1 },
+        let issue = Issue::error(
+            Rule::SubjectLength,
+            "The error message".to_string(),
+            Position::Subject { line: 1, column: 1 },
             context,
-        };
+        );
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
@@ -275,12 +288,12 @@ pub mod tests {
     fn test_formatted_commit_issue_subject() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![Context::subject("Subject".to_string())];
-        let issue = Issue {
-            rule: Rule::SubjectLength,
-            message: "The error message".to_string(),
-            position: Position::Subject { column: 1 },
+        let issue = Issue::error(
+            Rule::SubjectLength,
+            "The error message".to_string(),
+            Position::Subject { line: 1, column: 1 },
             context,
-        };
+        );
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
@@ -299,12 +312,12 @@ pub mod tests {
             Range { start: 1, end: 3 },
             "The hint".to_string(),
         )];
-        let issue = Issue {
-            rule: Rule::SubjectMood,
-            message: "The error message".to_string(),
-            position: Position::Subject { column: 2 },
+        let issue = Issue::error(
+            Rule::SubjectMood,
+            "The error message".to_string(),
+            Position::Subject { line: 1, column: 2 },
             context,
-        };
+        );
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
@@ -319,16 +332,16 @@ pub mod tests {
     #[test]
     fn test_formatted_commit_issue_message_line() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
-        let context = vec![Context::message_line(9, "Message line".to_string())];
-        let issue = Issue {
-            rule: Rule::MessageLineLength,
-            message: "The error message".to_string(),
-            position: Position::MessageLine {
-                line: 10,
+        let context = vec![Context::message_line(11, "Message line".to_string())];
+        let issue = Issue::error(
+            Rule::MessageLineLength,
+            "The error message".to_string(),
+            Position::MessageLine {
+                line: 11,
                 column: 50,
             },
             context,
-        };
+        );
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
@@ -343,23 +356,23 @@ pub mod tests {
     fn test_formatted_commit_issue_message_line_hint() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![
-            Context::message_line(9, "Message line".to_string()),
+            Context::message_line(11, "Message line".to_string()),
             Context::message_line_hint(
-                10,
+                12,
                 "Message line with hint".to_string(),
                 Range { start: 3, end: 10 },
                 "My hint".to_string(),
             ),
         ];
-        let issue = Issue {
-            rule: Rule::MessageLineLength,
-            message: "The error message".to_string(),
-            position: Position::MessageLine {
-                line: 10,
+        let issue = Issue::error(
+            Rule::MessageLineLength,
+            "The error message".to_string(),
+            Position::MessageLine {
+                line: 11,
                 column: 50,
             },
             context,
-        };
+        );
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
@@ -380,12 +393,12 @@ pub mod tests {
             Range { start: 3, end: 5 },
             "My hint".to_string(),
         )];
-        let issue = Issue {
-            rule: Rule::DiffPresence,
-            message: "The error message".to_string(),
-            position: Position::Diff,
+        let issue = Issue::error(
+            Rule::DiffPresence,
+            "The error message".to_string(),
+            Position::Diff,
             context,
-        };
+        );
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
@@ -405,12 +418,12 @@ pub mod tests {
             Range { start: 3, end: 5 },
             "My hint".to_string(),
         )];
-        let issue = Issue {
-            rule: Rule::BranchNameLength,
-            message: "The error message".to_string(),
-            position: Position::Branch { column: 3 },
+        let issue = Issue::error(
+            Rule::BranchNameLength,
+            "The error message".to_string(),
+            Position::Branch { column: 3 },
             context,
-        };
+        );
         let output = branch_issue(&branch, &issue);
         assert_eq!(
             output,
@@ -430,12 +443,12 @@ pub mod tests {
             Range { start: 3, end: 5 },
             "My hint".to_string(),
         )];
-        let issue = Issue {
-            rule: Rule::BranchNameLength,
-            message: "The error message".to_string(),
-            position: Position::Branch { column: 3 },
+        let issue = Issue::error(
+            Rule::BranchNameLength,
+            "The error message".to_string(),
+            Position::Branch { column: 3 },
             context,
-        };
+        );
         let output = branch_issue_color(&branch, &issue);
         assert_eq!(
             output,
@@ -451,15 +464,15 @@ pub mod tests {
     fn formatted_context_subject() {
         let context = vec![
             Context::subject("Subject".to_string()),
-            Context::message_line(0, "".to_string()),
-            Context::message_line(1, "Line 1".to_string()),
+            Context::message_line(2, "".to_string()),
+            Context::message_line(3, "Line 1".to_string()),
         ];
-        let issue = Issue {
-            rule: Rule::SubjectLength,
-            message: "Dummy message".to_string(),
-            position: Position::MessageLine { line: 0, column: 0 },
+        let issue = Issue::error(
+            Rule::SubjectLength,
+            "Dummy message".to_string(),
+            Position::Subject { line: 0, column: 0 },
             context,
-        };
+        );
         assert_eq!(
             formatted_context(&issue),
             "\x20 |\n\
@@ -472,22 +485,22 @@ pub mod tests {
     #[test]
     fn formatted_context_message_multi_line() {
         let context = vec![
-            Context::message_line(7, "Line 9".to_string()),
-            Context::message_line(8, "Line 10".to_string()),
-            Context::message_line(9, "Line 11".to_string()),
+            Context::message_line(9, "Line 9".to_string()),
+            Context::message_line(10, "Line 10".to_string()),
+            Context::message_line(11, "Line 11".to_string()),
             Context::message_line_hint(
-                10,
+                12,
                 "Line 12".to_string(),
                 Range { start: 1, end: 2 },
                 "Message".to_string(),
             ),
         ];
-        let issue = Issue {
-            rule: Rule::SubjectLength,
-            message: "Dummy message".to_string(),
-            position: Position::MessageLine { line: 0, column: 0 },
+        let issue = Issue::error(
+            Rule::MessageLineLength,
+            "Dummy message".to_string(),
+            Position::MessageLine { line: 1, column: 0 },
             context,
-        };
+        );
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20 |\n\
@@ -506,12 +519,12 @@ pub mod tests {
             Range { start: 1, end: 3 },
             "A message".to_string(),
         )];
-        let issue = Issue {
-            rule: Rule::BranchNameLength,
-            message: "Dummy message".to_string(),
-            position: Position::Branch { column: 0 },
+        let issue = Issue::error(
+            Rule::BranchNameLength,
+            "Dummy message".to_string(),
+            Position::Branch { column: 0 },
             context,
-        };
+        );
         assert_eq!(
             formatted_context(&issue),
             "|\n\
@@ -527,12 +540,12 @@ pub mod tests {
             Range { start: 1, end: 3 },
             "A message".to_string(),
         )];
-        let issue = Issue {
-            rule: Rule::DiffPresence,
-            message: "Dummy message".to_string(),
-            position: Position::Diff,
+        let issue = Issue::error(
+            Rule::DiffPresence,
+            "Dummy message".to_string(),
+            Position::Diff,
             context,
-        };
+        );
         assert_eq!(
             formatted_context(&issue),
             "|\n\

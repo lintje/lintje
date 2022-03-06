@@ -58,10 +58,10 @@ impl Branch {
                 },
                 "Describe the change in more detail".to_string(),
             )];
-            self.add_issue(
+            self.add_error(
                 Rule::BranchNameLength,
                 format!("Branch name of {} characters is too short", width),
-                Position::Branch { column: 1 },
+                1,
                 context,
             )
         }
@@ -86,10 +86,10 @@ impl Branch {
                     },
                     "Remove the ticket number from the branch name or expand the branch name with more details".to_string(),
                 )];
-                self.add_issue(
+                self.add_error(
                     Rule::BranchNameTicketNumber,
                     "A ticket number was detected in the branch name".to_string(),
-                    Position::Branch { column: 1 },
+                    1,
                     context,
                 )
             }
@@ -109,10 +109,10 @@ impl Branch {
                         },
                         "Remove punctuation from the start of the branch name".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_error(
                         Rule::BranchNamePunctuation,
                         "The branch name starts with a punctuation character".to_string(),
-                        Position::Branch { column: 1 },
+                        1,
                         context,
                     )
                 }
@@ -137,15 +137,13 @@ impl Branch {
                         },
                         "Remove punctuation from the end of the branch name".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_error(
                         Rule::BranchNamePunctuation,
                         "The branch name ends with a punctuation character".to_string(),
-                        Position::Branch {
-                            column: character_count_for_bytes_index(
-                                &self.name,
-                                self.name.len() - character.len_utf8(),
-                            ),
-                        },
+                        character_count_for_bytes_index(
+                            &self.name,
+                            self.name.len() - character.len_utf8(),
+                        ),
                         context,
                     )
                 }
@@ -169,28 +167,22 @@ impl Branch {
                 },
                 "Describe the change in more detail".to_string(),
             )];
-            self.add_issue(
+            self.add_error(
                 Rule::BranchNameCliche,
                 "The branch name does not explain the change in much detail".to_string(),
-                Position::Branch { column: 1 },
+                1,
                 context,
             )
         }
     }
 
-    fn add_issue(
-        &mut self,
-        rule: Rule,
-        message: String,
-        position: Position,
-        context: Vec<Context>,
-    ) {
-        self.issues.push(Issue {
+    fn add_error(&mut self, rule: Rule, message: String, column: usize, context: Vec<Context>) {
+        self.issues.push(Issue::error(
             rule,
             message,
-            position,
+            Position::Branch { column },
             context,
-        })
+        ))
     }
 }
 

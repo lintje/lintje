@@ -191,10 +191,10 @@ impl Commit {
                 Range { start: 0, end: subject_length },
                 "Rebase on the remote branch, rather than merging the remote branch into the local branch".to_string(),
             );
-            self.add_issue(
+            self.add_subject_error(
                 Rule::MergeCommit,
                 "A remote merge commit was found".to_string(),
-                Position::Subject { column: 1 },
+                1,
                 vec![context],
             )
         }
@@ -212,10 +212,10 @@ impl Commit {
                 Range { start: 0, end: 6 },
                 "Rebase fixup commits before pushing or merging".to_string(),
             );
-            self.add_issue(
+            self.add_subject_error(
                 Rule::NeedsRebase,
                 "A fixup commit was found".to_string(),
-                Position::Subject { column: 1 },
+                1,
                 vec![context],
             )
         } else if subject.starts_with("squash! ") {
@@ -224,10 +224,10 @@ impl Commit {
                 Range { start: 0, end: 7 },
                 "Rebase squash commits before pushing or merging".to_string(),
             );
-            self.add_issue(
+            self.add_subject_error(
                 Rule::NeedsRebase,
                 "A squash commit was found".to_string(),
-                Position::Subject { column: 1 },
+                1,
                 vec![context],
             )
         }
@@ -246,10 +246,10 @@ impl Commit {
                 Range { start: 0, end: 1 },
                 "Add a subject to describe the change".to_string(),
             );
-            self.add_issue(
+            self.add_subject_error(
                 Rule::SubjectLength,
                 "The commit has no subject".to_string(),
-                Position::Subject { column: 1 },
+                1,
                 vec![context],
             );
             return;
@@ -265,12 +265,10 @@ impl Commit {
                 },
                 "Shorten the subject to a maximum width of 50 characters".to_string(),
             );
-            self.add_issue(
+            self.add_subject_error(
                 Rule::SubjectLength,
                 format!("The subject of `{}` characters wide is too long", width),
-                Position::Subject {
-                    column: line_stats.char_count + 1, // + 1 because the next char is the problem
-                },
+                line_stats.char_count + 1, // + 1 because the next char is the problem
                 vec![context],
             );
             return;
@@ -285,10 +283,10 @@ impl Commit {
                 },
                 "Describe the change in more detail".to_string(),
             );
-            self.add_issue(
+            self.add_subject_error(
                 Rule::SubjectLength,
                 format!("The subject of `{}` characters wide is too short", width),
-                Position::Subject { column: 1 },
+                1,
                 vec![context],
             );
         }
@@ -311,10 +309,10 @@ impl Commit {
                         },
                         "Use the imperative mood for the subject".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectMood,
                         "The subject does not use the imperative grammatical mood".to_string(),
-                        Position::Subject { column: 1 },
+                        1,
                         context,
                     )
                 }
@@ -344,11 +342,11 @@ impl Commit {
                         },
                         "Remove the leading whitespace from the subject".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectWhitespace,
                         "The subject starts with a whitespace character such as a space or a tab"
                             .to_string(),
-                        Position::Subject { column: 1 },
+                        1,
                         context,
                     )
                 }
@@ -381,10 +379,10 @@ impl Commit {
                         },
                         "Start the subject with a capital letter".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectCapitalization,
                         "The subject does not start with a capital letter".to_string(),
-                        Position::Subject { column: 1 },
+                        1,
                         context,
                     )
                 }
@@ -411,10 +409,10 @@ impl Commit {
                         emoji.range(),
                         "Remove emoji from the start of the subject".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectPunctuation,
                         "The subject starts with an emoji".to_string(),
-                        Position::Subject { column: 1 },
+                        1,
                         context,
                     )
                 }
@@ -435,13 +433,13 @@ impl Commit {
                         },
                         "Remove punctuation from the start of the subject".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectPunctuation,
                         format!(
                             "The subject starts with a punctuation character: `{}`",
                             character
                         ),
-                        Position::Subject { column: 1 },
+                        1,
                         context,
                     )
                 }
@@ -465,18 +463,16 @@ impl Commit {
                         },
                         "Remove punctuation from the end of the subject".to_string(),
                     );
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectPunctuation,
                         format!(
                             "The subject ends with a punctuation character: `{}`",
                             character
                         ),
-                        Position::Subject {
-                            column: character_count_for_bytes_index(
-                                &self.subject,
-                                subject_length - character.len_utf8(),
-                            ),
-                        },
+                        character_count_for_bytes_index(
+                            &self.subject,
+                            subject_length - character.len_utf8(),
+                        ),
                         vec![context],
                     )
                 }
@@ -501,12 +497,10 @@ impl Commit {
                         capture.range(),
                         "Move the ticket number to the message body".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectTicketNumber,
                         "The subject contains a ticket number".to_string(),
-                        Position::Subject {
-                            column: character_count_for_bytes_index(&self.subject, capture.start()),
-                        },
+                        character_count_for_bytes_index(&self.subject, capture.start()),
                         context,
                     )
                 }
@@ -523,12 +517,10 @@ impl Commit {
                         capture.range(),
                         "Move the ticket number to the message body".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectTicketNumber,
                         "The subject contains a ticket number".to_string(),
-                        Position::Subject {
-                            column: character_count_for_bytes_index(&self.subject, capture.start()),
-                        },
+                        character_count_for_bytes_index(&self.subject, capture.start()),
                         context,
                     )
                 }
@@ -554,10 +546,10 @@ impl Commit {
                         capture.range(),
                         "Remove the prefix from the subject".to_string(),
                     )];
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectPrefix,
                         format!("Remove the `{}` prefix from the subject", capture.as_str()),
-                        Position::Subject { column: 1 },
+                        1,
                         context,
                     )
                 }
@@ -580,12 +572,10 @@ impl Commit {
                         tag.range(),
                         "Move build tag to message body".to_string(),
                     );
-                    self.add_issue(
+                    self.add_subject_error(
                         Rule::SubjectBuildTag,
                         format!("The `{}` build tag was found in the subject", tag.as_str()),
-                        Position::Subject {
-                            column: character_count_for_bytes_index(&self.subject, tag.start()),
-                        },
+                        character_count_for_bytes_index(&self.subject, tag.start()),
                         vec![context],
                     )
                 }
@@ -610,10 +600,10 @@ impl Commit {
                 },
                 "Describe the change in more detail".to_string(),
             )];
-            self.add_issue(
+            self.add_subject_error(
                 Rule::SubjectCliche,
                 "The subject does not explain the change in much detail".to_string(),
-                Position::Subject { column: 1 },
+                1,
                 context,
             )
         }
@@ -629,7 +619,7 @@ impl Commit {
                 let context = vec![
                     Context::subject(self.subject.to_string()),
                     Context::message_line_hint(
-                        0,
+                        2,
                         line.to_string(),
                         Range {
                             start: 0,
@@ -638,10 +628,10 @@ impl Commit {
                         "Add an empty line below the subject line".to_string(),
                     ),
                 ];
-                self.add_issue(
+                self.add_message_error(
                     Rule::MessageEmptyFirstLine,
                     "No empty line found below the subject".to_string(),
-                    Position::MessageLine { line: 1, column: 1 },
+                    Position::MessageLine { line: 2, column: 1 },
                     context,
                 )
             }
@@ -658,27 +648,28 @@ impl Commit {
         if width == 0 {
             let context = vec![
                 Context::subject(self.subject.to_string()),
-                Context::message_line(0, "".to_string()),
+                Context::message_line(2, "".to_string()),
                 Context::message_line_hint(
-                    1,
+                    3,
                     "".to_string(),
                     Range { start: 0, end: 1 },
                     "Add a message body with context about the change and why it was made"
                         .to_string(),
                 ),
             ];
-            self.add_issue(
+            self.add_message_error(
                 Rule::MessagePresence,
                 "No message body was found".to_string(),
-                Position::MessageLine { line: 2, column: 1 },
+                Position::MessageLine { line: 3, column: 1 },
                 context,
             )
         } else if width < 10 {
             let mut context = vec![];
             let line_count = self.message.lines().count();
+            let line_number = line_count + 1;
             if let Some(line) = self.message.lines().last() {
                 context.push(Context::message_line_hint(
-                    line_count - 1,
+                    line_number,
                     line.to_string(),
                     Range {
                         start: 0,
@@ -688,11 +679,11 @@ impl Commit {
                         .to_string(),
                 ));
             }
-            self.add_issue(
+            self.add_message_error(
                 Rule::MessagePresence,
                 "The message body is too short".to_string(),
                 Position::MessageLine {
-                    line: line_count,
+                    line: line_number,
                     column: 1,
                 },
                 context,
@@ -738,10 +729,9 @@ impl Commit {
                 if URL_REGEX.is_match(line) {
                     continue;
                 }
-                let line_index = index + 1; // + 1 for subject
-                let line_number = line_index + 1; // + 1 to normalize it
+                let line_number = index + 2; // + 1 for subject + 1 for zero index
                 let context = Context::message_line_hint(
-                    index,
+                    line_number,
                     line.to_string(),
                     Range {
                         start: line_stats.bytes_index,
@@ -756,7 +746,7 @@ impl Commit {
                         line_number
                     ),
                     Position::MessageLine {
-                        line: line_index,
+                        line: line_number,
                         column: line_stats.char_count + 1, // + 1 because the next char is the problem
                     },
                     vec![context],
@@ -766,7 +756,7 @@ impl Commit {
         }
 
         for (rule, message, position, context) in issues {
-            self.add_issue(rule, message, position, context)
+            self.add_message_error(rule, message, position, context)
         }
     }
 
@@ -786,7 +776,7 @@ impl Commit {
                 },
                 "Add changes to the commit or remove the commit".to_string(),
             );
-            self.add_issue(
+            self.add_error(
                 Rule::DiffPresence,
                 "No file changes found".to_string(),
                 Position::Diff,
@@ -795,19 +785,40 @@ impl Commit {
         }
     }
 
-    fn add_issue(
+    fn add_error(
         &mut self,
         rule: Rule,
         message: String,
         position: Position,
         context: Vec<Context>,
     ) {
-        self.issues.push(Issue {
+        self.issues
+            .push(Issue::error(rule, message, position, context))
+    }
+
+    fn add_subject_error(
+        &mut self,
+        rule: Rule,
+        message: String,
+        column: usize,
+        context: Vec<Context>,
+    ) {
+        self.add_error(
             rule,
             message,
-            position,
+            Position::Subject { line: 1, column },
             context,
-        })
+        )
+    }
+
+    fn add_message_error(
+        &mut self,
+        rule: Rule,
+        message: String,
+        position: Position,
+        context: Vec<Context>,
+    ) {
+        self.add_error(rule, message, position, context)
     }
 
     fn has_issue(&self, rule: Rule) -> bool {
@@ -919,7 +930,7 @@ mod tests {
     }
 
     fn subject_position(column: usize) -> Position {
-        Position::Subject { column }
+        Position::Subject { line: 1, column }
     }
 
     fn message_position(line: usize, column: usize) -> Position {
@@ -1713,7 +1724,7 @@ mod tests {
         let without_empty_line = validated_commit("Subject", "No empty line after subject");
         let issue = find_issue(without_empty_line.issues, &Rule::MessageEmptyFirstLine);
         assert_eq!(issue.message, "No empty line found below the subject");
-        assert_eq!(issue.position, message_position(1, 1));
+        assert_eq!(issue.position, message_position(2, 1));
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20|\n\
@@ -1738,7 +1749,7 @@ mod tests {
         let without_message = validated_commit("Subject", "");
         let issue = find_issue(without_message.issues, &Rule::MessagePresence);
         assert_eq!(issue.message, "No message body was found");
-        assert_eq!(issue.position, message_position(2, 1));
+        assert_eq!(issue.position, message_position(3, 1));
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20|\n\
@@ -1751,7 +1762,7 @@ mod tests {
         let short = validated_commit("Subject", "\nShort.");
         let issue = find_issue(short.issues, &Rule::MessagePresence);
         assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(2, 1));
+        assert_eq!(issue.position, message_position(3, 1));
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20|\n\
@@ -1762,7 +1773,7 @@ mod tests {
         let very_short = validated_commit("Subject".to_string(), "...".to_string());
         let issue = find_issue(very_short.issues, &Rule::MessagePresence);
         assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(1, 1));
+        assert_eq!(issue.position, message_position(2, 1));
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20|\n\
@@ -1773,7 +1784,7 @@ mod tests {
         let very_short = validated_commit("Subject".to_string(), ".\n.\nShort.\n".to_string());
         let issue = find_issue(very_short.issues, &Rule::MessagePresence);
         assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(3, 1));
+        assert_eq!(issue.position, message_position(4, 1));
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20|\n\
@@ -1807,7 +1818,7 @@ mod tests {
             issue.message,
             "Line 4 in the message body is longer than 72 characters"
         );
-        assert_eq!(issue.position, message_position(3, 73));
+        assert_eq!(issue.position, message_position(4, 73));
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20|\n\
@@ -1845,7 +1856,7 @@ mod tests {
             issue.message,
             "Line 2 in the message body is longer than 72 characters"
         );
-        assert_eq!(issue.position, message_position(1, 73));
+        assert_eq!(issue.position, message_position(2, 73));
         assert_eq!(
             formatted_context(&issue),
             "\x20\x20|\n\
