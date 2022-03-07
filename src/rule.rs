@@ -16,6 +16,7 @@ pub enum Rule {
     MessageEmptyFirstLine,
     MessagePresence,
     MessageLineLength,
+    MessageTicketNumber,
     DiffPresence,
     BranchNameTicketNumber,
     BranchNameLength,
@@ -40,6 +41,7 @@ impl fmt::Display for Rule {
             Rule::MessageEmptyFirstLine => "MessageEmptyFirstLine",
             Rule::MessagePresence => "MessagePresence",
             Rule::MessageLineLength => "MessageLineLength",
+            Rule::MessageTicketNumber => "MessageTicketNumber",
             Rule::DiffPresence => "DiffPresence",
             Rule::BranchNameTicketNumber => "BranchNameTicketNumber",
             Rule::BranchNameLength => "BranchNameLength",
@@ -66,6 +68,7 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "MessageEmptyFirstLine" => Some(Rule::MessageEmptyFirstLine),
         "MessagePresence" => Some(Rule::MessagePresence),
         "MessageLineLength" => Some(Rule::MessageLineLength),
+        "MessageTicketNumber" => Some(Rule::MessageTicketNumber),
         "DiffPresence" => Some(Rule::DiffPresence),
         _ => None,
     }

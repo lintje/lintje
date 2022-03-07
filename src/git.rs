@@ -341,6 +341,7 @@ pub fn comment_char() -> String {
 mod tests {
     use super::Commit;
     use super::{parse_commit, parse_commit_hook_format, CleanupMode, COMMIT_BODY_DELIMITER};
+    use crate::issue::{Issue, IssueType};
 
     fn assert_commit_is_ignored(result: &Option<Commit>) {
         match result {
@@ -395,7 +396,12 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
         assert!(commit.has_changes);
-        assert!(commit.issues.is_empty());
+        assert!(commit
+            .issues
+            .into_iter()
+            .filter(|i| i.r#type == IssueType::Error)
+            .collect::<Vec<Issue>>()
+            .is_empty());
     }
 
     #[test]

@@ -21,7 +21,7 @@ lazy_static! {
     // JIRA-123
     static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]{2,}-\d+").unwrap();
     // Match all GitHub and GitLab keywords
-    static ref SUBJECT_WITH_FIX_TICKET: Regex =
+    static ref CONTAINS_FIX_TICKET: Regex =
         Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+").unwrap();
     static ref SUBJECT_WITH_CLICHE: Regex = {
         let mut tempregex = RegexBuilder::new(r"^(fix(es|ed|ing)?|add(s|ed|ing)?|(updat|chang|remov|delet)(e|es|ed|ing))(\s+\w+)?$");
@@ -169,6 +169,7 @@ impl Commit {
             self.validate_subject_build_tags();
             self.validate_subject_punctuation();
             self.validate_subject_ticket_numbers();
+            self.validate_message_ticket_numbers();
             self.validate_message_empty_first_line();
             self.validate_message_presence();
             self.validate_message_line_length();
@@ -509,7 +510,7 @@ impl Commit {
                 }
             }
         }
-        if let Some(captures) = SUBJECT_WITH_FIX_TICKET.captures(subject) {
+        if let Some(captures) = CONTAINS_FIX_TICKET.captures(subject) {
             match captures.get(0) {
                 Some(capture) => {
                     let context = vec![Context::subject_hint(
@@ -760,6 +761,39 @@ impl Commit {
         }
     }
 
+    fn validate_message_ticket_numbers(&mut self) {
+        let message = &self.message.to_string();
+        if CONTAINS_FIX_TICKET.captures(message).is_none() {
+            let line_count = message.lines().count() + 1; // + 1 for subject
+            let last_line = if line_count == 1 {
+                self.subject.to_string()
+            } else {
+                message.lines().last().unwrap_or("").to_string()
+            };
+            let context = vec![
+                Context::message_line(line_count, last_line),
+                // Add empty line for spacing
+                Context::message_line(line_count + 1, "".to_string()),
+                // Suggestion because it indicates a suggested change?
+                Context::message_line_hint(
+                    line_count + 2,
+                    "Fixes #123".to_string(),
+                    Range { start: 0, end: 10 },
+                    "Consider adding a reference to a ticket or issue".to_string(),
+                ),
+            ];
+            self.add_hint(
+                Rule::MessageTicketNumber,
+                "The message body does not contain a ticket or issue number".to_string(),
+                Position::MessageLine {
+                    line: line_count + 2,
+                    column: 1,
+                },
+                context,
+            )
+        }
+    }
+
     fn validate_changes(&mut self) {
         if self.rule_ignored(Rule::DiffPresence) {
             return;
@@ -819,6 +853,11 @@ impl Commit {
         context: Vec<Context>,
     ) {
         self.add_error(rule, message, position, context)
+    }
+
+    fn add_hint(&mut self, rule: Rule, message: String, position: Position, context: Vec<Context>) {
+        self.issues
+            .push(Issue::hint(rule, message, position, context))
     }
 
     fn has_issue(&self, rule: Rule) -> bool {
@@ -1998,6 +2037,41 @@ mod tests {
                 invalid_long_ling_outside_indended_code_block,
             ),
             &Rule::MessageLineLength,
+        );
+    }
+
+    #[test]
+    fn test_validate_message_ticket_numbers() {
+        let message_with_ticket_number = [
+            "Beginning of message.",
+            "",
+            "Some explanation.",
+            "",
+            "Fixes #123",
+        ]
+        .join("\n");
+        assert_commit_valid_for(
+            &validated_commit("Subject".to_string(), message_with_ticket_number),
+            &Rule::MessageTicketNumber,
+        );
+
+        let message_without_ticket_number =
+            ["", "Beginning of message.", "", "Some explanation."].join("\n");
+        let without_ticket_number =
+            validated_commit("Subject".to_string(), message_without_ticket_number);
+        let issue = find_issue(without_ticket_number.issues, &Rule::MessageTicketNumber);
+        assert_eq!(
+            issue.message,
+            "The message body does not contain a ticket or issue number"
+        );
+        assert_eq!(issue.position, message_position(7, 1));
+        assert_eq!(
+            formatted_context(&issue),
+            "\x20\x20|\n\
+                   5 | Some explanation.\n\
+                   6 | \n\
+                   7 | Fixes #123\n\
+             \x20\x20| ^^^^^^^^^^ Consider adding a reference to a ticket or issue\n"
         );
     }
 

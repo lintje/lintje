@@ -4,6 +4,7 @@ use core::ops::Range;
 #[derive(Debug, PartialEq)]
 pub enum IssueType {
     Error,
+    Hint,
 }
 
 #[derive(Debug, PartialEq)]
@@ -19,6 +20,16 @@ impl Issue {
     pub fn error(rule: Rule, message: String, position: Position, context: Vec<Context>) -> Self {
         Self {
             r#type: IssueType::Error,
+            rule,
+            message,
+            position,
+            context,
+        }
+    }
+
+    pub fn hint(rule: Rule, message: String, position: Position, context: Vec<Context>) -> Self {
+        Self {
+            r#type: IssueType::Hint,
             rule,
             message,
             position,

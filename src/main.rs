@@ -29,6 +29,7 @@ use command::run_command;
 use commit::Commit;
 use formatter::{formatted_branch_issue, formatted_commit_issue};
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
+use issue::IssueType;
 use logger::Logger;
 use termcolor::{ColorChoice, StandardStream, WriteColor};
 
@@ -84,15 +85,21 @@ struct Lint {
     #[structopt(long = "no-color")]
     no_color: bool,
 
+    /// Disable hints
+    #[structopt(long = "no-hints")]
+    no_hints: bool,
+
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.
     #[structopt(name = "commit (range)")]
     selection: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct Options {
     debug: bool,
     color: bool,
+    hints: bool,
 }
 
 fn main() {
@@ -110,6 +117,7 @@ fn main() {
     let options = Options {
         debug: args.debug,
         color: with_color(args.color, args.no_color),
+        hints: !args.no_hints,
     };
     handle_result(print_lint_result(commit_result, branch_result, options));
 }
@@ -191,7 +199,8 @@ fn print_lint_result(
     options: Options,
 ) -> io::Result<()> {
     let mut out = buffer_writer(options.color);
-    let mut issue_count = 0;
+    let mut error_count = 0;
+    let mut hint_count = 0;
     let mut commit_count = 0;
     let mut ignored_commit_count = 0;
     let mut branch_message = "";
@@ -206,8 +215,19 @@ fn print_lint_result(
             commit_count += 1;
             if !commit.is_valid() {
                 for issue in &commit.issues {
-                    issue_count += 1;
-                    formatted_commit_issue(&mut out, commit, issue)?;
+                    let show = match issue.r#type {
+                        IssueType::Error => {
+                            error_count += 1;
+                            true
+                        }
+                        IssueType::Hint => {
+                            hint_count += 1;
+                            options.hints
+                        }
+                    };
+                    if show {
+                        formatted_commit_issue(&mut out, commit, issue)?;
+                    }
                 }
             }
         }
@@ -220,7 +240,10 @@ fn print_lint_result(
                 branch_message = " and branch";
                 if !branch.is_valid() {
                     for issue in &branch.issues {
-                        issue_count += 1;
+                        match issue.r#type {
+                            IssueType::Error => error_count += 1,
+                            IssueType::Hint => hint_count += 1,
+                        }
                         formatted_branch_issue(&mut out, branch, issue)?;
                     }
                 }
@@ -235,7 +258,7 @@ fn print_lint_result(
         "{} commit{}{} inspected, ",
         commit_count, commit_plural, branch_message
     )?;
-    print_issue_count(&mut out, issue_count)?;
+    print_issue_counts(&mut out, error_count, hint_count, options.hints)?;
     if ignored_commit_count > 0 || options.debug {
         let ignored_plural = if ignored_commit_count != 1 { "s" } else { "" };
         write!(
@@ -257,23 +280,43 @@ fn print_lint_result(
     if has_error {
         std::process::exit(2)
     }
-    if issue_count > 0 {
+    if error_count > 0 {
         std::process::exit(1)
     }
     Ok(())
 }
 
-fn print_issue_count(out: &mut impl WriteColor, issue_count: usize) -> io::Result<()> {
-    let issue_plural = if issue_count != 1 { "s" } else { "" };
-    let color = if issue_count > 0 {
+fn print_issue_counts(
+    out: &mut impl WriteColor,
+    error_count: usize,
+    hint_count: usize,
+    show_hints: bool,
+) -> io::Result<()> {
+    // Errors
+    let error_color = if error_count > 0 {
         formatter::red_color()
     } else {
         formatter::green_color()
     };
-    out.set_color(&color)?;
-    write!(out, "{} issue{} detected", issue_count, issue_plural)?;
+    out.set_color(&error_color)?;
+    write!(
+        out,
+        "{} {} detected",
+        error_count,
+        pluralize("error", error_count)
+    )?;
     out.reset()?;
+
+    if hint_count > 0 && show_hints {
+        // Hints
+        write!(out, ", {} {}", hint_count, pluralize("hint", hint_count))?;
+    }
     Ok(())
+}
+
+fn pluralize(label: &str, count: usize) -> String {
+    let plural = if count != 1 { "s" } else { "" };
+    format!("{}{}", label, plural)
 }
 
 fn init_logger(debug: bool) {
@@ -538,8 +581,12 @@ mod tests {
         create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
-        assert.stdout("1 commit and branch inspected, 0 issues detected\n");
+        let assert = cmd
+            .args(["--no-color", "--no-hints"])
+            .current_dir(dir)
+            .assert()
+            .success();
+        assert.stdout("1 commit and branch inspected, 0 errors detected\n");
     }
 
     #[test]
@@ -550,9 +597,13 @@ mod tests {
         create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.arg("--color").current_dir(dir).assert().success();
+        let assert = cmd
+            .args(["--color", "--no-hints"])
+            .current_dir(dir)
+            .assert()
+            .success();
         assert.stdout(
-            "1 commit and branch inspected, \u{1b}[0m\u{1b}[32m0 issues detected\u{1b}[0m\n",
+            "1 commit and branch inspected, \u{1b}[0m\u{1b}[32m0 errors detected\u{1b}[0m\n",
         );
     }
 
@@ -565,7 +616,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg("--no-color")
+            .args(["--no-color", "--no-hints"])
             .current_dir(dir)
             .assert()
             .failure()
@@ -594,7 +645,7 @@ mod tests {
             \x20\x203 | \n\
             \x20\x20  | ^ Add a message body with context about the change and why it was made\n\
             \n\
-            1 commit and branch inspected, 3 issues detected\n"
+            1 commit and branch inspected, 3 errors detected\n"
         );
     }
 
@@ -607,7 +658,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg("--color")
+            .args(["--color", "--no-hints"])
             .current_dir(dir)
             .assert()
             .failure()
@@ -636,7 +687,7 @@ mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m \n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^ Add a message body with context about the change and why it was made\u{1b}[0m\n\
             \n\
-            1 commit and branch inspected, \u{1b}[0m\u{1b}[31m3 issues detected\u{1b}[0m\n"
+            1 commit and branch inspected, \u{1b}[0m\u{1b}[31m3 errors detected\u{1b}[0m\n"
         );
     }
 
@@ -649,7 +700,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg("--no-color")
+            .args(["--no-color"])
             .current_dir(dir)
             .assert()
             .failure()
@@ -659,7 +710,7 @@ mod tests {
                 "MessagePresence: No message body was found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 1 issue detected",
+                "1 commit and branch inspected, 1 error detected",
             ));
     }
 
@@ -672,7 +723,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg("--no-color")
+            .args(["--no-color"])
             .current_dir(dir)
             .assert()
             .failure()
@@ -685,7 +736,7 @@ mod tests {
                 "DiffPresence: No file changes found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 2 issues detected",
+                "1 commit and branch inspected, 2 errors detected",
             ));
     }
 
@@ -702,8 +753,12 @@ mod tests {
         );
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
-        assert.stdout("0 commits and branch inspected, 0 issues detected (1 commit ignored)\n");
+        let assert = cmd
+            .args(["--no-color", "--no-hints"])
+            .current_dir(dir)
+            .assert()
+            .success();
+        assert.stdout("0 commits and branch inspected, 0 errors detected (1 commit ignored)\n");
     }
 
     #[test]
@@ -719,8 +774,12 @@ mod tests {
         );
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
-        let assert = cmd.arg("--color").current_dir(dir).assert().success();
-        assert.stdout("0 commits and branch inspected, \u{1b}[0m\u{1b}[32m0 issues detected\u{1b}[0m (1 commit ignored)\n");
+        let assert = cmd
+            .args(["--color", "--no-hints"])
+            .current_dir(dir)
+            .assert()
+            .success();
+        assert.stdout("0 commits and branch inspected, \u{1b}[0m\u{1b}[32m0 errors detected\u{1b}[0m (1 commit ignored)\n");
     }
 
     #[test]
@@ -732,12 +791,12 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .args(["--no-color", "--debug"])
+            .args(["--no-color", "--no-hints", "--debug"])
             .current_dir(dir)
             .assert()
             .success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 issues detected (0 commits ignored)",
+            "1 commit and branch inspected, 0 errors detected (0 commits ignored)",
         ));
     }
 
@@ -769,7 +828,7 @@ mod tests {
         )
         .eval(&output));
         assert.stdout(predicate::str::contains(
-            "2 commits and branch inspected, 5 issues detected",
+            "2 commits and branch inspected, 5 errors detected",
         ));
     }
 
@@ -802,7 +861,7 @@ mod tests {
                 "DiffPresence: No file changes found",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 3 issues detected",
+                "1 commit and branch inspected, 3 errors detected",
             ));
     }
 
@@ -826,7 +885,7 @@ mod tests {
             .assert()
             .success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 issues detected",
+            "1 commit and branch inspected, 0 errors detected",
         ));
     }
 
@@ -915,7 +974,7 @@ mod tests {
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--no-color").current_dir(dir).assert().success();
         assert.stdout(predicate::str::contains(
-            "1 commit and branch inspected, 0 issues detected",
+            "1 commit and branch inspected, 0 errors detected",
         ));
     }
 
@@ -929,7 +988,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd
-            .arg("--no-color")
+            .args(["--no-color", "--no-hints"])
             .current_dir(dir)
             .assert()
             .failure()
@@ -950,7 +1009,7 @@ mod tests {
                 \x20\x20| ^^^^^^^ Describe the change in more detail\n"
             ))
             .stdout(predicate::str::contains(
-                    "1 commit and branch inspected, 2 issues detected",
+                    "1 commit and branch inspected, 2 errors detected",
             ));
     }
 
@@ -969,7 +1028,7 @@ mod tests {
             .assert()
             .success();
         assert.stdout(predicate::str::contains(
-            "1 commit inspected, 0 issues detected",
+            "1 commit inspected, 0 errors detected",
         ));
     }
 }
