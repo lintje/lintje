@@ -3,7 +3,7 @@ use termcolor::{Color, ColorSpec, WriteColor};
 
 use crate::branch::Branch;
 use crate::commit::Commit;
-use crate::issue::{Issue, Position};
+use crate::issue::{Issue, IssueType, Position};
 use crate::utils::display_width;
 
 pub fn red_color() -> ColorSpec {
@@ -25,11 +25,30 @@ pub fn green_color() -> ColorSpec {
     cs
 }
 
+pub fn blue_color() -> ColorSpec {
+    let mut cs = ColorSpec::new();
+    cs.set_fg(Some(Color::Blue));
+    cs
+}
+
+pub fn cyan_color() -> ColorSpec {
+    let mut cs = ColorSpec::new();
+    cs.set_fg(Some(Color::Cyan));
+    cs
+}
+
 fn muted_color() -> ColorSpec {
     let mut cs = ColorSpec::new();
     cs.set_fg(Some(Color::Blue));
     cs.set_intense(true);
     cs
+}
+
+pub fn issue_type_color(issue_type: &IssueType) -> ColorSpec {
+    match issue_type {
+        IssueType::Error => red_color(),
+        IssueType::Hint => blue_color(),
+    }
 }
 
 pub fn formatted_position(out: &mut impl WriteColor, position: &Position) -> io::Result<()> {
@@ -54,7 +73,7 @@ pub fn formatted_commit_issue(
     commit: &Commit,
     issue: &Issue,
 ) -> io::Result<()> {
-    out.set_color(&red_color())?;
+    out.set_color(&issue_type_color(&issue.r#type))?;
     write!(out, "{}", issue.rule)?;
     out.reset()?;
     writeln!(out, ": {}", issue.message)?;
@@ -80,7 +99,7 @@ pub fn formatted_branch_issue(
     branch: &Branch,
     issue: &Issue,
 ) -> io::Result<()> {
-    out.set_color(&red_color())?;
+    out.set_color(&issue_type_color(&issue.r#type))?;
     write!(out, "{}", issue.rule)?;
     out.reset()?;
     writeln!(out, ": {}", issue.message)?;
@@ -147,12 +166,16 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                     Some(v) => display_width(v),
                     None => range.len(),
                 };
+                let message_color = match issue.r#type {
+                    IssueType::Error => bright_red_color(),
+                    IssueType::Hint => cyan_color(),
+                };
 
                 let leading_spaces = " ".repeat(leading);
                 let underline = "^".repeat(rest);
                 out.set_color(&muted_color())?;
                 write!(out, "{}|", empty_prefix)?;
-                out.set_color(&bright_red_color())?;
+                out.set_color(&message_color)?;
                 write!(out, " {}{} {}", leading_spaces, underline, message)?;
                 out.reset()?;
                 writeln!(out)?;
@@ -233,7 +256,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_issue_with_color() {
+    fn test_formatted_commit_error_with_color() {
         let commit = commit(None, "Subject", "Message");
         let context = vec![
             Context::subject("Subject".to_string()),
@@ -242,7 +265,7 @@ pub mod tests {
                 3,
                 "Message body line".to_string(),
                 Range { start: 1, end: 3 },
-                "The hint".to_string(),
+                "The error hint".to_string(),
             ),
         ];
         let issue = Issue::error(
@@ -260,7 +283,39 @@ pub mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Subject\n\
             \u{1b}[0m\u{1b}[38;5;12m  2 |\u{1b}[0m Message body\n\
             \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m Message body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m  ^^ The hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m  ^^ The error hint\u{1b}[0m\n\n"
+        );
+    }
+
+    #[test]
+    fn test_formatted_commit_hint_with_color() {
+        let commit = commit(None, "Subject", "Message");
+        let context = vec![
+            Context::subject("Subject".to_string()),
+            Context::message_line(2, "Message body".to_string()),
+            Context::message_line_hint(
+                3,
+                "Message body line".to_string(),
+                Range { start: 1, end: 3 },
+                "The hint".to_string(),
+            ),
+        ];
+        let issue = Issue::hint(
+            Rule::SubjectLength,
+            "The hint message".to_string(),
+            Position::Subject { line: 1, column: 1 },
+            context,
+        );
+        let output = commit_issue_color(&commit, &issue);
+        assert_eq!(
+            output,
+            "\u{1b}[0m\u{1b}[34mSubjectLength\u{1b}[0m: The hint message\n\
+            \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Subject\n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Subject\n\
+            \u{1b}[0m\u{1b}[38;5;12m  2 |\u{1b}[0m Message body\n\
+            \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m Message body line\n\
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[36m  ^^ The hint\u{1b}[0m\n\n"
         );
     }
 
