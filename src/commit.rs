@@ -187,7 +187,7 @@ impl Commit {
         let subject = &self.subject;
         if SUBJECT_WITH_MERGE_REMOTE_BRANCH.is_match(subject) {
             let subject_length = subject.len();
-            let context = Context::subject_hint(
+            let context = Context::subject_error(
                 subject.to_string(),
                 Range { start: 0, end: subject_length },
                 "Rebase on the remote branch, rather than merging the remote branch into the local branch".to_string(),
@@ -208,7 +208,7 @@ impl Commit {
 
         let subject = &self.subject;
         if subject.starts_with("fixup! ") {
-            let context = Context::subject_hint(
+            let context = Context::subject_error(
                 self.subject.to_string(),
                 Range { start: 0, end: 6 },
                 "Rebase fixup commits before pushing or merging".to_string(),
@@ -220,7 +220,7 @@ impl Commit {
                 vec![context],
             )
         } else if subject.starts_with("squash! ") {
-            let context = Context::subject_hint(
+            let context = Context::subject_error(
                 self.subject.to_string(),
                 Range { start: 0, end: 7 },
                 "Rebase squash commits before pushing or merging".to_string(),
@@ -242,7 +242,7 @@ impl Commit {
         let (width, line_stats) = line_length_stats(&self.subject, 50);
 
         if width == 0 {
-            let context = Context::subject_hint(
+            let context = Context::subject_error(
                 self.subject.to_string(),
                 Range { start: 0, end: 1 },
                 "Add a subject to describe the change".to_string(),
@@ -258,7 +258,7 @@ impl Commit {
 
         if width > 50 {
             let total_width_index = self.subject.len();
-            let context = Context::subject_hint(
+            let context = Context::subject_error(
                 self.subject.to_string(),
                 Range {
                     start: line_stats.bytes_index,
@@ -276,7 +276,7 @@ impl Commit {
         }
         if width < 5 {
             let total_width_index = self.subject.len();
-            let context = Context::subject_hint(
+            let context = Context::subject_error(
                 self.subject.to_string(),
                 Range {
                     start: 0,
@@ -302,7 +302,7 @@ impl Commit {
             Some(raw_word) => {
                 let word = raw_word.to_lowercase();
                 if MOOD_WORDS.contains(&word.as_str()) {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         Range {
                             start: 0,
@@ -335,7 +335,7 @@ impl Commit {
         match self.subject.chars().next() {
             Some(character) => {
                 if character.is_whitespace() {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         Range {
                             start: 0,
@@ -372,7 +372,7 @@ impl Commit {
         match self.subject.chars().next() {
             Some(character) => {
                 if character.is_lowercase() {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         Range {
                             start: 0,
@@ -405,7 +405,7 @@ impl Commit {
         if let Some(captures) = SUBJECT_STARTS_WITH_EMOJI.captures(&self.subject) {
             match captures.get(0) {
                 Some(emoji) => {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         emoji.range(),
                         "Remove emoji from the start of the subject".to_string(),
@@ -426,7 +426,7 @@ impl Commit {
         match self.subject.chars().next() {
             Some(character) => {
                 if is_punctuation(&character) {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         Range {
                             start: 0,
@@ -456,7 +456,7 @@ impl Commit {
             Some(character) => {
                 if is_punctuation(&character) {
                     let subject_length = self.subject.len();
-                    let context = Context::subject_hint(
+                    let context = Context::subject_error(
                         self.subject.to_string(),
                         Range {
                             start: subject_length - character.len_utf8(),
@@ -493,7 +493,7 @@ impl Commit {
         if let Some(captures) = SUBJECT_WITH_TICKET.captures(subject) {
             match captures.get(0) {
                 Some(capture) => {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         capture.range(),
                         "Move the ticket number to the message body".to_string(),
@@ -513,7 +513,7 @@ impl Commit {
         if let Some(captures) = CONTAINS_FIX_TICKET.captures(subject) {
             match captures.get(0) {
                 Some(capture) => {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         capture.range(),
                         "Move the ticket number to the message body".to_string(),
@@ -542,7 +542,7 @@ impl Commit {
             // Get first match from captures, the prefix
             match captures.get(1) {
                 Some(capture) => {
-                    let context = vec![Context::subject_hint(
+                    let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         capture.range(),
                         "Remove the prefix from the subject".to_string(),
@@ -568,7 +568,7 @@ impl Commit {
         if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {
             match captures.get(1) {
                 Some(tag) => {
-                    let context = Context::subject_hint(
+                    let context = Context::subject_error(
                         subject.to_string(),
                         tag.range(),
                         "Move build tag to message body".to_string(),
@@ -593,7 +593,7 @@ impl Commit {
         let subject = &self.subject.to_lowercase();
         let wip_commit = subject.starts_with("wip ") || subject == &"wip".to_string();
         if wip_commit || SUBJECT_WITH_CLICHE.is_match(subject) {
-            let context = vec![Context::subject_hint(
+            let context = vec![Context::subject_error(
                 self.subject.to_string(),
                 Range {
                     start: 0,
@@ -619,7 +619,7 @@ impl Commit {
             if !line.is_empty() {
                 let context = vec![
                     Context::subject(self.subject.to_string()),
-                    Context::message_line_hint(
+                    Context::message_line_error(
                         2,
                         line.to_string(),
                         Range {
@@ -650,7 +650,7 @@ impl Commit {
             let context = vec![
                 Context::subject(self.subject.to_string()),
                 Context::message_line(2, "".to_string()),
-                Context::message_line_hint(
+                Context::message_line_error(
                     3,
                     "".to_string(),
                     Range { start: 0, end: 1 },
@@ -669,7 +669,7 @@ impl Commit {
             let line_count = self.message.lines().count();
             let line_number = line_count + 1;
             if let Some(line) = self.message.lines().last() {
-                context.push(Context::message_line_hint(
+                context.push(Context::message_line_error(
                     line_number,
                     line.to_string(),
                     Range {
@@ -731,7 +731,7 @@ impl Commit {
                     continue;
                 }
                 let line_number = index + 2; // + 1 for subject + 1 for zero index
-                let context = Context::message_line_hint(
+                let context = Context::message_line_error(
                     line_number,
                     line.to_string(),
                     Range {
@@ -775,7 +775,7 @@ impl Commit {
                 // Add empty line for spacing
                 Context::message_line(line_count + 1, "".to_string()),
                 // Suggestion because it indicates a suggested change?
-                Context::message_line_hint(
+                Context::message_line_error(
                     line_count + 2,
                     "Fixes #123".to_string(),
                     Range { start: 0, end: 10 },
@@ -802,7 +802,7 @@ impl Commit {
         if !self.has_changes {
             let context_line = "0 files changed, 0 insertions(+), 0 deletions(-)".to_string();
             let context_length = context_line.len();
-            let context = Context::diff_hint(
+            let context = Context::diff_error(
                 context_line,
                 Range {
                     start: 0,

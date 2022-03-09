@@ -50,7 +50,7 @@ impl Branch {
         let name = &self.name;
         let width = display_width(name);
         if width < 4 {
-            let context = vec![Context::branch_hint(
+            let context = vec![Context::branch_error(
                 name.to_string(),
                 Range {
                     start: 0,
@@ -78,7 +78,7 @@ impl Branch {
                 (Some(_prefix), Some(_suffix), _) => true,
             };
             if !valid {
-                let context = vec![Context::branch_hint(
+                let context = vec![Context::branch_error(
                     name.to_string(),
                     Range {
                         start: 0,
@@ -101,7 +101,7 @@ impl Branch {
             Some(character) => {
                 if is_punctuation(character) {
                     let branch = &self.name;
-                    let context = vec![Context::branch_hint(
+                    let context = vec![Context::branch_error(
                         branch.to_string(),
                         Range {
                             start: 0,
@@ -129,7 +129,7 @@ impl Branch {
                 if is_punctuation(character) {
                     let branch_length = self.name.len();
                     let branch = &self.name;
-                    let context = vec![Context::branch_hint(
+                    let context = vec![Context::branch_error(
                         branch.to_string(),
                         Range {
                             start: branch_length - character.len_utf8(),
@@ -159,7 +159,7 @@ impl Branch {
     fn validate_cliche(&mut self) {
         let branch = &self.name.to_lowercase();
         if BRANCH_WITH_CLICHE.is_match(branch) {
-            let context = vec![Context::branch_hint(
+            let context = vec![Context::branch_error(
                 branch.to_string(),
                 Range {
                     start: 0,

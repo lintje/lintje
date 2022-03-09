@@ -64,7 +64,7 @@ impl Context {
         }
     }
 
-    pub fn subject_hint(content: String, range: Range<usize>, message: String) -> Self {
+    pub fn subject_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
             line: Some(1),
             content,
@@ -82,7 +82,7 @@ impl Context {
         }
     }
 
-    pub fn message_line_hint(
+    pub fn message_line_error(
         line: usize,
         content: String,
         range: Range<usize>,
@@ -96,7 +96,7 @@ impl Context {
         }
     }
 
-    pub fn diff_hint(content: String, range: Range<usize>, message: String) -> Self {
+    pub fn diff_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
             line: None,
             content,
@@ -105,7 +105,7 @@ impl Context {
         }
     }
 
-    pub fn branch_hint(content: String, range: Range<usize>, message: String) -> Self {
+    pub fn branch_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
             line: None,
             content,

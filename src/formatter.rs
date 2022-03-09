@@ -209,8 +209,8 @@ pub mod tests {
         )
     }
 
-    fn subject_issue_hint(value: &str, message: &str, range: Range<usize>) -> Issue {
-        let context = Context::subject_hint(value.to_string(), range, message.to_string());
+    fn subject_issue_error(value: &str, message: &str, range: Range<usize>) -> Issue {
+        let context = Context::subject_error(value.to_string(), range, message.to_string());
         Issue::error(
             Rule::SubjectLength,
             "Dummy message".to_string(),
@@ -261,7 +261,7 @@ pub mod tests {
         let context = vec![
             Context::subject("Subject".to_string()),
             Context::message_line(2, "Message body".to_string()),
-            Context::message_line_hint(
+            Context::message_line_error(
                 3,
                 "Message body line".to_string(),
                 Range { start: 1, end: 3 },
@@ -293,7 +293,7 @@ pub mod tests {
         let context = vec![
             Context::subject("Subject".to_string()),
             Context::message_line(2, "Message body".to_string()),
-            Context::message_line_hint(
+            Context::message_line_error(
                 3,
                 "Message body line".to_string(),
                 Range { start: 1, end: 3 },
@@ -360,9 +360,9 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_issue_subject_hint() {
+    fn test_formatted_commit_issue_subject_error() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
-        let context = vec![Context::subject_hint(
+        let context = vec![Context::subject_error(
             "Subject".to_string(),
             Range { start: 1, end: 3 },
             "The hint".to_string(),
@@ -408,11 +408,11 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_issue_message_line_hint() {
+    fn test_formatted_commit_issue_message_line_error() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
         let context = vec![
             Context::message_line(11, "Message line".to_string()),
-            Context::message_line_hint(
+            Context::message_line_error(
                 12,
                 "Message line with hint".to_string(),
                 Range { start: 3, end: 10 },
@@ -441,9 +441,9 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_commit_issue_diff_hint() {
+    fn test_formatted_commit_issue_diff_error() {
         let commit = commit(Some("1234567".to_string()), "Subject", "Message");
-        let context = vec![Context::diff_hint(
+        let context = vec![Context::diff_error(
             "Diff line".to_string(),
             Range { start: 3, end: 5 },
             "My hint".to_string(),
@@ -466,9 +466,9 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_branch_issue_branch_hint() {
+    fn test_formatted_branch_issue_branch_error() {
         let branch = Branch::new("branch-name".to_string());
-        let context = vec![Context::branch_hint(
+        let context = vec![Context::branch_error(
             "branch-name".to_string(),
             Range { start: 3, end: 5 },
             "My hint".to_string(),
@@ -491,9 +491,9 @@ pub mod tests {
     }
 
     #[test]
-    fn test_formatted_branch_issue_branch_hint_with_color() {
+    fn test_formatted_branch_issue_branch_error_with_color() {
         let branch = Branch::new("branch-name".to_string());
-        let context = vec![Context::branch_hint(
+        let context = vec![Context::branch_error(
             "branch-name".to_string(),
             Range { start: 3, end: 5 },
             "My hint".to_string(),
@@ -543,7 +543,7 @@ pub mod tests {
             Context::message_line(9, "Line 9".to_string()),
             Context::message_line(10, "Line 10".to_string()),
             Context::message_line(11, "Line 11".to_string()),
-            Context::message_line_hint(
+            Context::message_line_error(
                 12,
                 "Line 12".to_string(),
                 Range { start: 1, end: 2 },
@@ -569,7 +569,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_branch() {
-        let context = vec![Context::branch_hint(
+        let context = vec![Context::branch_error(
             "branch-name".to_string(),
             Range { start: 1, end: 3 },
             "A message".to_string(),
@@ -590,7 +590,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_diff() {
-        let context = vec![Context::diff_hint(
+        let context = vec![Context::diff_error(
             "Some diff".to_string(),
             Range { start: 1, end: 3 },
             "A message".to_string(),
@@ -611,7 +611,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_ascii() {
-        let v_start = subject_issue_hint("Lorem ipsum", "A lorem", Range { start: 0, end: 5 });
+        let v_start = subject_issue_error("Lorem ipsum", "A lorem", Range { start: 0, end: 5 });
         assert_eq!(
             formatted_context(&v_start),
             "\x20\x20|\n\
@@ -619,7 +619,7 @@ pub mod tests {
              \x20\x20| ^^^^^ A lorem\n"
         );
 
-        let v_end = subject_issue_hint("Lorem ipsum", "A sum", Range { start: 8, end: 11 });
+        let v_end = subject_issue_error("Lorem ipsum", "A sum", Range { start: 8, end: 11 });
         assert_eq!(
             formatted_context(&v_end),
             "\x20\x20|\n\
@@ -627,7 +627,7 @@ pub mod tests {
              \x20\x20|         ^^^ A sum\n"
         );
 
-        let v_middle = subject_issue_hint("Lorem ipsum", "A space", Range { start: 5, end: 6 });
+        let v_middle = subject_issue_error("Lorem ipsum", "A space", Range { start: 5, end: 6 });
         assert_eq!(
             formatted_context(&v_middle),
             "\x20\x20|\n\
@@ -638,7 +638,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_whitespace() {
-        let v_space = subject_issue_hint(" Lorem ipsum", "A space", Range { start: 0, end: 1 });
+        let v_space = subject_issue_error(" Lorem ipsum", "A space", Range { start: 0, end: 1 });
         assert_eq!(
             formatted_context(&v_space),
             "\x20\x20|\n\
@@ -646,7 +646,7 @@ pub mod tests {
              \x20\x20| ^ A space\n"
         );
 
-        let v_space = subject_issue_hint("\x20Lorem ipsum", "A space", Range { start: 0, end: 1 });
+        let v_space = subject_issue_error("\x20Lorem ipsum", "A space", Range { start: 0, end: 1 });
         assert_eq!(
             formatted_context(&v_space),
             "\x20\x20|\n\
@@ -654,7 +654,7 @@ pub mod tests {
              \x20\x20| ^ A space\n"
         );
 
-        let v_tab = subject_issue_hint(
+        let v_tab = subject_issue_error(
             "\tLorem ipsum",
             "A tab",
             Range {
@@ -677,7 +677,7 @@ pub mod tests {
         //
         // This test makes sure the formatted_context function points to the single column, because
         // it has a display width of one, and not two columns because it's two characters.
-        let v = subject_issue_hint(
+        let v = subject_issue_error(
             "This is a̐ char with an accent",
             "Mark accent",
             Range { start: 8, end: 11 },
@@ -692,7 +692,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_emoji() {
-        let v = subject_issue_hint("Aa😀Bb", "Mark emoji", Range { start: 2, end: 4 });
+        let v = subject_issue_error("Aa😀Bb", "Mark emoji", Range { start: 2, end: 4 });
         assert_eq!(
             formatted_context(&v),
             "\x20\x20|\n\
@@ -700,7 +700,7 @@ pub mod tests {
              \x20\x20|   ^^ Mark emoji\n"
         );
 
-        let v = subject_issue_hint("Aa👍Bb", "Mark emoji", Range { start: 2, end: 4 });
+        let v = subject_issue_error("Aa👍Bb", "Mark emoji", Range { start: 2, end: 4 });
         assert_eq!(
             formatted_context(&v),
             "\x20\x20|\n\
@@ -708,7 +708,7 @@ pub mod tests {
              \x20\x20|   ^^ Mark emoji\n"
         );
 
-        let v = subject_issue_hint(
+        let v = subject_issue_error(
             "Fix ❤️ in controller Fix #123",
             "Mark fix ticket",
             Range { start: 25, end: 33 },
@@ -723,7 +723,7 @@ pub mod tests {
 
     #[test]
     fn formatted_context_double_width() {
-        let v = subject_issue_hint(
+        let v = subject_issue_error(
             "ああああああああああああああああああああああああああ",
             "Mark double width character",
             Range { start: 75, end: 78 },
