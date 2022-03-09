@@ -47,7 +47,15 @@ pub enum Position {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum ContextType {
+    Plain,
+    Error,
+    Addition,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct Context {
+    pub r#type: ContextType,
     pub line: Option<usize>,
     pub content: String,
     pub range: Option<Range<usize>>,
@@ -57,6 +65,7 @@ pub struct Context {
 impl Context {
     pub fn subject(content: String) -> Self {
         Self {
+            r#type: ContextType::Plain,
             line: Some(1),
             content,
             range: None,
@@ -66,6 +75,7 @@ impl Context {
 
     pub fn subject_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
+            r#type: ContextType::Error,
             line: Some(1),
             content,
             range: Some(range),
@@ -75,6 +85,7 @@ impl Context {
 
     pub fn message_line(line: usize, content: String) -> Self {
         Self {
+            r#type: ContextType::Plain,
             line: Some(line),
             content,
             range: None,
@@ -89,6 +100,22 @@ impl Context {
         message: String,
     ) -> Self {
         Self {
+            r#type: ContextType::Error,
+            line: Some(line),
+            content,
+            range: Some(range),
+            message: Some(message),
+        }
+    }
+
+    pub fn message_line_addition(
+        line: usize,
+        content: String,
+        range: Range<usize>,
+        message: String,
+    ) -> Self {
+        Self {
+            r#type: ContextType::Addition,
             line: Some(line),
             content,
             range: Some(range),
@@ -98,6 +125,7 @@ impl Context {
 
     pub fn diff_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
+            r#type: ContextType::Error,
             line: None,
             content,
             range: Some(range),
@@ -107,6 +135,7 @@ impl Context {
 
     pub fn branch_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
+            r#type: ContextType::Error,
             line: None,
             content,
             range: Some(range),

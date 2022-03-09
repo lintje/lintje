@@ -3,7 +3,7 @@ use termcolor::{Color, ColorSpec, WriteColor};
 
 use crate::branch::Branch;
 use crate::commit::Commit;
-use crate::issue::{Issue, IssueType, Position};
+use crate::issue::{ContextType, Issue, IssueType, Position};
 use crate::utils::display_width;
 
 pub fn red_color() -> ColorSpec {
@@ -166,16 +166,22 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                     Some(v) => display_width(v),
                     None => range.len(),
                 };
-                let message_color = match issue.r#type {
-                    IssueType::Error => bright_red_color(),
-                    IssueType::Hint => cyan_color(),
+                let (message_color, underline_char) = match context.r#type {
+                    ContextType::Plain => {
+                        error!("Unknown scenario occurs with ContextType::Plain formatting");
+                        (None, "x")
+                    }
+                    ContextType::Error => (Some(bright_red_color()), "^"),
+                    ContextType::Addition => (Some(cyan_color()), "-"),
                 };
 
                 let leading_spaces = " ".repeat(leading);
-                let underline = "^".repeat(rest);
+                let underline = underline_char.repeat(rest);
                 out.set_color(&muted_color())?;
                 write!(out, "{}|", empty_prefix)?;
-                out.set_color(&message_color)?;
+                if let Some(color) = message_color {
+                    out.set_color(&color)?;
+                }
                 write!(out, " {}{} {}", leading_spaces, underline, message)?;
                 out.reset()?;
                 writeln!(out)?;
@@ -293,7 +299,7 @@ pub mod tests {
         let context = vec![
             Context::subject("Subject".to_string()),
             Context::message_line(2, "Message body".to_string()),
-            Context::message_line_error(
+            Context::message_line_addition(
                 3,
                 "Message body line".to_string(),
                 Range { start: 1, end: 3 },
@@ -315,7 +321,7 @@ pub mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Subject\n\
             \u{1b}[0m\u{1b}[38;5;12m  2 |\u{1b}[0m Message body\n\
             \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m Message body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[36m  ^^ The hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[36m  -- The hint\u{1b}[0m\n\n"
         );
     }
 
@@ -437,6 +443,39 @@ pub mod tests {
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with hint\n\
             \x20\x20   |    ^^^^^^^ My hint\n\n"
+        );
+    }
+
+    #[test]
+    fn test_formatted_commit_issue_message_line_addition() {
+        let commit = commit(Some("1234567".to_string()), "Subject", "Message");
+        let context = vec![
+            Context::message_line(11, "Message line".to_string()),
+            Context::message_line_addition(
+                12,
+                "Message line with addition".to_string(),
+                Range { start: 3, end: 10 },
+                "My addition hint".to_string(),
+            ),
+        ];
+        let issue = Issue::hint(
+            Rule::MessageLineLength,
+            "The hint message".to_string(),
+            Position::MessageLine {
+                line: 11,
+                column: 50,
+            },
+            context,
+        );
+        let output = commit_issue(&commit, &issue);
+        assert_eq!(
+            output,
+            "MessageLineLength: The hint message\n\
+            \x20\x201234567:11:50: Subject\n\
+            \x20\x20   |\n\
+            \x20\x2011 | Message line\n\
+            \x20\x2012 | Message line with addition\n\
+            \x20\x20   |    ------- My addition hint\n\n"
         );
     }
 

@@ -510,11 +510,24 @@ impl Commit {
 
     fn add_subject_ticket_number_error(&mut self, capture: regex::Match) {
         let subject = self.subject.to_string();
-        let context = vec![Context::subject_error(
-            subject,
-            capture.range(),
-            "Move the ticket number to the message body".to_string(),
-        )];
+        let line_count = self.message.lines().count();
+        let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
+        let context = vec![
+            Context::subject_error(
+                subject,
+                capture.range(),
+                "Remove the ticket number from the subject".to_string(),
+            ),
+            Context::message_line_addition(
+                base_line_count,
+                capture.as_str().to_string(),
+                Range {
+                    start: 0,
+                    end: capture.range().len(),
+                },
+                "Move the ticket number to the message body".to_string(),
+            ),
+        ];
         self.add_subject_error(
             Rule::SubjectTicketNumber,
             "The subject contains a ticket number".to_string(),
@@ -766,7 +779,7 @@ impl Commit {
                 // Add empty line for spacing
                 Context::message_line(line_count + 1, "".to_string()),
                 // Suggestion because it indicates a suggested change?
-                Context::message_line_error(
+                Context::message_line_addition(
                     line_count + 2,
                     "Fixes #123".to_string(),
                     Range { start: 0, end: 10 },
@@ -1453,7 +1466,9 @@ mod tests {
             formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fix JIRA-123 about email validation\n\
-             \x20\x20|     ^^^^^^^^ Move the ticket number to the message body\n"
+             \x20\x20|     ^^^^^^^^ Remove the ticket number from the subject\n\
+                   3 | JIRA-123\n\
+             \x20\x20| -------- Move the ticket number to the message body\n"
         );
 
         let ticket_number_unicode =
@@ -1464,7 +1479,9 @@ mod tests {
             formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Fix ❤️ JIRA-123 about email validation\n\
-             \x20\x20|       ^^^^^^^^ Move the ticket number to the message body\n"
+             \x20\x20|       ^^^^^^^^ Remove the ticket number from the subject\n\
+                   3 | JIRA-123\n\
+             \x20\x20| -------- Move the ticket number to the message body\n"
         );
 
         let invalid_subjects = vec![
@@ -1521,7 +1538,9 @@ mod tests {
             formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Email validation: Fixes #123 for good\n\
-             \x20\x20|                   ^^^^^^^^^^ Move the ticket number to the message body\n"
+             \x20\x20|                   ^^^^^^^^^^ Remove the ticket number from the subject\n\
+                   3 | Fixes #123\n\
+             \x20\x20| ---------- Move the ticket number to the message body\n"
         );
 
         let fix_ticket_unicode = validated_commit("Email validatiｏn: Fixes #123", "");
@@ -1536,7 +1555,9 @@ mod tests {
             formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Email validation: Closed org/repo#123 for good\n\
-             \x20\x20|                   ^^^^^^^^^^^^^^^^^^^ Move the ticket number to the message body\n"
+             \x20\x20|                   ^^^^^^^^^^^^^^^^^^^ Remove the ticket number from the subject\n\
+                   3 | Closed org/repo#123\n\
+             \x20\x20| ------------------- Move the ticket number to the message body\n"
         );
 
         let ignore_ticket_number = validated_commit(
@@ -2062,7 +2083,7 @@ mod tests {
                    5 | Some explanation.\n\
                    6 | \n\
                    7 | Fixes #123\n\
-             \x20\x20| ^^^^^^^^^^ Consider adding a reference to a ticket or issue\n"
+             \x20\x20| ---------- Consider adding a reference to a ticket or issue\n"
         );
     }
 
