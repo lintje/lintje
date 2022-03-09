@@ -492,44 +492,35 @@ impl Commit {
         let subject = &self.subject.to_string();
         if let Some(captures) = SUBJECT_WITH_TICKET.captures(subject) {
             match captures.get(0) {
-                Some(capture) => {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        capture.range(),
-                        "Move the ticket number to the message body".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectTicketNumber,
-                        "The subject contains a ticket number".to_string(),
-                        character_count_for_bytes_index(&self.subject, capture.start()),
-                        context,
-                    )
-                }
+                Some(capture) => self.add_subject_ticket_number_error(capture),
                 None => {
                     error!("SubjectTicketNumber: Unable to fetch ticket number match from subject.")
                 }
-            }
+            };
         }
         if let Some(captures) = CONTAINS_FIX_TICKET.captures(subject) {
             match captures.get(0) {
-                Some(capture) => {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        capture.range(),
-                        "Move the ticket number to the message body".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectTicketNumber,
-                        "The subject contains a ticket number".to_string(),
-                        character_count_for_bytes_index(&self.subject, capture.start()),
-                        context,
-                    )
-                }
+                Some(capture) => self.add_subject_ticket_number_error(capture),
                 None => {
                     error!("SubjectTicketNumber: Unable to fetch ticket number match from subject.")
                 }
-            }
+            };
         }
+    }
+
+    fn add_subject_ticket_number_error(&mut self, capture: regex::Match) {
+        let subject = self.subject.to_string();
+        let context = vec![Context::subject_error(
+            subject,
+            capture.range(),
+            "Move the ticket number to the message body".to_string(),
+        )];
+        self.add_subject_error(
+            Rule::SubjectTicketNumber,
+            "The subject contains a ticket number".to_string(),
+            character_count_for_bytes_index(&self.subject, capture.start()),
+            context,
+        );
     }
 
     fn validate_subject_prefix(&mut self) {
