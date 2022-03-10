@@ -1467,6 +1467,7 @@ mod tests {
             "\x20\x20|\n\
                    1 | Fix JIRA-123 about email validation\n\
              \x20\x20|     ^^^^^^^^ Remove the ticket number from the subject\n\
+                \x20~~~\n\
                    3 | JIRA-123\n\
              \x20\x20| -------- Move the ticket number to the message body\n"
         );
@@ -1480,6 +1481,7 @@ mod tests {
             "\x20\x20|\n\
                    1 | Fix ❤️ JIRA-123 about email validation\n\
              \x20\x20|       ^^^^^^^^ Remove the ticket number from the subject\n\
+                \x20~~~\n\
                    3 | JIRA-123\n\
              \x20\x20| -------- Move the ticket number to the message body\n"
         );
@@ -1539,6 +1541,7 @@ mod tests {
             "\x20\x20|\n\
                    1 | Email validation: Fixes #123 for good\n\
              \x20\x20|                   ^^^^^^^^^^ Remove the ticket number from the subject\n\
+                \x20~~~\n\
                    3 | Fixes #123\n\
              \x20\x20| ---------- Move the ticket number to the message body\n"
         );
@@ -1556,6 +1559,7 @@ mod tests {
             "\x20\x20|\n\
                    1 | Email validation: Closed org/repo#123 for good\n\
              \x20\x20|                   ^^^^^^^^^^^^^^^^^^^ Remove the ticket number from the subject\n\
+                \x20~~~\n\
                    3 | Closed org/repo#123\n\
              \x20\x20| ------------------- Move the ticket number to the message body\n"
         );

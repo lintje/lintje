@@ -116,7 +116,9 @@ pub fn formatted_branch_issue(
 
 pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result<()> {
     let mut first_line = true;
-    let line_number_width = &issue
+    let mut last_line_number = None;
+    let default_indent = 1;
+    let line_number_width = issue
         .context
         .iter()
         .map(|l| match l.line {
@@ -125,11 +127,11 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         })
         .max()
         .unwrap_or(0)
-        + 2;
+        + default_indent;
 
     for context in &issue.context {
         let plain_line_number = if let Some(line_number) = context.line {
-            format!("{} ", line_number)
+            format!("{}", line_number)
         } else {
             "".to_string()
         };
@@ -138,13 +140,27 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         if first_line {
             // Add empty line to give some space between issue and commit lines
             out.set_color(&muted_color())?;
-            write!(out, "{}|", empty_prefix)?;
+            write!(out, "{} |", empty_prefix)?;
             out.reset()?;
             writeln!(out)?;
         }
 
+        // Print a context break separator
+        // Whenever two context line number differ by more than 1, add an empty line with the "~~~"
+        // context separator.
+        match (context.line, last_line_number) {
+            (Some(line_number), Some(previous_line_number)) => {
+                if line_number != previous_line_number + 1 {
+                    out.set_color(&muted_color())?;
+                    writeln!(out, "{}~~~", empty_prefix)?;
+                    out.reset()?;
+                }
+            }
+            (_, _) => {}
+        }
+
         out.set_color(&muted_color())?;
-        write!(out, "{}|", line_prefix)?;
+        write!(out, "{} |", line_prefix)?;
         out.reset()?;
         // Add line that provides context to the issue
         let content = &context.content;
@@ -178,7 +194,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                 let leading_spaces = " ".repeat(leading);
                 let underline = underline_char.repeat(rest);
                 out.set_color(&muted_color())?;
-                write!(out, "{}|", empty_prefix)?;
+                write!(out, "{} |", empty_prefix)?;
                 if let Some(color) = message_color {
                     out.set_color(&color)?;
                 }
@@ -189,6 +205,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
             (_, _) => (),
         }
         first_line = false;
+        last_line_number = context.line;
     }
     writeln!(out)?;
     Ok(())
@@ -645,6 +662,34 @@ pub mod tests {
             "|\n\
              | Some diff\n\
              |  ^^ A message\n"
+        );
+    }
+
+    #[test]
+    fn formatted_context_line_seperator() {
+        let commit = commit(Some("1234567".to_string()), "Subject", "Message");
+        let context = vec![
+            Context::message_line(3, "Message line 3".to_string()),
+            Context::message_line(10, "Message line 10".to_string()),
+        ];
+        let issue = Issue::hint(
+            Rule::MessageLineLength,
+            "The hint message".to_string(),
+            Position::MessageLine {
+                line: 11,
+                column: 50,
+            },
+            context,
+        );
+        let output = commit_issue(&commit, &issue);
+        assert_eq!(
+            output,
+            "MessageLineLength: The hint message\n\
+            \x20\x201234567:11:50: Subject\n\
+            \x20\x20   |\n\
+            \x20\x20 3 | Message line 3\n\
+            \x20\x20  ~~~\n\
+            \x20\x2010 | Message line 10\n\n"
         );
     }
 
