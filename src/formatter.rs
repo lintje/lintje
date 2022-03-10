@@ -120,7 +120,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         .context
         .iter()
         .map(|l| match l.line {
-            Some(line_number) => (line_number + 1).to_string().chars().count() + 1,
+            Some(line_number) => line_number.to_string().chars().count() + 1,
             None => 0,
         })
         .max()
