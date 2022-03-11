@@ -360,7 +360,9 @@ mod tests {
     use std::io::Write;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
+    use std::sync::Once;
 
+    static COMPILE_ONCE: Once = Once::new();
     const TEST_DIR: &str = "tmp/tests/test_repo";
 
     fn test_dir(name: &str) -> PathBuf {
@@ -528,14 +530,18 @@ mod tests {
         regexp.replace_all(&raw_output, "0000000$2").to_string()
     }
 
+    // Compile the `lintje` executable, but only one for the entire test suite.
+    // This way it doesn't compile Lintje for every test again.
     fn compile_bin() {
-        Command::new("cargo")
-            .args(&["build"])
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .expect("Could not compile debug target!");
+        COMPILE_ONCE.call_once(|| {
+            Command::new("cargo")
+                .args(&["build"])
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .expect("Could not compile debug target!");
+        });
     }
 
     #[test]
