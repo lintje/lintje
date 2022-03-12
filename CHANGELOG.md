@@ -8,7 +8,9 @@
   enabled with the new `--color` flag.
 - Change "violations" to "issues" in preparation for different types issues
   Lintje can return in the future.
-- Reduce false positive detection for ticket numbers in branch names.
+- Reduce false positive detection for ticket numbers in branch names. Branch
+  names with version numbers in them, like `ruby-3` and `elixir-1.12`, are now
+  valid.
 
 ## 0.6.1
 
