@@ -8,6 +8,7 @@
   enabled with the new `--color` flag.
 - Change "violations" to "issues" in preparation for different types issues
   Lintje can return in the future.
+- Reduce false positive detection for ticket numbers in branch names.
 
 ## 0.6.1
 

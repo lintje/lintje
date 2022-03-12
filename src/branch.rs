@@ -6,7 +6,7 @@ use regex::{Regex, RegexBuilder};
 
 lazy_static! {
     static ref BRANCH_WITH_TICKET_NUMBER: Regex = {
-        let mut tempregex = RegexBuilder::new(r"^(\w+[-_/])?\d+([-_/]\w+)?([-_/]\w+)?");
+        let mut tempregex = RegexBuilder::new(r"^(\w+[-_/\.])?\d+([-_/\.]\w+)?([-_/\.]\w+)?");
         tempregex.case_insensitive(true);
         tempregex.multi_line(false);
         tempregex.build().unwrap()
@@ -293,6 +293,7 @@ mod tests {
             "feature-123-cool",
             "add-feature-123",
             "add-feature-123-cool",
+            "elixir-1.13.2-ci",
             "fix-bug",
         ];
         assert_branch_names_as_valid(valid_names, &Rule::BranchNameTicketNumber);
