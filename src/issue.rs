@@ -1,10 +1,21 @@
 use crate::rule::Rule;
 use core::ops::Range;
+use std::fmt;
 
 #[derive(Debug, PartialEq)]
 pub enum IssueType {
     Error,
     Hint,
+}
+
+impl fmt::Display for IssueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            IssueType::Error => "Error",
+            IssueType::Hint => "Hint",
+        };
+        write!(f, "{}", label)
+    }
 }
 
 #[derive(Debug, PartialEq)]

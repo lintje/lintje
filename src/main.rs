@@ -624,7 +624,7 @@ mod tests {
         let assert = cmd.args(["--no-color"]).current_dir(dir).assert().success();
         assert
             .stdout(predicate::str::contains(
-                "MessageTicketNumber: The message body does not contain a ticket or issue number",
+                "Hint[MessageTicketNumber]: The message body does not contain a ticket or issue number",
             ))
             .stdout(predicate::str::contains(
                 "1 commit and branch inspected, 0 errors detected, 1 hint\n",
@@ -649,19 +649,19 @@ mod tests {
         let output = normalize_output(&assert.get_output().stdout);
         assert_eq!(
             output,
-            "SubjectCliche: The subject does not explain the change in much detail\n\
+            "Error[SubjectCliche]: The subject does not explain the change in much detail\n\
             \x20\x200000000:1:1: Fixing tests\n\
             \x20\x20  |\n\
             \x20\x201 | Fixing tests\n\
             \x20\x20  | ^^^^^^^^^^^^ Describe the change in more detail\n\
             \n\
-            SubjectMood: The subject does not use the imperative grammatical mood\n\
+            Error[SubjectMood]: The subject does not use the imperative grammatical mood\n\
             \x20\x200000000:1:1: Fixing tests\n\
             \x20\x20  |\n\
             \x20\x201 | Fixing tests\n\
             \x20\x20  | ^^^^^^ Use the imperative mood for the subject\n\
             \n\
-            MessagePresence: No message body was found\n\
+            Error[MessagePresence]: No message body was found\n\
             \x20\x200000000:3:1: Fixing tests\n\
             \x20\x20  |\n\
             \x20\x201 | Fixing tests\n\
@@ -691,19 +691,19 @@ mod tests {
         let output = normalize_output(&assert.get_output().stdout);
         assert_eq!(
             output,
-            "\u{1b}[0m\u{1b}[31mSubjectCliche\u{1b}[0m: The subject does not explain the change in much detail\n\
+            "\u{1b}[0m\u{1b}[31mError[SubjectCliche]\u{1b}[0m: The subject does not explain the change in much detail\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Fixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^^^^^^^^^^^^ Describe the change in more detail\u{1b}[0m\n\
             \n\
-            \u{1b}[0m\u{1b}[31mSubjectMood\u{1b}[0m: The subject does not use the imperative grammatical mood\n\
+            \u{1b}[0m\u{1b}[31mError[SubjectMood]\u{1b}[0m: The subject does not use the imperative grammatical mood\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Fixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^^^^^^ Use the imperative mood for the subject\u{1b}[0m\n\
             \n\
-            \u{1b}[0m\u{1b}[31mMessagePresence\u{1b}[0m: No message body was found\n\
+            \u{1b}[0m\u{1b}[31mError[MessagePresence]\u{1b}[0m: No message body was found\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:3:1:\u{1b}[0m Fixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
@@ -731,7 +731,7 @@ mod tests {
             .code(1);
         assert
             .stdout(predicate::str::contains(
-                "MessagePresence: No message body was found",
+                "Error[MessagePresence]: No message body was found",
             ))
             .stdout(predicate::str::contains(
                 "1 commit and branch inspected, 1 error detected",
@@ -754,10 +754,10 @@ mod tests {
             .code(1);
         assert
             .stdout(predicate::str::contains(
-                "MessagePresence: No message body was found",
+                "Error[MessagePresence]: No message body was found",
             ))
             .stdout(predicate::str::contains(
-                "DiffPresence: No file changes found",
+                "Error[DiffPresence]: No file changes found",
             ))
             .stdout(predicate::str::contains(
                 "1 commit and branch inspected, 2 errors detected",
@@ -842,12 +842,12 @@ mod tests {
         let output = normalize_output(&assert.get_output().stdout);
 
         assert!(predicate::str::contains(
-            "SubjectMood: The subject does not use the imperative grammatical mood\n\
+            "Error[SubjectMood]: The subject does not use the imperative grammatical mood\n\
             \x20\x200000000:1:1: Fixing tests\n"
         )
         .eval(&output));
         assert!(predicate::str::contains(
-            "SubjectCapitalization: The subject does not start with a capital letter\n\
+            "Error[SubjectCapitalization]: The subject does not start with a capital letter\n\
             \x20\x200000000:1:1: added some code\n"
         )
         .eval(&output));
@@ -876,13 +876,13 @@ mod tests {
             .code(1);
         assert
             .stdout(predicate::str::contains(
-                "SubjectMood: The subject does not use the imperative grammatical mood",
+                "Error[SubjectMood]: The subject does not use the imperative grammatical mood",
             ))
             .stdout(predicate::str::contains(
-                "SubjectCapitalization: The subject does not start with a capital letter",
+                "Error[SubjectCapitalization]: The subject does not start with a capital letter",
             ))
             .stdout(predicate::str::contains(
-                "DiffPresence: No file changes found",
+                "Error[DiffPresence]: No file changes found",
             ))
             .stdout(predicate::str::contains(
                 "1 commit and branch inspected, 3 errors detected",
@@ -937,7 +937,7 @@ mod tests {
             .assert()
             .failure()
             .code(1);
-        assert.stdout(predicate::str::contains("MessagePresence: "));
+        assert.stdout(predicate::str::contains("Error[MessagePresence]: "));
     }
 
     #[test]
@@ -965,7 +965,7 @@ mod tests {
             .assert()
             .failure()
             .code(1);
-        assert.stdout(predicate::str::contains("MessagePresence: "));
+        assert.stdout(predicate::str::contains("Error[MessagePresence]: "));
     }
 
     #[test]
@@ -1019,14 +1019,14 @@ mod tests {
             .code(1);
         assert
             .stdout(predicate::str::contains(
-                "BranchNameTicketNumber: A ticket number was detected in the branch name\n\
+                "Error[BranchNameTicketNumber]: A ticket number was detected in the branch name\n\
                 \x20\x20Branch:1: fix-123\n\
                 \x20\x20|\n\
                 \x20\x20| fix-123\n\
                 \x20\x20| ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
             ))
             .stdout(predicate::str::contains(
-                "BranchNameCliche: The branch name does not explain the change in much detail\n\
+                "Error[BranchNameCliche]: The branch name does not explain the change in much detail\n\
                 \x20\x20Branch:1: fix-123\n\
                 \x20\x20|\n\
                 \x20\x20| fix-123\n\

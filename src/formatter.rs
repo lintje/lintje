@@ -74,7 +74,7 @@ pub fn formatted_commit_issue(
     issue: &Issue,
 ) -> io::Result<()> {
     out.set_color(&issue_type_color(&issue.r#type))?;
-    write!(out, "{}", issue.rule)?;
+    write!(out, "{}[{}]", issue.r#type, issue.rule)?;
     out.reset()?;
     writeln!(out, ": {}", issue.message)?;
     write!(out, "  ")?;
@@ -100,7 +100,7 @@ pub fn formatted_branch_issue(
     issue: &Issue,
 ) -> io::Result<()> {
     out.set_color(&issue_type_color(&issue.r#type))?;
-    write!(out, "{}", issue.rule)?;
+    write!(out, "{}[{}]", issue.r#type, issue.rule)?;
     out.reset()?;
     writeln!(out, ": {}", issue.message)?;
 
@@ -300,7 +300,7 @@ pub mod tests {
         let output = commit_issue_color(&commit, &issue);
         assert_eq!(
             output,
-            "\u{1b}[0m\u{1b}[31mSubjectLength\u{1b}[0m: The error message\n\
+            "\u{1b}[0m\u{1b}[31mError[SubjectLength]\u{1b}[0m: The error message\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Subject\n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Subject\n\
@@ -332,7 +332,7 @@ pub mod tests {
         let output = commit_issue_color(&commit, &issue);
         assert_eq!(
             output,
-            "\u{1b}[0m\u{1b}[34mSubjectLength\u{1b}[0m: The hint message\n\
+            "\u{1b}[0m\u{1b}[34mHint[SubjectLength]\u{1b}[0m: The hint message\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Subject\n\
             \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Subject\n\
@@ -355,7 +355,7 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "SubjectLength: The error message\n\
+            "Error[SubjectLength]: The error message\n\
             \x20\x200000000:1:1: Subject\n\
             \x20\x20  |\n\
             \x20\x201 | Subject\n\n"
@@ -375,7 +375,7 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "SubjectLength: The error message\n\
+            "Error[SubjectLength]: The error message\n\
             \x20\x201234567:1:1: Subject\n\
             \x20\x20  |\n\
             \x20\x201 | Subject\n\n"
@@ -399,7 +399,7 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "SubjectMood: The error message\n\
+            "Error[SubjectMood]: The error message\n\
             \x20\x201234567:1:2: Subject\n\
             \x20\x20  |\n\
             \x20\x201 | Subject\n\
@@ -423,7 +423,7 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "MessageLineLength: The error message\n\
+            "Error[MessageLineLength]: The error message\n\
             \x20\x201234567:11:50: Subject\n\
             \x20\x20   |\n\
             \x20\x2011 | Message line\n\n"
@@ -454,7 +454,7 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "MessageLineLength: The error message\n\
+            "Error[MessageLineLength]: The error message\n\
             \x20\x201234567:11:50: Subject\n\
             \x20\x20   |\n\
             \x20\x2011 | Message line\n\
@@ -472,7 +472,7 @@ pub mod tests {
                 12,
                 "Message line with addition".to_string(),
                 Range { start: 3, end: 10 },
-                "My addition hint".to_string(),
+                "My addition suggestion".to_string(),
             ),
         ];
         let issue = Issue::hint(
@@ -487,12 +487,12 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "MessageLineLength: The hint message\n\
+            "Hint[MessageLineLength]: The hint message\n\
             \x20\x201234567:11:50: Subject\n\
             \x20\x20   |\n\
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with addition\n\
-            \x20\x20   |    ------- My addition hint\n\n"
+            \x20\x20   |    ------- My addition suggestion\n\n"
         );
     }
 
@@ -502,7 +502,7 @@ pub mod tests {
         let context = vec![Context::diff_error(
             "Diff line".to_string(),
             Range { start: 3, end: 5 },
-            "My hint".to_string(),
+            "My suggestion".to_string(),
         )];
         let issue = Issue::error(
             Rule::DiffPresence,
@@ -513,11 +513,11 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "DiffPresence: The error message\n\
+            "Error[DiffPresence]: The error message\n\
             \x20\x201234567: Subject\n\
             \x20\x20|\n\
             \x20\x20| Diff line\n\
-            \x20\x20|    ^^ My hint\n\n"
+            \x20\x20|    ^^ My suggestion\n\n"
         );
     }
 
@@ -538,7 +538,7 @@ pub mod tests {
         let output = branch_issue(&branch, &issue);
         assert_eq!(
             output,
-            "BranchNameLength: The error message\n\
+            "Error[BranchNameLength]: The error message\n\
             \x20\x20Branch:3: branch-name\n\
             \x20\x20|\n\
             \x20\x20| branch-name\n\
@@ -563,7 +563,7 @@ pub mod tests {
         let output = branch_issue_color(&branch, &issue);
         assert_eq!(
             output,
-            "\u{1b}[0m\u{1b}[31mBranchNameLength\u{1b}[0m: The error message\n\
+            "\u{1b}[0m\u{1b}[31mError[BranchNameLength]\u{1b}[0m: The error message\n\
             \u{1b}[0m\u{1b}[38;5;12m  Branch:3:\u{1b}[0m branch-name\n\
             \u{1b}[0m\u{1b}[38;5;12m  |\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  |\u{1b}[0m branch-name\n\
@@ -684,7 +684,7 @@ pub mod tests {
         let output = commit_issue(&commit, &issue);
         assert_eq!(
             output,
-            "MessageLineLength: The hint message\n\
+            "Hint[MessageLineLength]: The hint message\n\
             \x20\x201234567:11:50: Subject\n\
             \x20\x20   |\n\
             \x20\x20 3 | Message line 3\n\
