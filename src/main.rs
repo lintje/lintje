@@ -614,6 +614,24 @@ mod tests {
     }
 
     #[test]
+    fn test_single_commit_with_hint() {
+        compile_bin();
+        let dir = test_dir("single_commit_valid_hint");
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.args(["--no-color"]).current_dir(dir).assert().success();
+        assert
+            .stdout(predicate::str::contains(
+                "MessageTicketNumber: The message body does not contain a ticket or issue number",
+            ))
+            .stdout(predicate::str::contains(
+                "1 commit and branch inspected, 0 errors detected, 1 hint\n",
+            ));
+    }
+
+    #[test]
     fn test_single_commit_invalid() {
         compile_bin();
         let dir = test_dir("single_commit_invalid");
