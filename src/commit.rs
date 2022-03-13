@@ -572,16 +572,29 @@ impl Commit {
         if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {
             match captures.get(1) {
                 Some(tag) => {
-                    let context = Context::subject_error(
-                        subject.to_string(),
-                        tag.range(),
-                        "Move build tag to message body".to_string(),
-                    );
+                    let line_count = self.message.lines().count();
+                    let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
+                    let context = vec![
+                        Context::subject_error(
+                            subject.to_string(),
+                            tag.range(),
+                            "Remove the build tag from the subject".to_string(),
+                        ),
+                        Context::message_line_addition(
+                            base_line_count,
+                            tag.as_str().to_string(),
+                            Range {
+                                start: 0,
+                                end: tag.range().len(),
+                            },
+                            "Move build tag to message body".to_string(),
+                        ),
+                    ];
                     self.add_subject_error(
                         Rule::SubjectBuildTag,
                         format!("The `{}` build tag was found in the subject", tag.as_str()),
                         character_count_for_bytes_index(&self.subject, tag.start()),
-                        vec![context],
+                        context,
                     )
                 }
                 None => error!("SubjectBuildTag: Unable to fetch build tag from subject."),
@@ -1687,7 +1700,10 @@ mod tests {
             formatted_context(&issue),
             "\x20\x20|\n\
                    1 | Edit CHANGELOG [skip ci]\n\
-             \x20\x20|                ^^^^^^^^^ Move build tag to message body\n"
+             \x20\x20|                ^^^^^^^^^ Remove the build tag from the subject\n\
+                \x20~~~\n\
+                   3 | [skip ci]\n\
+             \x20\x20| --------- Move build tag to message body\n"
         );
 
         let ignore_commit = validated_commit(

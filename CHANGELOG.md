@@ -5,7 +5,8 @@
 ### Added
 
 - Introducing suggestions! Lintje will print more detailed hints to resolve
-  errors. Only for the SubjectTicketNumber rule at the moment. More to come!
+  errors. Rules that have been updated with suggestions are the
+  SubjectTicketNumber and SubjectBuildTag rules.
   ```
   SubjectTicketNumber: The subject contains a ticket number
     9aa9ca2:1:10: Fix bug. Closes #123
