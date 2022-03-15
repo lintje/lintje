@@ -35,13 +35,13 @@ When running `lintje` to lint the last commit, the output will be:
 
 ```
 $ lintje
-SubjectCliche: The subject does not explain the change in much detail
+Error[SubjectCliche]: The subject does not explain the change in much detail
   9a2ae29:1:1: Fix bug
     |
   1 | Fix bug
     | ^^^^^^^ Describe the change in more detail
 
-MessagePresence: No message body was found
+Error[MessagePresence]: No message body was found
   9a2ae29:3:1: Fix bug
     |
   1 | Fix bug
@@ -49,13 +49,13 @@ MessagePresence: No message body was found
   3 |
     | ^ Add a message body with context about the change and why it was made
 
-BranchNameTicketNumber: A ticket number was detected in the branch name
+Error[BranchNameTicketNumber]: A ticket number was detected in the branch name
   Branch:1: fix-123
   |
   | fix-123
   | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details
 
-1 commit and branch inspected, 3 issues detected
+1 commit and branch inspected, 3 errors detected
 ```
 
 For more usage examples, see the [usage](#usage) section.
