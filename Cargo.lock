@@ -130,7 +130,7 @@ checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 
 [[package]]
 name = "lintje"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "assert_cmd",
  "lazy_static",

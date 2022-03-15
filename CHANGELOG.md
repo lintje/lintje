@@ -1,6 +1,6 @@
 # Lintje changelog
 
-## Next version
+## 0.7.0
 
 ### Added
 
