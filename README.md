@@ -13,14 +13,16 @@ reviews and debug sessions 2+ months from now.
 
 ## Table of Contents
 
+Visit [Lintje.dev][website] for more up-to-date and detailed docs.
+
 - [Installation](#installation)
-- [Usage](#usage)
+- [Usage](https://lintje.dev/docs/usage/)
     - [Examples][examples]
-    - [Git hook](#git-hook)
-    - [Git alias](#git-alias)
+    - [Git hook](https://lintje.dev/docs/git-hooks/)
+    - [Git alias](https://lintje.dev/docs/git-alias/)
 - [Rules documentation][rules]
-- [Configuration](#configuration)
-- [Getting help](#getting-help)
+- [Configuration](https://lintje.dev/docs/configuration/)
+- [Getting help](https://lintje.dev/docs/support/)
 - [Development documentation](#development)
 
 ## Example
@@ -322,8 +324,9 @@ Finally update the
 This project has a [Code of Conduct](CODE_OF_CONDUCT.md) and contributors are
 expected to adhere to it.
 
-[rules]: doc/rules.md
+[website]: https://lintje.dev
+[rules]: https://lintje.dev/docs/rules/
 [issues]: https://github.com/tombruijn/lintje/issues
 [discussions]: https://github.com/tombruijn/lintje/discussions
 [examples]: doc/examples.md
-[installation]: doc/installation.md
+[installation]: https://lintje.dev/docs/installation/
