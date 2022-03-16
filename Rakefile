@@ -338,6 +338,8 @@ end
 task :release => ["release:all"]
 
 def clean_dist_dir
+  return unless Dir.exist? DIST_DIR
+
   FileUtils.remove_dir DIST_DIR
 end
 
