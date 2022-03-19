@@ -33,6 +33,7 @@ use issue::IssueType;
 use logger::Logger;
 use structopt::clap::AppSettings;
 use termcolor::{ColorChoice, StandardStream, WriteColor};
+use utils::pluralize;
 
 #[derive(StructOpt, Debug)]
 #[structopt(
@@ -320,11 +321,6 @@ fn print_issue_counts(
         write!(out, ", {} {}", hint_count, pluralize("hint", hint_count))?;
     }
     Ok(())
-}
-
-fn pluralize(label: &str, count: usize) -> String {
-    let plural = if count != 1 { "s" } else { "" };
-    format!("{}{}", label, plural)
 }
 
 fn init_logger(debug: bool) {
