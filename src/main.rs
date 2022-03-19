@@ -31,10 +31,15 @@ use formatter::{formatted_branch_issue, formatted_commit_issue};
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use issue::IssueType;
 use logger::Logger;
+use structopt::clap::AppSettings;
 use termcolor::{ColorChoice, StandardStream, WriteColor};
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "lintje", verbatim_doc_comment)]
+#[structopt(
+    name = "lintje",
+    verbatim_doc_comment,
+    setting(AppSettings::DeriveDisplayOrder)
+)]
 /**
 Lint Git commits and branch name.
 
@@ -65,17 +70,13 @@ Lint Git commits and branch name.
       Enable color output.
 */
 struct Lint {
-    /// Prints debug information
-    #[structopt(long)]
-    debug: bool,
-
-    /// Lint the contents the Git hook commit-msg commit message file.
-    #[structopt(long, parse(from_os_str))]
-    hook_message_file: Option<PathBuf>,
-
     /// Disable branch validation
     #[structopt(long = "no-branch")]
     no_branch_validation: bool,
+
+    /// Disable hints
+    #[structopt(long = "no-hints")]
+    no_hints: bool,
 
     /// Enable color output
     #[structopt(long = "color")]
@@ -85,9 +86,13 @@ struct Lint {
     #[structopt(long = "no-color")]
     no_color: bool,
 
-    /// Disable hints
-    #[structopt(long = "no-hints")]
-    no_hints: bool,
+    /// Lint the contents the Git hook commit-msg commit message file.
+    #[structopt(long, parse(from_os_str))]
+    hook_message_file: Option<PathBuf>,
+
+    /// Prints debug information
+    #[structopt(long)]
+    debug: bool,
 
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.

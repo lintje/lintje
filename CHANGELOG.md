@@ -1,5 +1,12 @@
 # Lintje changelog
 
+## Next version
+
+### Changed
+
+- Print CLI flags in a most common usage based order. Flags to are opposites of
+  each other, like `--color` and `--no-color`, are grouped together.
+
 ## 0.7.0
 
 ### Added
