@@ -100,6 +100,18 @@ struct Lint {
     selection: Option<String>,
 }
 
+impl Lint {
+    fn color(&self) -> bool {
+        if self.no_color {
+            return false;
+        }
+        if self.color {
+            return true;
+        }
+        false // By default color is turned off
+    }
+}
+
 #[derive(Debug)]
 pub struct Options {
     debug: bool,
@@ -110,6 +122,7 @@ pub struct Options {
 fn main() {
     let args = Lint::from_args();
     init_logger(args.debug);
+    let color = args.color();
     let commit_result = match args.hook_message_file {
         Some(hook_message_file) => lint_commit_hook(&hook_message_file),
         None => lint_commit(args.selection),
@@ -121,20 +134,10 @@ fn main() {
     };
     let options = Options {
         debug: args.debug,
-        color: with_color(args.color, args.no_color),
+        color,
         hints: !args.no_hints,
     };
     handle_result(print_lint_result(commit_result, branch_result, options));
-}
-
-fn with_color(color: bool, no_color: bool) -> bool {
-    if no_color {
-        return false;
-    }
-    if color {
-        return true;
-    }
-    false // By default color is turned off
 }
 
 fn lint_branch() -> Result<Branch, String> {
@@ -357,7 +360,7 @@ fn buffer_writer(color: bool) -> StandardStream {
 
 #[cfg(test)]
 mod tests {
-    use super::with_color;
+    use super::Lint;
     use predicates::prelude::*;
     use regex::Regex;
     use std::fs;
@@ -366,6 +369,7 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
     use std::sync::Once;
+    use structopt::StructOpt;
 
     static COMPILE_ONCE: Once = Once::new();
     const TEST_DIR: &str = "tmp/tests/test_repo";
@@ -551,10 +555,17 @@ mod tests {
 
     #[test]
     fn test_color_flags() {
-        assert!(!with_color(true, true)); // Both color flags set, but --no-color is leading
-        assert!(with_color(true, false)); // --color is set
-        assert!(!with_color(false, true)); // --no-color is set
-        assert!(!with_color(false, false)); // No flags are set
+        // Both color flags set, but --no-color is leading
+        assert!(!Lint::from_iter(["lintje", "--color", "--no-color"]).color());
+
+        // Only --color is set
+        assert!(Lint::from_iter(["lintje", "--color"]).color());
+
+        // Only --no-color is set
+        assert!(!Lint::from_iter(["lintje", "--no-color"]).color());
+
+        // No flags are set
+        assert!(!Lint::from_iter(["lintje"]).color());
     }
 
     #[test]
