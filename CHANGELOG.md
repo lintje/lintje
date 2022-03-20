@@ -6,6 +6,18 @@
 
 - Link to Lintje.dev from issue output in the terminal for more documentation
   and examples on the website.
+- Support options file with the `LINTJE_OPTIONS_PATH` environment
+  variable. This options file will be read every time Lintje is run, so there's
+  no more need to specify flags on the CLI every time manually. Set the
+  `LINTJE_OPTIONS_PATH` to a file path containing a options text file.
+  For example `/Users/tombruijn/config/lintje/options.txt` file containing the
+  content below.
+  ```
+  --color
+  --no-hints
+  ```
+  More information can be found on the [options file documentation
+  page](http://lintje.dev/docs/configuration/#options-file).
 
 ### Changed
 

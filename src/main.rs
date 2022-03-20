@@ -14,7 +14,6 @@ extern crate log;
 #[macro_use]
 extern crate lazy_static;
 
-use clap::Parser;
 use log::LevelFilter;
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -37,7 +36,7 @@ mod utils;
 use branch::Branch;
 use command::run_command;
 use commit::Commit;
-use config::{Lint, Options};
+use config::{fetch_options, Lint};
 use formatter::{formatted_branch_issue, formatted_commit_issue};
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use issue::IssueType;
@@ -46,22 +45,16 @@ use termcolor::{ColorChoice, StandardStream, WriteColor};
 use utils::pluralize;
 
 fn main() {
-    let args = Lint::parse();
-    init_logger(args.debug);
-    let color = args.color();
-    let commit_result = match args.hook_message_file {
-        Some(hook_message_file) => lint_commit_hook(&hook_message_file),
-        None => lint_commit(args.selection),
+    let options = fetch_options();
+    init_logger(options.debug);
+    let commit_result = match &options.hook_message_file {
+        Some(hook_message_file) => lint_commit_hook(hook_message_file),
+        None => lint_commit(&options.selection),
     };
-    let branch_result = if args.branch_validation {
+    let branch_result = if options.branch_validation {
         Some(lint_branch())
     } else {
         None
-    };
-    let options = Options {
-        debug: args.debug,
-        color,
-        hints: args.hints,
     };
     handle_result(print_lint_result(commit_result, branch_result, &options));
 }
@@ -70,7 +63,7 @@ fn lint_branch() -> Result<Branch, String> {
     fetch_and_parse_branch()
 }
 
-fn lint_commit(selection: Option<String>) -> Result<Vec<Commit>, String> {
+fn lint_commit(selection: &Option<String>) -> Result<Vec<Commit>, String> {
     fetch_and_parse_commits(selection)
 }
 
@@ -130,9 +123,9 @@ fn handle_result(result: io::Result<()>) {
 fn print_lint_result(
     commit_result: Result<Vec<Commit>, String>,
     branch_result: Option<Result<Branch, String>>,
-    options: &Options,
+    options: &Lint,
 ) -> io::Result<()> {
-    let mut out = buffer_writer(options.color);
+    let mut out = buffer_writer(options.color());
     let mut error_count = 0;
     let mut hint_count = 0;
     let mut commit_count = 0;
@@ -281,27 +274,25 @@ fn buffer_writer(color: bool) -> StandardStream {
 
 #[cfg(test)]
 mod tests {
+    use crate::test::*;
     use predicates::prelude::*;
     use regex::Regex;
-    use std::fs;
     use std::fs::File;
     use std::io::Write;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
     use std::sync::Once;
 
+    use crate::test::TEST_DIR;
+
     static COMPILE_ONCE: Once = Once::new();
-    const TEST_DIR: &str = "tmp/tests/test_repo";
 
     fn test_dir(name: &str) -> PathBuf {
         Path::new(TEST_DIR).join(name)
     }
 
     fn create_test_repo(dir: &Path) {
-        if Path::new(&dir).exists() {
-            fs::remove_dir_all(&dir).expect("Could not remove test repo dir");
-        }
-        fs::create_dir_all(&dir).expect("Could not create test repo dir");
+        prepare_test_dir(&dir);
         let output = Command::new("git")
             .args(&["init"])
             .current_dir(&dir)
@@ -378,21 +369,13 @@ mod tests {
     }
 
     fn create_commit_with_file(dir: &Path, subject: &str, message: &str, filename: &str) {
-        create_file(&dir.join(&filename));
+        create_dummy_file(&dir.join(&filename));
         stage_files(dir);
         create_commit(dir, subject, message)
     }
 
-    fn create_file(file_path: &Path) {
-        let mut file = match File::create(&file_path) {
-            Ok(file) => file,
-            Err(e) => panic!("Could not create file: {:?}: {}", file_path, e),
-        };
-        // Write a slice of bytes to the file
-        match file.write_all(b"I am a test file!") {
-            Ok(_) => (),
-            Err(e) => panic!("Could not write to file: {:?}: {}", file_path, e),
-        }
+    fn create_dummy_file(file_path: &Path) {
+        create_file(file_path, b"I am a test file!");
     }
 
     fn stage_files(dir: &Path) {
@@ -856,7 +839,7 @@ mod tests {
         compile_bin();
         let dir = test_dir("commit_file_option_with_file_changes");
         create_test_repo(&dir);
-        create_file(&dir.join("file name"));
+        create_dummy_file(&dir.join("file name"));
         stage_files(&dir);
         let filename = "commit_message_file";
         let commit_file = dir.join(filename);
@@ -1015,6 +998,55 @@ mod tests {
             .success();
         assert.stdout(predicate::str::contains(
             "1 commit inspected, 0 errors detected",
+        ));
+    }
+
+    #[test]
+    fn options_file_present() {
+        compile_bin();
+        let dir = test_dir("options_config_file_present");
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "I am a test commit.", "file");
+        let config_filename = Path::new("options.txt");
+        let config_file = dir.join(config_filename);
+        create_file(&config_file, b"--debug\n--no-branch");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .arg("--no-color")
+            .env("LINTJE_OPTIONS_PATH", config_filename)
+            .current_dir(dir)
+            .assert()
+            .success();
+
+        // Prints a debug statement (options file)
+        // Does not validate branch (options file)
+        // But does not print the output with color (CLI flag)
+        assert
+            .stderr("") // Does not print any warnings to STDERR
+            .stdout(predicate::str::contains("[DEBUG]"))
+            .stdout(predicate::str::contains(
+                "1 commit inspected, 0 errors detected",
+            ));
+    }
+
+    #[test]
+    fn options_file_missing() {
+        compile_bin();
+        let dir = test_dir("options_config_file_missing");
+        create_test_repo(&dir);
+        create_commit_with_file(&dir, "Test commit", "I am a test commit.", "file");
+        let config_filename = Path::new("options.txt");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .env("LINTJE_OPTIONS_PATH", config_filename)
+            .current_dir(dir)
+            .assert()
+            .success();
+
+        assert.stderr(predicate::str::contains(
+            "ERROR: Configured LINTJE_OPTIONS_PATH does not exist or is not a file. Path: \'options.txt\'",
         ));
     }
 }

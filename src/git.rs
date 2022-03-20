@@ -35,7 +35,7 @@ pub fn fetch_and_parse_branch() -> Result<Branch, String> {
     Ok(branch)
 }
 
-pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, String> {
+pub fn fetch_and_parse_commits(selector: &Option<String>) -> Result<Vec<Commit>, String> {
     let mut commits = Vec::<Commit>::new();
     // Format definition per commit
     // Line 1: Commit SHA in long form

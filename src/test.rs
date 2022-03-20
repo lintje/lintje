@@ -2,7 +2,32 @@ use crate::branch::Branch;
 use crate::commit::Commit;
 use crate::formatter::formatted_context as formatted_context_real;
 use crate::issue::{Issue, Position};
+use std::fs;
+use std::io::Write;
+use std::path::Path;
 use termcolor::{BufferWriter, ColorChoice};
+
+pub const TEST_DIR: &str = "tmp/tests/test_repo";
+
+pub fn prepare_test_dir(dir: &Path) {
+    if Path::new(&dir).exists() {
+        fs::remove_dir_all(&dir).expect("Could not remove test repo dir");
+    }
+    fs::create_dir_all(&dir).expect("Could not create test repo dir");
+}
+
+pub fn create_file(file_path: &Path, content: &[u8]) -> fs::File {
+    let mut file = match fs::File::create(&file_path) {
+        Ok(file) => file,
+        Err(e) => panic!("Could not create file: {:?}: {}", file_path, e),
+    };
+    // Write a slice of bytes to the file
+    match file.write_all(content) {
+        Ok(_) => (),
+        Err(e) => panic!("Could not write to file: {:?}: {}", file_path, e),
+    }
+    file
+}
 
 pub fn formatted_context(issue: &Issue) -> String {
     let bufwtr = BufferWriter::stdout(ColorChoice::Never);
