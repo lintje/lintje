@@ -8,11 +8,11 @@ extern crate log;
 #[macro_use]
 extern crate lazy_static;
 
+use clap::Parser;
 use log::LevelFilter;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
-use structopt::StructOpt;
 
 mod branch;
 mod command;
@@ -37,7 +37,7 @@ use termcolor::{ColorChoice, StandardStream, WriteColor};
 use utils::pluralize;
 
 fn main() {
-    let args = Lint::from_args();
+    let args = Lint::parse();
     init_logger(args.debug);
     let color = args.color();
     let commit_result = match args.hook_message_file {

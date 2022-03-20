@@ -1,9 +1,8 @@
+use clap::{AppSettings, Parser};
 use std::path::PathBuf;
-use structopt::clap::AppSettings;
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
-#[structopt(
+#[derive(Parser, Debug)]
+#[clap(
     name = "lintje",
     verbatim_doc_comment,
     setting(AppSettings::DeriveDisplayOrder)
@@ -39,32 +38,32 @@ Lint Git commits and branch name.
 */
 pub struct Lint {
     /// Disable branch validation
-    #[structopt(long = "no-branch", parse(from_flag = std::ops::Not::not))]
+    #[clap(long = "no-branch", parse(from_flag = std::ops::Not::not))]
     pub branch_validation: bool,
 
     /// Disable hints
-    #[structopt(long = "no-hints", parse(from_flag = std::ops::Not::not))]
+    #[clap(long = "no-hints", parse(from_flag = std::ops::Not::not))]
     pub hints: bool,
 
     /// Enable color output
-    #[structopt(long = "color")]
+    #[clap(long = "color")]
     pub color: bool,
 
     /// Disable color output
-    #[structopt(long = "no-color")]
+    #[clap(long = "no-color")]
     pub no_color: bool,
 
     /// Lint the contents the Git hook commit-msg commit message file.
-    #[structopt(long, parse(from_os_str))]
+    #[clap(long, parse(from_os_str))]
     pub hook_message_file: Option<PathBuf>,
 
     /// Prints debug information
-    #[structopt(long)]
+    #[clap(long)]
     pub debug: bool,
 
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.
-    #[structopt(name = "commit (range)")]
+    #[clap(name = "commit (range)")]
     pub selection: Option<String>,
 }
 
@@ -90,20 +89,20 @@ pub struct Options {
 #[cfg(test)]
 mod tests {
     use super::Lint;
-    use structopt::StructOpt;
+    use clap::Parser;
 
     #[test]
     fn test_color_flags() {
         // Both color flags set, but --no-color is leading
-        assert!(!Lint::from_iter(["lintje", "--color", "--no-color"]).color());
+        assert!(!Lint::parse_from(["lintje", "--color", "--no-color"]).color());
 
         // Only --color is set
-        assert!(Lint::from_iter(["lintje", "--color"]).color());
+        assert!(Lint::parse_from(["lintje", "--color"]).color());
 
         // Only --no-color is set
-        assert!(!Lint::from_iter(["lintje", "--no-color"]).color());
+        assert!(!Lint::parse_from(["lintje", "--no-color"]).color());
 
         // No flags are set
-        assert!(!Lint::from_iter(["lintje"]).color());
+        assert!(!Lint::parse_from(["lintje"]).color());
     }
 }
