@@ -45,6 +45,10 @@ blocks:
   - name: Test run the project
     dependencies: ["Build"]
     task:
+      agent:
+        machine:
+          type: e1-standard-2
+          os_image: ubuntu1804
       jobs:
       - name: Run project to lint
         commands:
