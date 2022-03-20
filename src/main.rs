@@ -11,12 +11,13 @@ extern crate lazy_static;
 use log::LevelFilter;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use structopt::StructOpt;
 
 mod branch;
 mod command;
 mod commit;
+mod config;
 mod formatter;
 mod git;
 mod issue;
@@ -27,98 +28,13 @@ mod utils;
 use branch::Branch;
 use command::run_command;
 use commit::Commit;
+use config::{Lint, Options};
 use formatter::{formatted_branch_issue, formatted_commit_issue};
 use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
 use issue::IssueType;
 use logger::Logger;
-use structopt::clap::AppSettings;
 use termcolor::{ColorChoice, StandardStream, WriteColor};
 use utils::pluralize;
-
-#[derive(StructOpt, Debug)]
-#[structopt(
-    name = "lintje",
-    verbatim_doc_comment,
-    setting(AppSettings::DeriveDisplayOrder)
-)]
-/**
-Lint Git commits and branch name.
-
-## Usage examples
-
-    lintje
-      Validate the latest commit.
-
-    lintje HEAD
-      Validate the latest commit.
-
-    lintje 3a561ef766c2acfe5da478697d91758110b8b24c
-      Validate a single specific commit.
-
-    lintje HEAD~5..HEAD
-      Validate the last 5 commits.
-
-    lintje main..develop
-      Validate the difference between the main and develop branch.
-
-    lintje --hook-message-file=.git/COMMIT_EDITMSG
-      Lints the given commit message file from the commit-msg hook.
-
-    lintje --no-branch
-      Disable branch name validation.
-
-    lintje --color
-      Enable color output.
-*/
-struct Lint {
-    /// Disable branch validation
-    #[structopt(long = "no-branch")]
-    no_branch_validation: bool,
-
-    /// Disable hints
-    #[structopt(long = "no-hints")]
-    no_hints: bool,
-
-    /// Enable color output
-    #[structopt(long = "color")]
-    color: bool,
-
-    /// Disable color output
-    #[structopt(long = "no-color")]
-    no_color: bool,
-
-    /// Lint the contents the Git hook commit-msg commit message file.
-    #[structopt(long, parse(from_os_str))]
-    hook_message_file: Option<PathBuf>,
-
-    /// Prints debug information
-    #[structopt(long)]
-    debug: bool,
-
-    /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
-    /// defaults to linting the latest commit.
-    #[structopt(name = "commit (range)")]
-    selection: Option<String>,
-}
-
-impl Lint {
-    fn color(&self) -> bool {
-        if self.no_color {
-            return false;
-        }
-        if self.color {
-            return true;
-        }
-        false // By default color is turned off
-    }
-}
-
-#[derive(Debug)]
-pub struct Options {
-    debug: bool,
-    color: bool,
-    hints: bool,
-}
 
 fn main() {
     let args = Lint::from_args();
