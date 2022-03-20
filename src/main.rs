@@ -272,7 +272,6 @@ fn buffer_writer(color: bool) -> StandardStream {
 
 #[cfg(test)]
 mod tests {
-    use super::Lint;
     use predicates::prelude::*;
     use regex::Regex;
     use std::fs;
@@ -281,7 +280,6 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
     use std::sync::Once;
-    use structopt::StructOpt;
 
     static COMPILE_ONCE: Once = Once::new();
     const TEST_DIR: &str = "tmp/tests/test_repo";
@@ -463,21 +461,6 @@ mod tests {
                 .status()
                 .expect("Could not compile debug target!");
         });
-    }
-
-    #[test]
-    fn test_color_flags() {
-        // Both color flags set, but --no-color is leading
-        assert!(!Lint::from_iter(["lintje", "--color", "--no-color"]).color());
-
-        // Only --color is set
-        assert!(Lint::from_iter(["lintje", "--color"]).color());
-
-        // Only --no-color is set
-        assert!(!Lint::from_iter(["lintje", "--no-color"]).color());
-
-        // No flags are set
-        assert!(!Lint::from_iter(["lintje"]).color());
     }
 
     #[test]

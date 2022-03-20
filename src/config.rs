@@ -86,3 +86,24 @@ pub struct Options {
     pub color: bool,
     pub hints: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Lint;
+    use structopt::StructOpt;
+
+    #[test]
+    fn test_color_flags() {
+        // Both color flags set, but --no-color is leading
+        assert!(!Lint::from_iter(["lintje", "--color", "--no-color"]).color());
+
+        // Only --color is set
+        assert!(Lint::from_iter(["lintje", "--color"]).color());
+
+        // Only --no-color is set
+        assert!(!Lint::from_iter(["lintje", "--no-color"]).color());
+
+        // No flags are set
+        assert!(!Lint::from_iter(["lintje"]).color());
+    }
+}
