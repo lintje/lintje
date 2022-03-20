@@ -44,15 +44,15 @@ fn main() {
         Some(hook_message_file) => lint_commit_hook(&hook_message_file),
         None => lint_commit(args.selection),
     };
-    let branch_result = if args.no_branch_validation {
-        None
-    } else {
+    let branch_result = if args.branch_validation {
         Some(lint_branch())
+    } else {
+        None
     };
     let options = Options {
         debug: args.debug,
         color,
-        hints: !args.no_hints,
+        hints: args.hints,
     };
     handle_result(print_lint_result(commit_result, branch_result, options));
 }

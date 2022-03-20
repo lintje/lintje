@@ -39,12 +39,12 @@ Lint Git commits and branch name.
 */
 pub struct Lint {
     /// Disable branch validation
-    #[structopt(long = "no-branch")]
-    pub no_branch_validation: bool,
+    #[structopt(long = "no-branch", parse(from_flag = std::ops::Not::not))]
+    pub branch_validation: bool,
 
     /// Disable hints
-    #[structopt(long = "no-hints")]
-    pub no_hints: bool,
+    #[structopt(long = "no-hints", parse(from_flag = std::ops::Not::not))]
+    pub hints: bool,
 
     /// Enable color output
     #[structopt(long = "color")]
