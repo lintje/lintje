@@ -4,6 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[clap(
     name = "lintje",
+    version,
     verbatim_doc_comment,
     setting(AppSettings::DeriveDisplayOrder)
 )]

@@ -464,6 +464,17 @@ mod tests {
     }
 
     #[test]
+    fn test_version_option() {
+        compile_bin();
+        let dir = test_dir("version_option");
+        create_test_repo(&dir);
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.arg("--version").current_dir(dir).assert().success();
+        assert.stdout(predicate::str::is_match(format!("lintje \\d+\\.\\d+\\.\\d+")).unwrap());
+    }
+
+    #[test]
     fn test_commit_by_sha() {
         compile_bin();
         let dir = test_dir("commit_by_sha");
