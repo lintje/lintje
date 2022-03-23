@@ -276,12 +276,11 @@ fn ignored(commit: &Commit) -> bool {
 pub fn cleanup_mode() -> CleanupMode {
     match run_command("git", &["config", "commit.cleanup"]) {
         Ok(stdout) => match stdout.trim() {
-            "default" => CleanupMode::Default,
+            "default" | "" => CleanupMode::Default,
             "scissors" => CleanupMode::Scissors,
             "strip" => CleanupMode::Strip,
             "verbatim" => CleanupMode::Verbatim,
             "whitespace" => CleanupMode::Whitespace,
-            "" => CleanupMode::Default,
             option => {
                 info!(
                     "Unsupported commit.cleanup config: {}\nFalling back on 'default'.",

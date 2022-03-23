@@ -4,6 +4,7 @@
 #![deny(non_ascii_idents)]
 #![warn(clippy::semicolon_if_nothing_returned)]
 #![warn(clippy::if_not_else)]
+#![warn(clippy::match_same_arms)]
 
 #[macro_use]
 extern crate log;

@@ -53,10 +53,7 @@ pub fn issue_type_color(issue_type: &IssueType) -> ColorSpec {
 
 pub fn formatted_position(out: &mut impl WriteColor, position: &Position) -> io::Result<()> {
     match position {
-        Position::Subject { line, column } => {
-            write!(out, ":{}:{}", line, column)?;
-        }
-        Position::MessageLine { line, column } => {
+        Position::Subject { line, column } | Position::MessageLine { line, column } => {
             write!(out, ":{}:{}", line, column)?;
         }
         Position::Branch { column } => {
