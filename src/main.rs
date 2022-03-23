@@ -2,6 +2,7 @@
 #![deny(unused_extern_crates)]
 #![deny(unused_import_braces)]
 #![deny(non_ascii_idents)]
+#![warn(clippy::semicolon_if_nothing_returned)]
 
 #[macro_use]
 extern crate log;

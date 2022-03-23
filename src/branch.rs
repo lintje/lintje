@@ -63,7 +63,7 @@ impl Branch {
                 format!("Branch name of {} characters is too short", width),
                 1,
                 context,
-            )
+            );
         }
     }
 
@@ -91,7 +91,7 @@ impl Branch {
                     "A ticket number was detected in the branch name".to_string(),
                     1,
                     context,
-                )
+                );
             }
         }
     }
@@ -114,13 +114,13 @@ impl Branch {
                         "The branch name starts with a punctuation character".to_string(),
                         1,
                         context,
-                    )
+                    );
                 }
             }
             None => {
                 error!(
                     "BranchNamePunctuation validation failure: No first character found of branch name."
-                )
+                );
             }
         }
 
@@ -145,13 +145,13 @@ impl Branch {
                             self.name.len() - character.len_utf8(),
                         ),
                         context,
-                    )
+                    );
                 }
             }
             None => {
                 error!(
                     "BranchNamePunctuation validation failure: No last character found of branch name."
-                )
+                );
             }
         }
     }
@@ -172,7 +172,7 @@ impl Branch {
                 "The branch name does not explain the change in much detail".to_string(),
                 1,
                 context,
-            )
+            );
         }
     }
 
@@ -182,7 +182,7 @@ impl Branch {
             message,
             Position::Branch { column },
             context,
-        ))
+        ));
     }
 }
 

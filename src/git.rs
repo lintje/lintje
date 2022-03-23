@@ -179,7 +179,7 @@ pub fn parse_commit_hook_format(
         }
 
         if let Some(cleaned_line) = cleanup_line(line, &cleanup_mode, &comment_char) {
-            message_lines.push(cleaned_line)
+            message_lines.push(cleaned_line);
         }
     }
     let used_subject = subject.unwrap_or_else(|| {

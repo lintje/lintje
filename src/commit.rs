@@ -197,7 +197,7 @@ impl Commit {
                 "A remote merge commit was found".to_string(),
                 1,
                 vec![context],
-            )
+            );
         }
     }
 
@@ -218,7 +218,7 @@ impl Commit {
                 "A fixup commit was found".to_string(),
                 1,
                 vec![context],
-            )
+            );
         } else if subject.starts_with("squash! ") {
             let context = Context::subject_error(
                 self.subject.to_string(),
@@ -230,7 +230,7 @@ impl Commit {
                 "A squash commit was found".to_string(),
                 1,
                 vec![context],
-            )
+            );
         }
     }
 
@@ -315,11 +315,11 @@ impl Commit {
                         "The subject does not use the imperative grammatical mood".to_string(),
                         1,
                         context,
-                    )
+                    );
                 }
             }
             None => {
-                error!("SubjectMood validation failure: No first word found of commit subject.")
+                error!("SubjectMood validation failure: No first word found of commit subject.");
             }
         }
     }
@@ -349,11 +349,13 @@ impl Commit {
                             .to_string(),
                         1,
                         context,
-                    )
+                    );
                 }
             }
             None => {
-                error!("SubjectWhitespace validation failure: No first character found of subject.")
+                error!(
+                    "SubjectWhitespace validation failure: No first character found of subject."
+                );
             }
         }
     }
@@ -385,11 +387,11 @@ impl Commit {
                         "The subject does not start with a capital letter".to_string(),
                         1,
                         context,
-                    )
+                    );
                 }
             }
             None => {
-                error!("SubjectCapitalization validation failure: No first character found of subject.")
+                error!("SubjectCapitalization validation failure: No first character found of subject.");
             }
         }
     }
@@ -415,10 +417,10 @@ impl Commit {
                         "The subject starts with an emoji".to_string(),
                         1,
                         context,
-                    )
+                    );
                 }
                 None => {
-                    error!("SubjectPunctuation: Unable to fetch ticket number match from subject.")
+                    error!("SubjectPunctuation: Unable to fetch ticket number match from subject.");
                 }
             }
         }
@@ -442,13 +444,13 @@ impl Commit {
                         ),
                         1,
                         context,
-                    )
+                    );
                 }
             }
             None => {
                 error!(
                     "SubjectPunctuation validation failure: No first character found of subject."
-                )
+                );
             }
         }
 
@@ -475,11 +477,13 @@ impl Commit {
                             subject_length - character.len_utf8(),
                         ),
                         vec![context],
-                    )
+                    );
                 }
             }
             None => {
-                error!("SubjectPunctuation validation failure: No last character found of subject.")
+                error!(
+                    "SubjectPunctuation validation failure: No last character found of subject."
+                );
             }
         }
     }
@@ -494,7 +498,9 @@ impl Commit {
             match captures.get(0) {
                 Some(capture) => self.add_subject_ticket_number_error(capture),
                 None => {
-                    error!("SubjectTicketNumber: Unable to fetch ticket number match from subject.")
+                    error!(
+                        "SubjectTicketNumber: Unable to fetch ticket number match from subject."
+                    );
                 }
             };
         }
@@ -502,7 +508,9 @@ impl Commit {
             match captures.get(0) {
                 Some(capture) => self.add_subject_ticket_number_error(capture),
                 None => {
-                    error!("SubjectTicketNumber: Unable to fetch ticket number match from subject.")
+                    error!(
+                        "SubjectTicketNumber: Unable to fetch ticket number match from subject."
+                    );
                 }
             };
         }
@@ -556,7 +564,7 @@ impl Commit {
                         format!("Remove the `{}` prefix from the subject", capture.as_str()),
                         1,
                         context,
-                    )
+                    );
                 }
                 None => error!("SubjectPrefix: Unable to fetch prefix capture from subject."),
             }
@@ -595,7 +603,7 @@ impl Commit {
                         format!("The `{}` build tag was found in the subject", tag.as_str()),
                         character_count_for_bytes_index(&self.subject, tag.start()),
                         context,
-                    )
+                    );
                 }
                 None => error!("SubjectBuildTag: Unable to fetch build tag from subject."),
             }
@@ -623,7 +631,7 @@ impl Commit {
                 "The subject does not explain the change in much detail".to_string(),
                 1,
                 context,
-            )
+            );
         }
     }
 
@@ -651,7 +659,7 @@ impl Commit {
                     "No empty line found below the subject".to_string(),
                     Position::MessageLine { line: 2, column: 1 },
                     context,
-                )
+                );
             }
         }
     }
@@ -680,7 +688,7 @@ impl Commit {
                 "No message body was found".to_string(),
                 Position::MessageLine { line: 3, column: 1 },
                 context,
-            )
+            );
         } else if width < 10 {
             let mut context = vec![];
             let line_count = self.message.lines().count();
@@ -705,7 +713,7 @@ impl Commit {
                     column: 1,
                 },
                 context,
-            )
+            );
         }
     }
 
@@ -723,7 +731,7 @@ impl Commit {
             match code_block_style {
                 CodeBlockStyle::Fenced => {
                     if CODE_BLOCK_LINE_END.is_match(line) {
-                        code_block_style = CodeBlockStyle::None
+                        code_block_style = CodeBlockStyle::None;
                     }
                 }
                 CodeBlockStyle::Indenting => {
@@ -733,9 +741,9 @@ impl Commit {
                 }
                 CodeBlockStyle::None => {
                     if CODE_BLOCK_LINE_WITH_LANGUAGE.is_match(line) {
-                        code_block_style = CodeBlockStyle::Fenced
+                        code_block_style = CodeBlockStyle::Fenced;
                     } else if line.starts_with("    ") && previous_line_was_empty_line {
-                        code_block_style = CodeBlockStyle::Indenting
+                        code_block_style = CodeBlockStyle::Indenting;
                     }
                 }
             }
@@ -768,13 +776,13 @@ impl Commit {
                         column: line_stats.char_count + 1, // + 1 because the next char is the problem
                     },
                     vec![context],
-                ))
+                ));
             }
             previous_line_was_empty_line = line.trim() == "";
         }
 
         for (rule, message, position, context) in issues {
-            self.add_message_error(rule, message, position, context)
+            self.add_message_error(rule, message, position, context);
         }
     }
 
@@ -807,7 +815,7 @@ impl Commit {
                     column: 1,
                 },
                 context,
-            )
+            );
         }
     }
 
@@ -832,7 +840,7 @@ impl Commit {
                 "No file changes found".to_string(),
                 Position::Diff,
                 vec![context],
-            )
+            );
         }
     }
 
@@ -844,7 +852,7 @@ impl Commit {
         context: Vec<Context>,
     ) {
         self.issues
-            .push(Issue::error(rule, message, position, context))
+            .push(Issue::error(rule, message, position, context));
     }
 
     fn add_subject_error(
@@ -859,7 +867,7 @@ impl Commit {
             message,
             Position::Subject { line: 1, column },
             context,
-        )
+        );
     }
 
     fn add_message_error(
@@ -869,12 +877,12 @@ impl Commit {
         position: Position,
         context: Vec<Context>,
     ) {
-        self.add_error(rule, message, position, context)
+        self.add_error(rule, message, position, context);
     }
 
     fn add_hint(&mut self, rule: Rule, message: String, position: Position, context: Vec<Context>) {
         self.issues
-            .push(Issue::hint(rule, message, position, context))
+            .push(Issue::hint(rule, message, position, context));
     }
 
     fn has_issue(&self, rule: Rule) -> bool {
