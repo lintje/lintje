@@ -5,6 +5,7 @@
 #![warn(clippy::semicolon_if_nothing_returned)]
 #![warn(clippy::if_not_else)]
 #![warn(clippy::match_same_arms)]
+#![warn(clippy::needless_pass_by_value)]
 
 #[macro_use]
 extern crate log;
@@ -57,7 +58,7 @@ fn main() {
         color,
         hints: args.hints,
     };
-    handle_result(print_lint_result(commit_result, branch_result, options));
+    handle_result(print_lint_result(commit_result, branch_result, &options));
 }
 
 fn lint_branch() -> Result<Branch, String> {
@@ -97,8 +98,8 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
             }
             let commit = parse_commit_hook_format(
                 &contents,
-                git::cleanup_mode(),
-                git::comment_char(),
+                &git::cleanup_mode(),
+                &git::comment_char(),
                 has_changes,
             );
             vec![commit]
@@ -124,7 +125,7 @@ fn handle_result(result: io::Result<()>) {
 fn print_lint_result(
     commit_result: Result<Vec<Commit>, String>,
     branch_result: Option<Result<Branch, String>>,
-    options: Options,
+    options: &Options,
 ) -> io::Result<()> {
     let mut out = buffer_writer(options.color);
     let mut error_count = 0;

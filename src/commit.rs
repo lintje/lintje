@@ -101,7 +101,7 @@ impl Commit {
     pub fn new(
         long_sha: Option<String>,
         email: Option<String>,
-        subject: String,
+        subject: &str,
         message: String,
         has_changes: bool,
     ) -> Self {
@@ -144,8 +144,8 @@ impl Commit {
         ignored
     }
 
-    fn rule_ignored(&self, rule: Rule) -> bool {
-        self.ignored_rules.contains(&rule)
+    fn rule_ignored(&self, rule: &Rule) -> bool {
+        self.ignored_rules.contains(rule)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -159,7 +159,7 @@ impl Commit {
         // If a commit has a MergeCommit or NeedsRebase issue, other rules are skipped,
         // because the commit itself will need to be rebased into other commits. So the format
         // of the commit won't matter.
-        if !self.has_issue(Rule::MergeCommit) && !self.has_issue(Rule::NeedsRebase) {
+        if !self.has_issue(&Rule::MergeCommit) && !self.has_issue(&Rule::NeedsRebase) {
             self.validate_subject_cliches();
             self.validate_subject_line_length();
             self.validate_subject_mood();
@@ -180,7 +180,7 @@ impl Commit {
     // Note: Some merge commits are ignored in git.rs and won't be validated here, because they are
     // Pull/Merge Requests, which are valid.
     fn validate_merge_commit(&mut self) {
-        if self.rule_ignored(Rule::MergeCommit) {
+        if self.rule_ignored(&Rule::MergeCommit) {
             return;
         }
 
@@ -202,7 +202,7 @@ impl Commit {
     }
 
     fn validate_needs_rebase(&mut self) {
-        if self.rule_ignored(Rule::NeedsRebase) {
+        if self.rule_ignored(&Rule::NeedsRebase) {
             return;
         }
 
@@ -235,7 +235,7 @@ impl Commit {
     }
 
     fn validate_subject_line_length(&mut self) {
-        if self.rule_ignored(Rule::SubjectLength) || self.has_issue(Rule::SubjectCliche) {
+        if self.rule_ignored(&Rule::SubjectLength) || self.has_issue(&Rule::SubjectCliche) {
             return;
         }
 
@@ -294,7 +294,7 @@ impl Commit {
     }
 
     fn validate_subject_mood(&mut self) {
-        if self.rule_ignored(Rule::SubjectMood) {
+        if self.rule_ignored(&Rule::SubjectMood) {
             return;
         }
 
@@ -325,10 +325,10 @@ impl Commit {
     }
 
     fn validate_subject_whitespace(&mut self) {
-        if self.rule_ignored(Rule::SubjectWhitespace) {
+        if self.rule_ignored(&Rule::SubjectWhitespace) {
             return;
         }
-        if self.subject.chars().count() == 0 && self.has_issue(Rule::SubjectLength) {
+        if self.subject.chars().count() == 0 && self.has_issue(&Rule::SubjectLength) {
             return;
         }
 
@@ -361,13 +361,13 @@ impl Commit {
     }
 
     fn validate_subject_capitalization(&mut self) {
-        if self.rule_ignored(Rule::SubjectCapitalization)
-            || self.has_issue(Rule::NeedsRebase)
-            || self.has_issue(Rule::SubjectPrefix)
+        if self.rule_ignored(&Rule::SubjectCapitalization)
+            || self.has_issue(&Rule::NeedsRebase)
+            || self.has_issue(&Rule::SubjectPrefix)
         {
             return;
         }
-        if self.subject.chars().count() == 0 && self.has_issue(Rule::SubjectLength) {
+        if self.subject.chars().count() == 0 && self.has_issue(&Rule::SubjectLength) {
             return;
         }
 
@@ -397,10 +397,10 @@ impl Commit {
     }
 
     fn validate_subject_punctuation(&mut self) {
-        if self.rule_ignored(Rule::SubjectPunctuation) {
+        if self.rule_ignored(&Rule::SubjectPunctuation) {
             return;
         }
-        if self.subject.chars().count() == 0 && self.has_issue(Rule::SubjectLength) {
+        if self.subject.chars().count() == 0 && self.has_issue(&Rule::SubjectLength) {
             return;
         }
 
@@ -489,7 +489,7 @@ impl Commit {
     }
 
     fn validate_subject_ticket_numbers(&mut self) {
-        if self.rule_ignored(Rule::SubjectTicketNumber) {
+        if self.rule_ignored(&Rule::SubjectTicketNumber) {
             return;
         }
 
@@ -545,7 +545,7 @@ impl Commit {
     }
 
     fn validate_subject_prefix(&mut self) {
-        if self.rule_ignored(Rule::SubjectPrefix) {
+        if self.rule_ignored(&Rule::SubjectPrefix) {
             return;
         }
 
@@ -572,7 +572,7 @@ impl Commit {
     }
 
     fn validate_subject_build_tags(&mut self) {
-        if self.rule_ignored(Rule::SubjectBuildTag) {
+        if self.rule_ignored(&Rule::SubjectBuildTag) {
             return;
         }
 
@@ -611,7 +611,7 @@ impl Commit {
     }
 
     fn validate_subject_cliches(&mut self) {
-        if self.rule_ignored(Rule::SubjectCliche) {
+        if self.rule_ignored(&Rule::SubjectCliche) {
             return;
         }
 
@@ -636,7 +636,7 @@ impl Commit {
     }
 
     fn validate_message_empty_first_line(&mut self) {
-        if self.rule_ignored(Rule::MessageEmptyFirstLine) {
+        if self.rule_ignored(&Rule::MessageEmptyFirstLine) {
             return;
         }
 
@@ -665,7 +665,7 @@ impl Commit {
     }
 
     fn validate_message_presence(&mut self) {
-        if self.rule_ignored(Rule::MessagePresence) || self.has_issue(Rule::NeedsRebase) {
+        if self.rule_ignored(&Rule::MessagePresence) || self.has_issue(&Rule::NeedsRebase) {
             return;
         }
 
@@ -718,7 +718,7 @@ impl Commit {
     }
 
     fn validate_message_line_length(&mut self) {
-        if self.rule_ignored(Rule::MessageLineLength) {
+        if self.rule_ignored(&Rule::MessageLineLength) {
             return;
         }
 
@@ -820,7 +820,7 @@ impl Commit {
     }
 
     fn validate_changes(&mut self) {
-        if self.rule_ignored(Rule::DiffPresence) {
+        if self.rule_ignored(&Rule::DiffPresence) {
             return;
         }
 
@@ -885,8 +885,8 @@ impl Commit {
             .push(Issue::hint(rule, message, position, context));
     }
 
-    fn has_issue(&self, rule: Rule) -> bool {
-        self.issues.iter().any(|issue| issue.rule == rule)
+    fn has_issue(&self, rule: &Rule) -> bool {
+        self.issues.iter().any(|issue| &issue.rule == rule)
     }
 }
 
@@ -909,7 +909,7 @@ mod tests {
         Commit::new(
             sha,
             Some("test@example.com".to_string()),
-            subject.as_ref().to_string(),
+            subject.as_ref(),
             message.as_ref().to_string(),
             true,
         )
@@ -927,7 +927,7 @@ mod tests {
         Commit::new(
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
             Some("test@example.com".to_string()),
-            "Some subject".to_string(),
+            "Some subject",
             message,
             false,
         )
@@ -941,7 +941,7 @@ mod tests {
 
     fn assert_commit_valid_for(commit: &Commit, rule: &Rule) {
         assert!(
-            !has_issue(&commit.issues, rule),
+            !has_issue(&commit.issues, &rule),
             "Commit was not considered valid: {:?}",
             commit
         );
@@ -949,7 +949,7 @@ mod tests {
 
     fn assert_commit_invalid_for(commit: &Commit, rule: &Rule) {
         assert!(
-            has_issue(&commit.issues, rule),
+            has_issue(&commit.issues, &rule),
             "Commit was not considered invalid: {:?}",
             commit
         );

@@ -119,7 +119,7 @@ fn parse_commit(message: &str) -> Option<Commit> {
             Some(commit_for(
                 Some(long_sha.to_string()),
                 email,
-                used_subject.to_string(),
+                used_subject,
                 message_lines,
                 has_changes,
             ))
@@ -133,8 +133,8 @@ fn parse_commit(message: &str) -> Option<Commit> {
 
 pub fn parse_commit_hook_format(
     message: &str,
-    cleanup_mode: CleanupMode,
-    comment_char: String,
+    cleanup_mode: &CleanupMode,
+    comment_char: &str,
     has_changes: bool,
 ) -> Commit {
     let mut subject = None;
@@ -163,11 +163,11 @@ pub fn parse_commit_hook_format(
         // The first non-empty line is the subject line in every cleanup mode but the Verbatim
         // mode.
         if subject.is_none() {
-            if cleanup_mode == CleanupMode::Verbatim {
+            if cleanup_mode == &CleanupMode::Verbatim {
                 // Set subject, doesn't matter what the content is. Even empty lines are considered
                 // subjects in Verbatim cleanup mode.
                 subject = Some(line.to_string());
-            } else if let Some(cleaned_line) = cleanup_line(line, &cleanup_mode, &comment_char) {
+            } else if let Some(cleaned_line) = cleanup_line(line, cleanup_mode, comment_char) {
                 if !cleaned_line.is_empty() {
                     // Skip leading empty lines in every other cleanup mode than Verbatim.
                     subject = Some(cleaned_line);
@@ -178,7 +178,7 @@ pub fn parse_commit_hook_format(
             continue;
         }
 
-        if let Some(cleaned_line) = cleanup_line(line, &cleanup_mode, &comment_char) {
+        if let Some(cleaned_line) = cleanup_line(line, cleanup_mode, comment_char) {
             message_lines.push(cleaned_line);
         }
     }
@@ -187,7 +187,7 @@ pub fn parse_commit_hook_format(
         "".to_string()
     });
 
-    commit_for(None, None, used_subject, message_lines, has_changes)
+    commit_for(None, None, &used_subject, message_lines, has_changes)
 }
 
 fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> Option<String> {
@@ -203,10 +203,11 @@ fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> O
     }
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn commit_for(
     sha: Option<String>,
     email: Option<String>,
-    subject: String,
+    subject: &str,
     message: Vec<String>,
     has_changes: bool,
 ) -> Commit {
@@ -598,8 +599,8 @@ mod tests {
     fn test_parse_commit_hook_format() {
         let commit = parse_commit_hook_format(
             "This is a subject\n\nThis is a message.",
-            CleanupMode::Default,
-            "#".to_string(),
+            &CleanupMode::Default,
+            "#",
             true,
         );
 
@@ -612,12 +613,8 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_without_message() {
-        let commit = parse_commit_hook_format(
-            "This is a subject",
-            CleanupMode::Default,
-            "#".to_string(),
-            true,
-        );
+        let commit =
+            parse_commit_hook_format("This is a subject", &CleanupMode::Default, "#", true);
 
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
@@ -639,8 +636,8 @@ mod tests {
             \n\
             # Other things that are not part of the message.\n\
             ",
-            CleanupMode::Strip,
-            "#".to_string(),
+            &CleanupMode::Strip,
+            "#",
             true,
         );
 
@@ -667,8 +664,8 @@ mod tests {
             \n\
             # Other things that are not part of the message.\n\
             ",
-            CleanupMode::Strip,
-            "#".to_string(),
+            &CleanupMode::Strip,
+            "#",
             true,
         );
 
@@ -695,8 +692,8 @@ mod tests {
             \n\
             # Other things that are not part of the message.\n\
             ",
-            CleanupMode::Strip,
-            "#".to_string(),
+            &CleanupMode::Strip,
+            "#",
             true,
         );
 
@@ -722,8 +719,8 @@ mod tests {
             \n\
             - Other things that are not part of the message.\n\
             ",
-            CleanupMode::Strip,
-            "-".to_string(),
+            &CleanupMode::Strip,
+            "-",
             true,
         );
 
@@ -748,8 +745,8 @@ mod tests {
             # ------------------------ >8 ------------------------\n\
             Other things that are not part of the message.\n\
             ",
-            CleanupMode::Scissors,
-            "#".to_string(),
+            &CleanupMode::Scissors,
+            "#",
             true,
         );
 
@@ -769,8 +766,8 @@ mod tests {
             "# ------------------------ >8 ------------------------\n\
             Other things that are not part of the message.\n\
             ",
-            CleanupMode::Scissors,
-            "#".to_string(),
+            &CleanupMode::Scissors,
+            "#",
             true,
         );
 
@@ -791,8 +788,8 @@ mod tests {
             # Other things that are not part of the message.\n\
             Extra suprise!\
             ",
-            CleanupMode::Verbatim,
-            "#".to_string(),
+            &CleanupMode::Verbatim,
+            "#",
             true,
         );
 
@@ -819,8 +816,8 @@ mod tests {
             # Other things that are not part of the message.\n\
             Extra suprise!\
             ",
-            CleanupMode::Verbatim,
-            "#".to_string(),
+            &CleanupMode::Verbatim,
+            "#",
             true,
         );
 
@@ -850,8 +847,8 @@ mod tests {
             # Other things that are not part of the message.\n\
             Extra suprise!\
             ",
-            CleanupMode::Whitespace,
-            "#".to_string(),
+            &CleanupMode::Whitespace,
+            "#",
             true,
         );
 
@@ -878,8 +875,8 @@ mod tests {
             This is a subject  \n\
             \n\
             This is the message body.",
-            CleanupMode::Whitespace,
-            "#".to_string(),
+            &CleanupMode::Whitespace,
+            "#",
             true,
         );
 
@@ -905,8 +902,8 @@ mod tests {
             # ------------------------ >8 ------------------------\n\
             # Other things that are not part of the message.\n\
             List of file changes",
-            CleanupMode::Strip,
-            "#".to_string(),
+            &CleanupMode::Strip,
+            "#",
             true,
         );
 

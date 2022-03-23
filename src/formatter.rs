@@ -223,7 +223,7 @@ pub mod tests {
         Commit::new(
             sha,
             Some("test@example.com".to_string()),
-            subject.as_ref().to_string(),
+            subject.as_ref(),
             message.as_ref().to_string(),
             true,
         )
