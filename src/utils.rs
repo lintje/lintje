@@ -137,7 +137,7 @@ pub fn character_count_for_bytes_index(string: &str, bytes_index: usize) -> usiz
 }
 
 pub fn pluralize(label: &str, count: usize) -> String {
-    let plural = if count != 1 { "s" } else { "" };
+    let plural = if count == 1 { "" } else { "s" };
     format!("{}{}", label, plural)
 }
 

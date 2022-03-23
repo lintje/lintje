@@ -3,6 +3,7 @@
 #![deny(unused_import_braces)]
 #![deny(non_ascii_idents)]
 #![warn(clippy::semicolon_if_nothing_returned)]
+#![warn(clippy::if_not_else)]
 
 #[macro_use]
 extern crate log;
@@ -178,19 +179,19 @@ fn print_lint_result(
         }
     }
 
-    let commit_plural = if commit_count != 1 { "s" } else { "" };
+    let commit_label = pluralize("commit", commit_count);
     write!(
         out,
-        "{} commit{}{} inspected, ",
-        commit_count, commit_plural, branch_message
+        "{} {}{} inspected, ",
+        commit_count, commit_label, branch_message
     )?;
     print_issue_counts(&mut out, error_count, hint_count, options.hints)?;
     if ignored_commit_count > 0 || options.debug {
-        let ignored_plural = if ignored_commit_count != 1 { "s" } else { "" };
+        let ignored_commit_label = pluralize("commit", ignored_commit_count);
         write!(
             out,
-            " ({} commit{} ignored)",
-            ignored_commit_count, ignored_plural
+            " ({} {} ignored)",
+            ignored_commit_count, ignored_commit_label
         )?;
     }
     writeln!(out)?;
