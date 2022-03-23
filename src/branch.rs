@@ -99,7 +99,7 @@ impl Branch {
     fn validate_punctuation(&mut self) {
         match &self.name.chars().next() {
             Some(character) => {
-                if is_punctuation(character) {
+                if is_punctuation(*character) {
                     let branch = &self.name;
                     let context = vec![Context::branch_error(
                         branch.to_string(),
@@ -126,7 +126,7 @@ impl Branch {
 
         match &self.name.chars().last() {
             Some(character) => {
-                if is_punctuation(character) {
+                if is_punctuation(*character) {
                     let branch_length = self.name.len();
                     let branch = &self.name;
                     let context = vec![Context::branch_error(

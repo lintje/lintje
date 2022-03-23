@@ -427,7 +427,7 @@ impl Commit {
 
         match self.subject.chars().next() {
             Some(character) => {
-                if is_punctuation(&character) {
+                if is_punctuation(character) {
                     let context = vec![Context::subject_error(
                         self.subject.to_string(),
                         Range {
@@ -456,7 +456,7 @@ impl Commit {
 
         match self.subject.chars().last() {
             Some(character) => {
-                if is_punctuation(&character) {
+                if is_punctuation(character) {
                     let subject_length = self.subject.len();
                     let context = Context::subject_error(
                         self.subject.to_string(),

@@ -6,6 +6,7 @@
 #![warn(clippy::if_not_else)]
 #![warn(clippy::match_same_arms)]
 #![warn(clippy::needless_pass_by_value)]
+#![warn(clippy::trivially_copy_pass_by_ref)]
 
 #[macro_use]
 extern crate log;
