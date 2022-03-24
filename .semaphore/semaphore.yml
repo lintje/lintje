@@ -26,7 +26,10 @@ blocks:
       jobs:
       - name: Rust Lint
         commands:
+          - cache restore v1-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock)
+          - rustup component add clippy
           - cargo fmt --all -- --check
+          - cargo clippy
   - name: Build
     dependencies: []
     task:
