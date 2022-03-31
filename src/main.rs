@@ -7,6 +7,7 @@
 #![warn(clippy::match_same_arms)]
 #![warn(clippy::needless_pass_by_value)]
 #![warn(clippy::trivially_copy_pass_by_ref)]
+#![warn(clippy::doc_markdown)]
 
 #[macro_use]
 extern crate log;
@@ -264,7 +265,7 @@ fn init_logger(debug: bool) {
     }
 }
 
-/// Returns a StandardStream configured to write with color or not based on the config flag set by
+/// Returns a `StandardStream` configured to write with color or not based on the config flag set by
 /// the user.
 fn buffer_writer(color: bool) -> StandardStream {
     let color_choice = if color {
