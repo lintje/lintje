@@ -25,7 +25,7 @@ lazy_static! {
         Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+").unwrap();
     // Match "Part of #123"
     static ref LINK_TO_TICKET: Regex = {
-        let mut tempregex = RegexBuilder::new(r"(part of):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
+        let mut tempregex = RegexBuilder::new(r"(part of|related):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
         tempregex.case_insensitive(true);
         tempregex.multi_line(false);
         tempregex.build().unwrap()
@@ -2114,6 +2114,19 @@ mod tests {
         .join("\n");
         assert_commit_valid_for(
             &validated_commit("Subject".to_string(), message_with_ticket_number_part_of),
+            &Rule::MessageTicketNumber,
+        );
+
+        let message_with_ticket_number_related = [
+            "Beginning of message.",
+            "",
+            "Some explanation.",
+            "",
+            "Related #123",
+        ]
+        .join("\n");
+        assert_commit_valid_for(
+            &validated_commit("Subject".to_string(), message_with_ticket_number_related),
             &Rule::MessageTicketNumber,
         );
 
