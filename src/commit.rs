@@ -23,6 +23,13 @@ lazy_static! {
     // Match all GitHub and GitLab keywords
     static ref CONTAINS_FIX_TICKET: Regex =
         Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+").unwrap();
+    // Match "Part of #123"
+    static ref LINK_TO_TICKET: Regex = {
+        let mut tempregex = RegexBuilder::new(r"(part of):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
+        tempregex.case_insensitive(true);
+        tempregex.multi_line(false);
+        tempregex.build().unwrap()
+    };
     static ref SUBJECT_WITH_CLICHE: Regex = {
         let mut tempregex = RegexBuilder::new(r"^(fix(es|ed|ing)?|add(s|ed|ing)?|(updat|chang|remov|delet)(e|es|ed|ing))(\s+\w+)?$");
         tempregex.case_insensitive(true);
@@ -788,7 +795,9 @@ impl Commit {
 
     fn validate_message_ticket_numbers(&mut self) {
         let message = &self.message.to_string();
-        if CONTAINS_FIX_TICKET.captures(message).is_none() {
+        if CONTAINS_FIX_TICKET.captures(message).is_none()
+            && LINK_TO_TICKET.captures(message).is_none()
+        {
             let line_count = message.lines().count() + 1; // + 1 for subject
             let last_line = if line_count == 1 {
                 self.subject.to_string()
@@ -2092,6 +2101,19 @@ mod tests {
         .join("\n");
         assert_commit_valid_for(
             &validated_commit("Subject".to_string(), message_with_ticket_number),
+            &Rule::MessageTicketNumber,
+        );
+
+        let message_with_ticket_number_part_of = [
+            "Beginning of message.",
+            "",
+            "Some explanation.",
+            "",
+            "Part of #123",
+        ]
+        .join("\n");
+        assert_commit_valid_for(
+            &validated_commit("Subject".to_string(), message_with_ticket_number_part_of),
             &Rule::MessageTicketNumber,
         );
 

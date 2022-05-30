@@ -2,6 +2,11 @@
 
 ## Next version
 
+### Added
+
+- Check commit messages for "Part of #123" substring for MessageTicketNumber
+  hint. This is also accepted along with "Fixes #123" and "Closes #123".
+
 ### Changed
 
 - Print CLI flags in a most common usage based order. Flags to are opposites of
