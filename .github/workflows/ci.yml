@@ -1,0 +1,87 @@
+name: Testing
+on: [push]
+
+jobs:
+  lintje:
+    name: "Lintje (Git Linter)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 100
+      - uses: lintje/action@main
+  rust_lint:
+    name: Rust lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v3
+        with:
+          key: cargo-lint-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+      - uses: helix-editor/rust-toolchain@v1
+        with:
+          target: x86_64-unknown-linux-gnu
+          override: true
+          components: rustfmt, clippy
+      - name: Rust format
+        run: cargo fmt --all -- --check
+      - name: Rust clippy
+        run: cargo clippy
+  build_and_test:
+    name: Tests
+    runs-on: ubuntu-latest
+    env:
+      # Set TERM so that the color specs detect a terminal that can print color
+      TERM: xterm-256color
+    steps:
+      - name: Configure Git
+        run: |
+          git config --global user.email "test@test.com"
+          git config --global user.name "My Test user"
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v3
+        with:
+          key: cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+      - uses: helix-editor/rust-toolchain@v1
+        with:
+          target: x86_64-unknown-linux-gnu
+          override: true
+      - name: Cargo test
+        run: cargo test -- --show-output
+  run:
+    name: Test run the project
+    runs-on: ubuntu-latest
+    env:
+      # Set TERM so that the color specs detect a terminal that can print color
+      TERM: xterm-256color
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          Fetch-depth: 2 # Fetch enough commits to test on
+      - uses: actions/cache@v3
+        with:
+          key: cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+      - uses: helix-editor/rust-toolchain@v1
+        with:
+          target: x86_64-unknown-linux-gnu
+          override: true
+      - name: Cargo run
+        run: cargo run
