@@ -182,10 +182,11 @@ namespace :release do
   end
 
   task :all => [:prepare, "build:all"] do
+    version = fetch_package_version
+    release_docker_release_image(version)
     build_archives
     build_packages
 
-    version = fetch_package_version
     tag = "v#{version}"
     run "git tag #{tag}"
     run "git push origin #{current_branch} #{tag}"
@@ -201,6 +202,11 @@ namespace :release do
 
     puts "Release of version #{version} done!"
     puts "Please update the Homebrew tap next: https://github.com/tombruijn/homebrew-lintje"
+  end
+
+  task :docker_image do
+    prepare_docker_buildx
+    release_docker_release_image(fetch_package_version)
   end
 
   task :archives do
@@ -381,6 +387,62 @@ def run(command, chdir: nil)
 
   puts
   output
+end
+
+def prepare_docker_buildx
+  build_name = "lintje-builder"
+  output = run "docker buildx ls"
+  return if output.include?(build_name)
+
+  run "docker buildx create --name #{build_name} --bootstrap"
+  run "docker buildx use #{build_name}"
+end
+
+def symlink_dist_target(old, new)
+  Dir.chdir DIST_ARCHIVES_DIR do
+    File.symlink(old, new)
+  end
+end
+
+def remove_dist_target(target)
+  dist_target_dir = File.join(DIST_ARCHIVES_DIR, target)
+  return unless File.exist?(dist_target_dir)
+
+  FileUtils.remove_dir(dist_target_dir)
+end
+
+def release_docker_release_image(_version)
+  # Create symlinks for the directory names the build images look for based on
+  # the architecture name as used by Docker, which do not always match with
+  # what is used by Rust.
+  symlink_dist_target("x86_64-unknown-linux-musl", "amd64-unknown-linux-musl")
+  symlink_dist_target("aarch64-unknown-linux-musl", "arm-unknown-linux-musl")
+  symlink_dist_target("aarch64-unknown-linux-musl", "arm64-unknown-linux-musl")
+
+  version = "0.0.0" # TODO: remove
+  image = "tombruijn/lintje"
+  platforms = %w[linux/arm64 linux/amd64 linux/arm/v7]
+  run <<~COMMAND
+    docker buildx build \
+    --push \
+    --platform=#{platforms.join(",")} \
+    --tag #{image}:#{version} \
+    .
+  COMMAND
+  # Also push as the new latest version
+  run <<~COMMAND
+    docker buildx build \
+    --push \
+    --platform=#{platforms.join(",")} \
+    --tag #{image}:latest \
+    .
+  COMMAND
+ensure
+  # Remove symlinks after the images are made and push so it doesn't stick
+  # around only to confuse me about its purpose
+  remove_dist_target("amd64-unknown-linux-musl")
+  remove_dist_target("arm-unknown-linux-musl")
+  remove_dist_target("arm64-unknown-linux-musl")
 end
 
 def build_docker_image(image, dockerfile, platform: nil)

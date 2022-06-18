@@ -4,8 +4,14 @@
 
 ### Added
 
-- Check commit messages for "Part of #123" substring for MessageTicketNumber
+- Docker image: Lintje ships in a Docker image now available on Docker Hub. See
+  the [Docker image installation instructions][docker install instructions]
+  for more information.
+- Check commit messages for "Part of #123" substring for [MessageTicketNumber]
   hint. This is also accepted along with "Fixes #123" and "Closes #123".
+
+[MessageTicketNumber]: https://lintje.dev/docs/rules/commit-message#messageticketnumber
+[docker install instructions]: https://lintje.dev/docs/installation/#docker-image
 
 ### Changed
 
