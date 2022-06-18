@@ -411,7 +411,7 @@ def remove_dist_target(target)
   FileUtils.remove_dir(dist_target_dir)
 end
 
-def release_docker_release_image(_version)
+def release_docker_release_image(version)
   # Create symlinks for the directory names the build images look for based on
   # the architecture name as used by Docker, which do not always match with
   # what is used by Rust.
@@ -419,7 +419,6 @@ def release_docker_release_image(_version)
   symlink_dist_target("aarch64-unknown-linux-musl", "arm-unknown-linux-musl")
   symlink_dist_target("aarch64-unknown-linux-musl", "arm64-unknown-linux-musl")
 
-  version = "0.0.0" # TODO: remove
   image = "tombruijn/lintje"
   platforms = %w[linux/arm64 linux/amd64 linux/arm/v7]
   run <<~COMMAND
