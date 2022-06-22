@@ -1,5 +1,12 @@
 # Lintje changelog
 
+## Next version
+
+### Fixed
+
+- Better support just initialized repositories. Lintje will no longer print an
+  error for repositories with one commit.
+
 ## 0.7.1
 
 ### Added

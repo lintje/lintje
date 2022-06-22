@@ -58,7 +58,10 @@ pub fn fetch_and_parse_commits(selector: Option<String>) -> Result<Vec<Commit>, 
             }
             args.push(selection);
         }
-        None => args.push("HEAD~1..HEAD".to_string()),
+        None => {
+            args.push("-n 1".to_string());
+            args.push("HEAD".to_string());
+        }
     };
 
     let output = match run_command("git", &args) {

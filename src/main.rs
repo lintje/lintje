@@ -316,7 +316,11 @@ mod tests {
                 String::from_utf8(output.stderr).unwrap()
             )
         }
-        create_commit(dir, "Initial commit", "");
+        create_commit(
+            dir,
+            "Initial commit",
+            "Initial commit with message body.\nlintje:disable DiffPresence",
+        );
     }
 
     fn checkout_branch(dir: &Path, name: &str) {
@@ -557,6 +561,21 @@ mod tests {
             .stdout(predicate::str::contains(
                 "1 commit and branch inspected, 0 errors detected, 1 hint\n",
             ));
+    }
+
+    #[test]
+    fn test_single_commit_in_repository() {
+        compile_bin();
+        let dir = test_dir("single_commit_in_repository");
+        create_test_repo(&dir);
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .args(["--no-color", "--no-hints"])
+            .current_dir(dir)
+            .assert()
+            .success();
+        assert.stdout("1 commit and branch inspected, 0 errors detected\n");
     }
 
     #[test]
