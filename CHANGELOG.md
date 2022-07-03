@@ -2,6 +2,11 @@
 
 ## Next version
 
+### Changed
+
+- Add and extra line between message body and moved ticket number at the end of
+  the body in SubjectTicketNumber suggestions.
+
 ### Fixed
 
 - Better support just initialized repositories. Lintje will no longer print an
