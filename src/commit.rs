@@ -368,10 +368,7 @@ impl Commit {
     }
 
     fn validate_subject_capitalization(&mut self) {
-        if self.rule_ignored(&Rule::SubjectCapitalization)
-            || self.has_issue(&Rule::NeedsRebase)
-            || self.has_issue(&Rule::SubjectPrefix)
-        {
+        if self.rule_ignored(&Rule::SubjectCapitalization) || self.has_issue(&Rule::SubjectPrefix) {
             return;
         }
         if self.subject.chars().count() == 0 && self.has_issue(&Rule::SubjectLength) {
@@ -673,7 +670,7 @@ impl Commit {
     }
 
     fn validate_message_presence(&mut self) {
-        if self.rule_ignored(&Rule::MessagePresence) || self.has_issue(&Rule::NeedsRebase) {
+        if self.rule_ignored(&Rule::MessagePresence) {
             return;
         }
 
