@@ -158,7 +158,7 @@ impl Commit {
 
     pub fn validate(&mut self) {
         self.validate_rule(&Rule::MergeCommit);
-        self.validate_needs_rebase();
+        self.validate_rule(&Rule::NeedsRebase);
 
         // If a commit has a MergeCommit or NeedsRebase issue, other rules are skipped,
         // because the commit itself will need to be rebased into other commits. So the format
@@ -194,39 +194,6 @@ impl Commit {
             None => {
                 debug!("No issues found for rule '{}'", rule);
             }
-        }
-    }
-
-    fn validate_needs_rebase(&mut self) {
-        if self.rule_ignored(&Rule::NeedsRebase) {
-            return;
-        }
-
-        let subject = &self.subject;
-        if subject.starts_with("fixup! ") {
-            let context = Context::subject_error(
-                self.subject.to_string(),
-                Range { start: 0, end: 6 },
-                "Rebase fixup commits before pushing or merging".to_string(),
-            );
-            self.add_subject_error(
-                Rule::NeedsRebase,
-                "A fixup commit was found".to_string(),
-                1,
-                vec![context],
-            );
-        } else if subject.starts_with("squash! ") {
-            let context = Context::subject_error(
-                self.subject.to_string(),
-                Range { start: 0, end: 7 },
-                "Rebase squash commits before pushing or merging".to_string(),
-            );
-            self.add_subject_error(
-                Rule::NeedsRebase,
-                "A squash commit was found".to_string(),
-                1,
-                vec![context],
-            );
         }
     }
 
@@ -834,49 +801,6 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_needs_rebase() {
-        assert_commit_subject_as_valid("I don't need a rebase", &Rule::NeedsRebase);
-
-        let fixup = validated_commit("fixup! I need a rebase", "");
-        let issue = find_issue(fixup.issues, &Rule::NeedsRebase);
-        assert_eq!(issue.message, "A fixup commit was found");
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | fixup! I need a rebase\n\
-             \x20\x20| ^^^^^^ Rebase fixup commits before pushing or merging\n"
-        );
-
-        let squash = validated_commit("squash! I need a rebase", "");
-        let issue = find_issue(squash.issues, &Rule::NeedsRebase);
-        assert_eq!(issue.message, "A squash commit was found");
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | squash! I need a rebase\n\
-             \x20\x20| ^^^^^^^ Rebase squash commits before pushing or merging\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "fixup! I don't need to be rebased".to_string(),
-            "lintje:disable NeedsRebase".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::NeedsRebase);
-
-        // If commit has a NeedsRebase issue, so other rules are skipped
-        assert_commit_subject_as_valid(
-            "fixup! I do need to be rebased because this is a fixup commit",
-            &Rule::SubjectLength,
-        );
-        assert_commit_subject_as_invalid(
-            "fixup! I do need to be rebased because this is a fixup commit",
-            &Rule::NeedsRebase,
-        );
     }
 
     #[test]
