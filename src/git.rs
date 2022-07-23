@@ -2,13 +2,15 @@ use regex::Regex;
 
 use crate::branch::Branch;
 use crate::command::run_command;
-use crate::commit::{Commit, SUBJECT_WITH_MERGE_REMOTE_BRANCH};
+use crate::commit::Commit;
 
 const SCISSORS: &str = "------------------------ >8 ------------------------";
 const COMMIT_DELIMITER: &str = "------------------------ COMMIT >! ------------------------";
 const COMMIT_BODY_DELIMITER: &str = "------------------------ BODY >! ------------------------";
 
 lazy_static! {
+    pub static ref SUBJECT_WITH_MERGE_REMOTE_BRANCH: Regex =
+        Regex::new(r"^Merge branch '.+' of .+ into .+").unwrap();
     static ref SUBJECT_WITH_SQUASH_PR: Regex = Regex::new(r".+ \(#\d+\)$").unwrap();
     static ref MESSAGE_CONTAINS_MERGE_REQUEST_REFERENCE: Regex =
         Regex::new(r"^See merge request .+/.+!\d+$").unwrap();

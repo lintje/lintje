@@ -5,7 +5,6 @@ use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
-    pub static ref SUBJECT_WITH_MERGE_REMOTE_BRANCH: Regex = Regex::new(r"^Merge branch '.+' of .+ into .+").unwrap();
     static ref SUBJECT_STARTS_WITH_PREFIX: Regex = Regex::new(r"^([\w\(\)/!]+:)\s.*").unwrap();
     // Regex to match emoji, but not all emoji. Emoji using ASCII codepoints like the emojis for
     // the numbers 0-9, and symbols like * and # are not included. Otherwise it would also catches
@@ -158,7 +157,7 @@ impl Commit {
     }
 
     pub fn validate(&mut self) {
-        self.validate_merge_commit();
+        self.validate_rule(&Rule::MergeCommit);
         self.validate_needs_rebase();
 
         // If a commit has a MergeCommit or NeedsRebase issue, other rules are skipped,
@@ -195,30 +194,6 @@ impl Commit {
             None => {
                 debug!("No issues found for rule '{}'", rule);
             }
-        }
-    }
-
-    // Note: Some merge commits are ignored in git.rs and won't be validated here, because they are
-    // Pull/Merge Requests, which are valid.
-    fn validate_merge_commit(&mut self) {
-        if self.rule_ignored(&Rule::MergeCommit) {
-            return;
-        }
-
-        let subject = &self.subject;
-        if SUBJECT_WITH_MERGE_REMOTE_BRANCH.is_match(subject) {
-            let subject_length = subject.len();
-            let context = Context::subject_error(
-                subject.to_string(),
-                Range { start: 0, end: subject_length },
-                "Rebase on the remote branch, rather than merging the remote branch into the local branch".to_string(),
-            );
-            self.add_subject_error(
-                Rule::MergeCommit,
-                "A remote merge commit was found".to_string(),
-                1,
-                vec![context],
-            );
         }
     }
 
@@ -859,50 +834,6 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_merge_commit() {
-        assert_commit_subject_as_valid("I am not a merge commit", &Rule::MergeCommit);
-        assert_commit_subject_as_valid("Merge pull request #123 from repo", &Rule::MergeCommit);
-        // Merge into the project's defaultBranch branch
-        assert_commit_subject_as_valid("Merge branch 'develop'", &Rule::MergeCommit);
-        // Merge a local branch into another local branch
-        assert_commit_subject_as_valid(
-            "Merge branch 'develop' into feature-branch",
-            &Rule::MergeCommit,
-        );
-        // Merge a remote branch into a local branch
-        let commit = validated_commit(
-            "Merge branch 'develop' of github.com/org/repo into develop",
-            "",
-        );
-        let issue = find_issue(commit.issues, &Rule::MergeCommit);
-        assert_eq!(issue.message, "A remote merge commit was found");
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Merge branch 'develop' of github.com/org/repo into develop\n\
-             \x20\x20| ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ \
-                Rebase on the remote branch, rather than merging the remote branch into the local branch\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "Merge branch 'develop' of github.com/org/repo into develop".to_string(),
-            "lintje:disable MergeCommit".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::MergeCommit);
-
-        // If commit has a MergeCommit issue, so other rules are skipped
-        assert_commit_subject_as_valid(
-            "Merge branch 'develop' of github.com/org/repo into develop",
-            &Rule::SubjectLength,
-        );
-        assert_commit_subject_as_invalid(
-            "Merge branch 'develop' of github.com/org/repo into develop",
-            &Rule::MergeCommit,
-        );
     }
 
     #[test]

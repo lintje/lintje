@@ -59,6 +59,7 @@ impl fmt::Display for Rule {
 impl Rule {
     pub fn instance(&self) -> Box<dyn RuleValidation> {
         match self {
+            Rule::MergeCommit => Box::new(MergeCommit::new()),
             Rule::MessagePresence => Box::new(MessagePresence::new()),
             Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
             _ => panic!("Rule '{}' not implemented yet", self),
