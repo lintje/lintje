@@ -910,7 +910,7 @@ mod tests {
     use crate::commit::Commit;
     use crate::issue::{Issue, Position};
     use crate::rule::Rule;
-    use crate::utils::test::formatted_context;
+    use crate::test::formatted_context;
 
     fn commit_with_sha<S: AsRef<str>>(sha: Option<String>, subject: S, message: S) -> Commit {
         Commit::new(

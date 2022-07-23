@@ -29,6 +29,8 @@ mod git;
 mod issue;
 mod logger;
 mod rule;
+#[cfg(test)]
+mod test;
 mod utils;
 
 use branch::Branch;

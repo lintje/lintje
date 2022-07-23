@@ -191,7 +191,7 @@ mod tests {
     use crate::branch::Branch;
     use crate::issue::{Issue, Position};
     use crate::rule::Rule;
-    use crate::utils::test::formatted_context;
+    use crate::test::formatted_context;
 
     fn validated_branch(name: String) -> Branch {
         let mut branch = Branch::new(name);

@@ -215,7 +215,7 @@ pub mod tests {
     use crate::commit::Commit;
     use crate::issue::{Context, Issue, Position};
     use crate::rule::Rule;
-    use crate::utils::test::formatted_context;
+    use crate::test::formatted_context;
     use core::ops::Range;
     use termcolor::{BufferWriter, ColorChoice};
 
