@@ -1,5 +1,9 @@
 use std::fmt;
 
+use crate::commit::Commit;
+use crate::issue::Issue;
+use crate::rules::*;
+
 #[derive(Debug, PartialEq)]
 pub enum Rule {
     MergeCommit,
@@ -52,6 +56,16 @@ impl fmt::Display for Rule {
     }
 }
 
+impl Rule {
+    pub fn instance(&self) -> Box<dyn RuleValidation> {
+        match self {
+            Rule::MessagePresence => Box::new(MessagePresence::new()),
+            Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
+            _ => panic!("Rule '{}' not implemented yet", self),
+        }
+    }
+}
+
 pub fn rule_by_name(name: &str) -> Option<Rule> {
     match name {
         "MergeCommit" => Some(Rule::MergeCommit),
@@ -72,4 +86,10 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "DiffPresence" => Some(Rule::DiffPresence),
         _ => None,
     }
+}
+pub trait RuleValidation {
+    fn new() -> Self
+    where
+        Self: Sized;
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>>;
 }

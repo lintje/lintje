@@ -29,6 +29,7 @@ mod git;
 mod issue;
 mod logger;
 mod rule;
+mod rules;
 #[cfg(test)]
 mod test;
 mod utils;

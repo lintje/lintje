@@ -1,8 +1,6 @@
 use crate::issue::{Context, Issue, Position};
 use crate::rule::{rule_by_name, Rule};
-use crate::utils::{
-    character_count_for_bytes_index, display_width, is_punctuation, line_length_stats,
-};
+use crate::utils::{character_count_for_bytes_index, is_punctuation, line_length_stats};
 use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
@@ -177,11 +175,27 @@ impl Commit {
             self.validate_subject_punctuation();
             self.validate_subject_ticket_numbers();
             self.validate_message_ticket_numbers();
-            self.validate_message_empty_first_line();
-            self.validate_message_presence();
+            self.validate_rule(&Rule::MessageEmptyFirstLine);
+            self.validate_rule(&Rule::MessagePresence);
             self.validate_message_line_length();
         }
         self.validate_changes();
+    }
+
+    fn validate_rule(&mut self, rule: &Rule) {
+        if self.rule_ignored(rule) {
+            return;
+        }
+
+        let instance = rule.instance();
+        match instance.validate(self) {
+            Some(mut issues) => {
+                self.issues.append(&mut issues);
+            }
+            None => {
+                debug!("No issues found for rule '{}'", rule);
+            }
+        }
     }
 
     // Note: Some merge commits are ignored in git.rs and won't be validated here, because they are
@@ -640,88 +654,6 @@ impl Commit {
         }
     }
 
-    fn validate_message_empty_first_line(&mut self) {
-        if self.rule_ignored(&Rule::MessageEmptyFirstLine) {
-            return;
-        }
-
-        if let Some(line) = self.message.lines().next() {
-            if !line.is_empty() {
-                let context = vec![
-                    Context::subject(self.subject.to_string()),
-                    Context::message_line_error(
-                        2,
-                        line.to_string(),
-                        Range {
-                            start: 0,
-                            end: line.len(),
-                        },
-                        "Add an empty line below the subject line".to_string(),
-                    ),
-                ];
-                self.add_message_error(
-                    Rule::MessageEmptyFirstLine,
-                    "No empty line found below the subject".to_string(),
-                    Position::MessageLine { line: 2, column: 1 },
-                    context,
-                );
-            }
-        }
-    }
-
-    fn validate_message_presence(&mut self) {
-        if self.rule_ignored(&Rule::MessagePresence) {
-            return;
-        }
-
-        let message = &self.message.trim();
-        let width = display_width(message);
-        if width == 0 {
-            let context = vec![
-                Context::subject(self.subject.to_string()),
-                Context::message_line(2, "".to_string()),
-                Context::message_line_error(
-                    3,
-                    "".to_string(),
-                    Range { start: 0, end: 1 },
-                    "Add a message body with context about the change and why it was made"
-                        .to_string(),
-                ),
-            ];
-            self.add_message_error(
-                Rule::MessagePresence,
-                "No message body was found".to_string(),
-                Position::MessageLine { line: 3, column: 1 },
-                context,
-            );
-        } else if width < 10 {
-            let mut context = vec![];
-            let line_count = self.message.lines().count();
-            let line_number = line_count + 1;
-            if let Some(line) = self.message.lines().last() {
-                context.push(Context::message_line_error(
-                    line_number,
-                    line.to_string(),
-                    Range {
-                        start: 0,
-                        end: line.len(),
-                    },
-                    "Add a longer message with context about the change and why it was made"
-                        .to_string(),
-                ));
-            }
-            self.add_message_error(
-                Rule::MessagePresence,
-                "The message body is too short".to_string(),
-                Position::MessageLine {
-                    line: line_number,
-                    column: 1,
-                },
-                context,
-            );
-        }
-    }
-
     fn validate_message_line_length(&mut self) {
         if self.rule_ignored(&Rule::MessageLineLength) {
             return;
@@ -907,106 +839,10 @@ enum CodeBlockStyle {
 #[cfg(test)]
 mod tests {
     use super::MOOD_WORDS;
-    use crate::commit::Commit;
-    use crate::issue::{Issue, Position};
+    use crate::issue::Position;
     use crate::rule::Rule;
     use crate::test::formatted_context;
-
-    fn commit_with_sha<S: AsRef<str>>(sha: Option<String>, subject: S, message: S) -> Commit {
-        Commit::new(
-            sha,
-            Some("test@example.com".to_string()),
-            subject.as_ref(),
-            message.as_ref().to_string(),
-            true,
-        )
-    }
-
-    fn commit<S: AsRef<str>>(subject: S, message: S) -> Commit {
-        commit_with_sha(
-            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
-            subject,
-            message,
-        )
-    }
-
-    fn commit_without_file_changes(message: String) -> Commit {
-        Commit::new(
-            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
-            Some("test@example.com".to_string()),
-            "Some subject",
-            message,
-            false,
-        )
-    }
-
-    fn validated_commit<S: AsRef<str>>(subject: S, message: S) -> Commit {
-        let mut commit = commit(subject, message);
-        commit.validate();
-        commit
-    }
-
-    fn assert_commit_valid_for(commit: &Commit, rule: &Rule) {
-        assert!(
-            !has_issue(&commit.issues, &rule),
-            "Commit was not considered valid: {:?}",
-            commit
-        );
-    }
-
-    fn assert_commit_invalid_for(commit: &Commit, rule: &Rule) {
-        assert!(
-            has_issue(&commit.issues, &rule),
-            "Commit was not considered invalid: {:?}",
-            commit
-        );
-    }
-
-    fn assert_commit_subject_as_valid(subject: &str, rule: &Rule) {
-        let commit = validated_commit(subject.to_string(), "".to_string());
-        assert_commit_valid_for(&commit, rule);
-    }
-
-    fn assert_commit_subjects_as_valid(subjects: Vec<&str>, rule: &Rule) {
-        for subject in subjects {
-            assert_commit_subject_as_valid(subject, rule)
-        }
-    }
-
-    fn assert_commit_subject_as_invalid<S: AsRef<str>>(subject: S, rule: &Rule) {
-        let commit = validated_commit(subject.as_ref().to_string(), "".to_string());
-        assert_commit_invalid_for(&commit, rule);
-    }
-
-    fn assert_commit_subjects_as_invalid<S: AsRef<str>>(subjects: Vec<S>, rule: &Rule) {
-        for subject in subjects {
-            assert_commit_subject_as_invalid(subject, rule)
-        }
-    }
-
-    fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
-        issues.iter().any(|v| &v.rule == rule)
-    }
-
-    fn find_issue(issues: Vec<Issue>, rule: &Rule) -> Issue {
-        let mut issues = issues.into_iter().filter(|v| &v.rule == rule);
-        let issue = match issues.next() {
-            Some(issue) => issue,
-            None => panic!("No issue of the {} rule found", rule),
-        };
-        if issues.next().is_some() {
-            panic!("More than one issue of the {} rule found", rule)
-        }
-        issue
-    }
-
-    fn subject_position(column: usize) -> Position {
-        Position::Subject { line: 1, column }
-    }
-
-    fn message_position(line: usize, column: usize) -> Position {
-        Position::MessageLine { line, column }
-    }
+    use crate::test::*;
 
     #[test]
     fn test_create_short_sha() {
@@ -1801,98 +1637,6 @@ mod tests {
             "lintje:disable SubjectCliche".to_string(),
         );
         assert_commit_valid_for(&ignore_commit, &Rule::SubjectCliche);
-    }
-
-    #[test]
-    fn test_validate_message_first_line_empty() {
-        let with_empty_line = validated_commit(
-            "Subject".to_string(),
-            "\nEmpty line after subject.".to_string(),
-        );
-        assert_commit_valid_for(&with_empty_line, &Rule::MessageEmptyFirstLine);
-
-        let without_empty_line = validated_commit("Subject", "No empty line after subject");
-        let issue = find_issue(without_empty_line.issues, &Rule::MessageEmptyFirstLine);
-        assert_eq!(issue.message, "No empty line found below the subject");
-        assert_eq!(issue.position, message_position(2, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Subject\n\
-                   2 | No empty line after subject\n\
-             \x20\x20| ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add an empty line below the subject line\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "Subject".to_string(),
-            "No empty line after subject\nlintje:disable MessageEmptyFirstLine".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::MessageEmptyFirstLine);
-    }
-
-    #[test]
-    fn test_validate_message_presence() {
-        let with_message =
-            validated_commit("Subject".to_string(), "Hello I am a message.".to_string());
-        assert_commit_valid_for(&with_message, &Rule::MessagePresence);
-
-        let without_message = validated_commit("Subject", "");
-        let issue = find_issue(without_message.issues, &Rule::MessagePresence);
-        assert_eq!(issue.message, "No message body was found");
-        assert_eq!(issue.position, message_position(3, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Subject\n\
-                   2 | \n\
-                   3 | \n\
-             \x20\x20| ^ Add a message body with context about the change and why it was made\n"
-        );
-
-        let short = validated_commit("Subject", "\nShort.");
-        let issue = find_issue(short.issues, &Rule::MessagePresence);
-        assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(3, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   3 | Short.\n\
-             \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
-        );
-
-        let very_short = validated_commit("Subject".to_string(), "...".to_string());
-        let issue = find_issue(very_short.issues, &Rule::MessagePresence);
-        assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(2, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   2 | ...\n\
-             \x20\x20| ^^^ Add a longer message with context about the change and why it was made\n"
-        );
-
-        let very_short = validated_commit("Subject".to_string(), ".\n.\nShort.\n".to_string());
-        let issue = find_issue(very_short.issues, &Rule::MessagePresence);
-        assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(4, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   4 | Short.\n\
-             \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "Subject".to_string(),
-            "lintje:disable MessagePresence".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::MessagePresence);
-
-        // Already a NeedsRebase issue, so it's skipped.
-        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
-        assert_commit_valid_for(&rebase_commit, &Rule::MessagePresence);
-        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
-        assert_commit_invalid_for(&rebase_commit, &Rule::NeedsRebase);
     }
 
     #[test]
