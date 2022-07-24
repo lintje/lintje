@@ -66,6 +66,7 @@ impl Rule {
             Rule::SubjectWhitespace => Box::new(SubjectWhitespace::new()),
             Rule::SubjectCapitalization => Box::new(SubjectCapitalization::new()),
             Rule::SubjectPrefix => Box::new(SubjectPrefix::new()),
+            Rule::SubjectBuildTag => Box::new(SubjectBuildTag::new()),
             Rule::SubjectCliche => Box::new(SubjectCliche::new()),
             Rule::MessagePresence => Box::new(MessagePresence::new()),
             Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),

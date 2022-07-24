@@ -26,12 +26,6 @@ lazy_static! {
         tempregex.multi_line(false);
         tempregex.build().unwrap()
     };
-    static ref SUBJECT_WITH_BUILD_TAGS: Regex = {
-        let mut tempregex = RegexBuilder::new(r"(\[(skip [\w\s_-]+|[\w\s_-]+ skip|no ci)\]|\*\*\*NO_CI\*\*\*)");
-        tempregex.case_insensitive(true);
-        tempregex.multi_line(false);
-        tempregex.build().unwrap()
-    };
 
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
@@ -120,7 +114,7 @@ impl Commit {
             self.validate_rule(&Rule::SubjectWhitespace);
             self.validate_rule(&Rule::SubjectPrefix);
             self.validate_rule(&Rule::SubjectCapitalization);
-            self.validate_subject_build_tags();
+            self.validate_rule(&Rule::SubjectBuildTag);
             self.validate_subject_punctuation();
             self.validate_subject_ticket_numbers();
             self.validate_message_ticket_numbers();
@@ -294,45 +288,6 @@ impl Commit {
             character_count_for_bytes_index(&self.subject, capture.start()),
             context,
         );
-    }
-
-    fn validate_subject_build_tags(&mut self) {
-        if self.rule_ignored(&Rule::SubjectBuildTag) {
-            return;
-        }
-
-        let subject = &self.subject.to_string();
-        if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {
-            match captures.get(1) {
-                Some(tag) => {
-                    let line_count = self.message.lines().count();
-                    let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
-                    let context = vec![
-                        Context::subject_error(
-                            subject.to_string(),
-                            tag.range(),
-                            "Remove the build tag from the subject".to_string(),
-                        ),
-                        Context::message_line_addition(
-                            base_line_count,
-                            tag.as_str().to_string(),
-                            Range {
-                                start: 0,
-                                end: tag.range().len(),
-                            },
-                            "Move build tag to message body".to_string(),
-                        ),
-                    ];
-                    self.add_subject_error(
-                        Rule::SubjectBuildTag,
-                        format!("The `{}` build tag was found in the subject", tag.as_str()),
-                        character_count_for_bytes_index(&self.subject, tag.start()),
-                        context,
-                    );
-                }
-                None => error!("SubjectBuildTag: Unable to fetch build tag from subject."),
-            }
-        }
     }
 
     fn validate_message_line_length(&mut self) {
@@ -796,73 +751,6 @@ mod tests {
             "lintje:disable SubjectTicketNumber".to_string(),
         );
         assert_commit_valid_for(&ignore_merge_request_number, &Rule::SubjectTicketNumber);
-    }
-
-    #[test]
-    fn test_validate_subject_build_tags() {
-        let subjects = vec!["Add exception for no ci build tag"];
-        assert_commit_subjects_as_valid(subjects, &Rule::SubjectBuildTag);
-
-        let build_tags = vec![
-            // General
-            "[ci skip]",
-            "[skip ci]",
-            "[no ci]",
-            // AppVeyor
-            "[skip appveyor]",
-            // Azure
-            "[azurepipelines skip]",
-            "[skip azurepipelines]",
-            "[azpipelines skip]",
-            "[skip azpipelines]",
-            "[azp skip]",
-            "[skip azp]",
-            "***NO_CI***",
-            // GitHub Actions
-            "[actions skip]",
-            "[skip actions]",
-            // Travis
-            "[travis skip]",
-            "[skip travis]",
-            "[travis ci skip]",
-            "[skip travis ci]",
-            "[travis-ci skip]",
-            "[skip travis-ci]",
-            "[travisci skip]",
-            "[skip travisci]",
-            // Other custom tags that match the format
-            "[skip me]",
-            "[skip changeset]",
-            "[skip review]",
-        ];
-        let mut invalid_subjects = vec![];
-        for tag in build_tags.iter() {
-            invalid_subjects.push(format!("Update README {}", tag))
-        }
-        assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectBuildTag);
-
-        let build_tag = validated_commit("Edit CHANGELOG [skip ci]", "");
-        let issue = find_issue(build_tag.issues, &Rule::SubjectBuildTag);
-        assert_eq!(
-            issue.message,
-            "The `[skip ci]` build tag was found in the subject"
-        );
-        assert_eq!(issue.position, subject_position(16));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Edit CHANGELOG [skip ci]\n\
-             \x20\x20|                ^^^^^^^^^ Remove the build tag from the subject\n\
-                \x20~~~\n\
-                   3 | [skip ci]\n\
-             \x20\x20| --------- Move build tag to message body\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "Update README [ci skip]".to_string(),
-            "lintje:disable SubjectBuildTag".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectBuildTag);
     }
 
     #[test]
