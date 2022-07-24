@@ -165,7 +165,7 @@ impl Commit {
         // of the commit won't matter.
         if !self.has_issue(&Rule::MergeCommit) && !self.has_issue(&Rule::NeedsRebase) {
             self.validate_subject_cliches();
-            self.validate_subject_line_length();
+            self.validate_rule(&Rule::SubjectLength);
             self.validate_subject_mood();
             self.validate_subject_whitespace();
             self.validate_subject_prefix();
@@ -194,65 +194,6 @@ impl Commit {
             None => {
                 debug!("No issues found for rule '{}'", rule);
             }
-        }
-    }
-
-    fn validate_subject_line_length(&mut self) {
-        if self.rule_ignored(&Rule::SubjectLength) || self.has_issue(&Rule::SubjectCliche) {
-            return;
-        }
-
-        let (width, line_stats) = line_length_stats(&self.subject, 50);
-
-        if width == 0 {
-            let context = Context::subject_error(
-                self.subject.to_string(),
-                Range { start: 0, end: 1 },
-                "Add a subject to describe the change".to_string(),
-            );
-            self.add_subject_error(
-                Rule::SubjectLength,
-                "The commit has no subject".to_string(),
-                1,
-                vec![context],
-            );
-            return;
-        }
-
-        if width > 50 {
-            let total_width_index = self.subject.len();
-            let context = Context::subject_error(
-                self.subject.to_string(),
-                Range {
-                    start: line_stats.bytes_index,
-                    end: total_width_index,
-                },
-                "Shorten the subject to a maximum width of 50 characters".to_string(),
-            );
-            self.add_subject_error(
-                Rule::SubjectLength,
-                format!("The subject of `{}` characters wide is too long", width),
-                line_stats.char_count + 1, // + 1 because the next char is the problem
-                vec![context],
-            );
-            return;
-        }
-        if width < 5 {
-            let total_width_index = self.subject.len();
-            let context = Context::subject_error(
-                self.subject.to_string(),
-                Range {
-                    start: 0,
-                    end: total_width_index,
-                },
-                "Describe the change in more detail".to_string(),
-            );
-            self.add_subject_error(
-                Rule::SubjectLength,
-                format!("The subject of `{}` characters wide is too short", width),
-                1,
-                vec![context],
-            );
         }
     }
 
@@ -766,7 +707,7 @@ impl Commit {
             .push(Issue::hint(rule, message, position, context));
     }
 
-    fn has_issue(&self, rule: &Rule) -> bool {
+    pub fn has_issue(&self, rule: &Rule) -> bool {
         self.issues.iter().any(|issue| &issue.rule == rule)
     }
 }
@@ -801,112 +742,6 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_subject_line_length() {
-        assert_commit_subject_as_valid(&"a".repeat(5), &Rule::SubjectLength);
-        assert_commit_subject_as_valid(&"a".repeat(50), &Rule::SubjectLength);
-
-        let empty = validated_commit("", "");
-        let issue = find_issue(empty.issues, &Rule::SubjectLength);
-        assert_eq!(issue.message, "The commit has no subject");
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | \n\
-             \x20\x20| ^ Add a subject to describe the change\n"
-        );
-
-        let short_subject = validated_commit("a".repeat(4).as_str(), "");
-        let issue = find_issue(short_subject.issues, &Rule::SubjectLength);
-        assert_eq!(
-            issue.message,
-            "The subject of `4` characters wide is too short"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | aaaa\n\
-             \x20\x20| ^^^^ Describe the change in more detail\n"
-        );
-
-        let long_subject = validated_commit("a".repeat(51).as_str(), "");
-        let issue = find_issue(long_subject.issues, &Rule::SubjectLength);
-        assert_eq!(
-            issue.message,
-            "The subject of `51` characters wide is too long"
-        );
-        assert_eq!(issue.position, subject_position(51));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-             \x20\x20|                                                   ^ \
-             Shorten the subject to a maximum width of 50 characters\n"
-        );
-
-        // Character is two characters, but is counted as 1 column
-        assert_eq!("ö̲".chars().count(), 2);
-        let accent_subject = validated_commit("A ö̲", "");
-        let issue = find_issue(accent_subject.issues, &Rule::SubjectLength);
-        assert_eq!(
-            issue.message,
-            "The subject of `3` characters wide is too short"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | A ö̲\n\
-             \x20\x20| ^^^ Describe the change in more detail\n"
-        );
-
-        // These emoji display width is 2
-        assert_commit_subject_as_valid(&"✨".repeat(25), &Rule::SubjectLength);
-        assert_commit_subject_as_invalid(&"✨".repeat(26), &Rule::SubjectLength);
-
-        let emoji_short_subject = validated_commit("👁️‍🗨️", "");
-        let issue = find_issue(emoji_short_subject.issues, &Rule::SubjectLength);
-        assert_eq!(
-            issue.message,
-            "The subject of `2` characters wide is too short"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | 👁️‍🗨️\n\
-             \x20\x20| ^^ Describe the change in more detail\n"
-        );
-
-        // Hiragana display width is 2
-        assert_commit_subject_as_valid(&"あ".repeat(25), &Rule::SubjectLength);
-
-        let hiragana_long_subject = validated_commit("あ".repeat(26).as_str(), "");
-        let issue = find_issue(hiragana_long_subject.issues, &Rule::SubjectLength);
-        assert_eq!(
-            issue.message,
-            "The subject of `52` characters wide is too long"
-        );
-        assert_eq!(issue.position, subject_position(26));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | ああああああああああああああああああああああああああ\n\
-             \x20\x20|                                                   ^^ \
-             Shorten the subject to a maximum width of 50 characters\n"
-        );
-
-        let ignore_commit =
-            validated_commit("a".repeat(51), "lintje:disable SubjectLength".to_string());
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectLength);
-
-        // Already a SubjectCliche issue, so it's skipped.
-        assert_commit_subject_as_valid("wip", &Rule::SubjectLength);
-        assert_commit_subject_as_invalid("wip", &Rule::SubjectCliche);
     }
 
     #[test]

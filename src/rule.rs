@@ -61,6 +61,7 @@ impl Rule {
         match self {
             Rule::MergeCommit => Box::new(MergeCommit::new()),
             Rule::NeedsRebase => Box::new(NeedsRebase::new()),
+            Rule::SubjectLength => Box::new(SubjectLength::new()),
             Rule::MessagePresence => Box::new(MessagePresence::new()),
             Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
             _ => panic!("Rule '{}' not implemented yet", self),
