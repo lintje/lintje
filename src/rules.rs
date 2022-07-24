@@ -1,5 +1,6 @@
 use regex::Regex;
 
+pub mod diff_presence;
 pub mod merge_commit;
 pub mod message_empty_first_line;
 pub mod message_line_length;
@@ -16,6 +17,7 @@ pub mod subject_punctuation;
 pub mod subject_ticket_number;
 pub mod subject_whitespace;
 
+pub use diff_presence::DiffPresence;
 pub use merge_commit::MergeCommit;
 pub use message_empty_first_line::MessageEmptyFirstLine;
 pub use message_line_length::MessageLineLength;

@@ -1,7 +1,6 @@
 use crate::commit::Commit;
 use crate::formatter::formatted_context as formatted_context_real;
 use crate::issue::{Issue, Position};
-use crate::rule::Rule;
 use termcolor::{BufferWriter, ColorChoice};
 
 pub fn formatted_context(issue: &Issue) -> String {
@@ -41,58 +40,10 @@ pub fn commit<S: AsRef<str>>(subject: S, message: S) -> Commit {
     )
 }
 
-pub fn commit_without_file_changes(message: String) -> Commit {
-    Commit::new(
-        Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
-        Some("test@example.com".to_string()),
-        "Some subject",
-        message,
-        false,
-    )
-}
-
-pub fn validated_commit<S: AsRef<str>>(subject: S, message: S) -> Commit {
-    let mut commit = commit(subject, message);
-    commit.validate();
-    commit
-}
-
-pub fn assert_commit_valid_for(commit: &Commit, rule: &Rule) {
-    assert!(
-        !has_issue(&commit.issues, &rule),
-        "Commit was not considered valid: {:?}",
-        commit
-    );
-}
-
-pub fn assert_commit_invalid_for(commit: &Commit, rule: &Rule) {
-    assert!(
-        has_issue(&commit.issues, &rule),
-        "Commit was not considered invalid: {:?}",
-        commit
-    );
-}
-
-pub fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
-    issues.iter().any(|v| &v.rule == rule)
-}
-
 pub fn first_issue(issues_option: Option<Vec<Issue>>) -> Issue {
     let issues = issues_option.expect("No issues found");
     assert_eq!(issues.len(), 1);
     issues.into_iter().next().expect("No issue found")
-}
-
-pub fn find_issue(issues: Vec<Issue>, rule: &Rule) -> Issue {
-    let mut issues = issues.into_iter().filter(|v| &v.rule == rule);
-    let issue = match issues.next() {
-        Some(issue) => issue,
-        None => panic!("No issue of the {} rule found", rule),
-    };
-    if issues.next().is_some() {
-        panic!("More than one issue of the {} rule found", rule)
-    }
-    issue
 }
 
 pub fn subject_position(column: usize) -> Position {

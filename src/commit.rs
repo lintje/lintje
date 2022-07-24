@@ -1,6 +1,5 @@
-use crate::issue::{Context, Issue, Position};
+use crate::issue::Issue;
 use crate::rule::{rule_by_name, Rule};
-use core::ops::Range;
 
 #[derive(Debug)]
 pub struct Commit {
@@ -92,7 +91,7 @@ impl Commit {
             self.validate_rule(&Rule::MessagePresence);
             self.validate_rule(&Rule::MessageLineLength);
         }
-        self.validate_changes();
+        self.validate_rule(&Rule::DiffPresence);
     }
 
     fn validate_rule(&mut self, rule: &Rule) {
@@ -111,42 +110,6 @@ impl Commit {
         }
     }
 
-    fn validate_changes(&mut self) {
-        if self.rule_ignored(&Rule::DiffPresence) {
-            return;
-        }
-
-        if !self.has_changes {
-            let context_line = "0 files changed, 0 insertions(+), 0 deletions(-)".to_string();
-            let context_length = context_line.len();
-            let context = Context::diff_error(
-                context_line,
-                Range {
-                    start: 0,
-                    end: context_length,
-                },
-                "Add changes to the commit or remove the commit".to_string(),
-            );
-            self.add_error(
-                Rule::DiffPresence,
-                "No file changes found".to_string(),
-                Position::Diff,
-                vec![context],
-            );
-        }
-    }
-
-    fn add_error(
-        &mut self,
-        rule: Rule,
-        message: String,
-        position: Position,
-        context: Vec<Context>,
-    ) {
-        self.issues
-            .push(Issue::error(rule, message, position, context));
-    }
-
     pub fn has_issue(&self, rule: &Rule) -> bool {
         self.issues.iter().any(|issue| &issue.rule == rule)
     }
@@ -154,9 +117,6 @@ impl Commit {
 
 #[cfg(test)]
 mod tests {
-    use crate::issue::Position;
-    use crate::rule::Rule;
-    use crate::test::formatted_context;
     use crate::test::*;
 
     #[test]
@@ -174,29 +134,5 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_changes_presense() {
-        let with_changes = validated_commit("Subject".to_string(), "\nSome message.".to_string());
-        assert_commit_valid_for(&with_changes, &Rule::DiffPresence);
-
-        let mut without_changes = commit_without_file_changes("\nSome Message".to_string());
-        without_changes.validate();
-        let issue = find_issue(without_changes.issues, &Rule::DiffPresence);
-        assert_eq!(issue.message, "No file changes found");
-        assert_eq!(issue.position, Position::Diff);
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | 0 files changed, 0 insertions(+), 0 deletions(-)\n\
-             | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add changes to the commit or remove the commit\n"
-        );
-
-        let mut ignore_commit = commit_without_file_changes(
-            "\nSome message.\nlintje:disable: DiffPresence".to_string(),
-        );
-        ignore_commit.validate();
-        assert_commit_invalid_for(&ignore_commit, &Rule::DiffPresence);
     }
 }
