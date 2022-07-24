@@ -119,7 +119,7 @@ impl Commit {
             self.validate_rule(&Rule::SubjectMood);
             self.validate_rule(&Rule::SubjectWhitespace);
             self.validate_rule(&Rule::SubjectPrefix);
-            self.validate_subject_capitalization();
+            self.validate_rule(&Rule::SubjectCapitalization);
             self.validate_subject_build_tags();
             self.validate_subject_punctuation();
             self.validate_subject_ticket_numbers();
@@ -143,39 +143,6 @@ impl Commit {
             }
             None => {
                 debug!("No issues found for rule '{}'", rule);
-            }
-        }
-    }
-
-    fn validate_subject_capitalization(&mut self) {
-        if self.rule_ignored(&Rule::SubjectCapitalization) || self.has_issue(&Rule::SubjectPrefix) {
-            return;
-        }
-        if self.subject.chars().count() == 0 && self.has_issue(&Rule::SubjectLength) {
-            return;
-        }
-
-        match self.subject.chars().next() {
-            Some(character) => {
-                if character.is_lowercase() {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        Range {
-                            start: 0,
-                            end: character.len_utf8(),
-                        },
-                        "Start the subject with a capital letter".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectCapitalization,
-                        "The subject does not start with a capital letter".to_string(),
-                        1,
-                        context,
-                    );
-                }
-            }
-            None => {
-                error!("SubjectCapitalization validation failure: No first character found of subject.");
             }
         }
     }
@@ -572,48 +539,6 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_subject_capitalization() {
-        let subjects = vec!["Fix test"];
-        assert_commit_subjects_as_valid(subjects, &Rule::SubjectCapitalization);
-
-        let subject = validated_commit("fix test", "");
-        let issue = find_issue(subject.issues, &Rule::SubjectCapitalization);
-        assert_eq!(
-            issue.message,
-            "The subject does not start with a capital letter"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | fix test\n\
-             \x20\x20| ^ Start the subject with a capital letter\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "fix test".to_string(),
-            "lintje:disable SubjectCapitalization".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectCapitalization);
-
-        // Already a SubjectLength issue, so it's skipped
-        assert_commit_subject_as_invalid("", &Rule::SubjectLength);
-        assert_commit_subject_as_valid("", &Rule::SubjectCapitalization);
-
-        // Already a NeedsRebase issue, so it's skipped
-        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
-        assert_commit_valid_for(&rebase_commit, &Rule::SubjectCapitalization);
-        let rebase_commit = validated_commit("fixup! foo".to_string(), "".to_string());
-        assert_commit_invalid_for(&rebase_commit, &Rule::NeedsRebase);
-
-        // Already a SubjectPrefix issue, so it's skippe.
-        let prefix_commit = validated_commit("chore: foo".to_string(), "".to_string());
-        assert_commit_valid_for(&prefix_commit, &Rule::SubjectCapitalization);
-        let prefix_commit = validated_commit("chore: foo".to_string(), "".to_string());
-        assert_commit_invalid_for(&prefix_commit, &Rule::SubjectPrefix);
     }
 
     #[test]
