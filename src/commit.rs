@@ -27,12 +27,6 @@ lazy_static! {
         tempregex.multi_line(false);
         tempregex.build().unwrap()
     };
-    static ref SUBJECT_WITH_CLICHE: Regex = {
-        let mut tempregex = RegexBuilder::new(r"^(fix(es|ed|ing)?|add(s|ed|ing)?|(updat|chang|remov|delet)(e|es|ed|ing))(\s+\w+)?$");
-        tempregex.case_insensitive(true);
-        tempregex.multi_line(false);
-        tempregex.build().unwrap()
-    };
     static ref SUBJECT_WITH_BUILD_TAGS: Regex = {
         let mut tempregex = RegexBuilder::new(r"(\[(skip [\w\s_-]+|[\w\s_-]+ skip|no ci)\]|\*\*\*NO_CI\*\*\*)");
         tempregex.case_insensitive(true);
@@ -121,7 +115,7 @@ impl Commit {
         // because the commit itself will need to be rebased into other commits. So the format
         // of the commit won't matter.
         if !self.has_issue(&Rule::MergeCommit) && !self.has_issue(&Rule::NeedsRebase) {
-            self.validate_subject_cliches();
+            self.validate_rule(&Rule::SubjectCliche);
             self.validate_rule(&Rule::SubjectLength);
             self.validate_rule(&Rule::SubjectMood);
             self.validate_subject_whitespace();
@@ -435,31 +429,6 @@ impl Commit {
                 }
                 None => error!("SubjectBuildTag: Unable to fetch build tag from subject."),
             }
-        }
-    }
-
-    fn validate_subject_cliches(&mut self) {
-        if self.rule_ignored(&Rule::SubjectCliche) {
-            return;
-        }
-
-        let subject = &self.subject.to_lowercase();
-        let wip_commit = subject.starts_with("wip ") || subject == &"wip".to_string();
-        if wip_commit || SUBJECT_WITH_CLICHE.is_match(subject) {
-            let context = vec![Context::subject_error(
-                self.subject.to_string(),
-                Range {
-                    start: 0,
-                    end: self.subject.len(),
-                },
-                "Describe the change in more detail".to_string(),
-            )];
-            self.add_subject_error(
-                Rule::SubjectCliche,
-                "The subject does not explain the change in much detail".to_string(),
-                1,
-                context,
-            );
         }
     }
 
@@ -1141,77 +1110,6 @@ mod tests {
             "lintje:disable SubjectBuildTag".to_string(),
         );
         assert_commit_valid_for(&ignore_commit, &Rule::SubjectBuildTag);
-    }
-
-    #[test]
-    fn test_validate_subject_cliches() {
-        let subjects = vec![
-            "I am not a cliche",
-            "Fix user bug",
-            "Fix test for some feature",
-            "Fix bug for some feature",
-            "Fixes bug for some feature",
-            "Fixed bug for some feature",
-            "Fixing bug for some feature",
-        ];
-        assert_commit_subjects_as_valid(subjects, &Rule::SubjectCliche);
-
-        let prefixes = vec![
-            "wip", "fix", "fixes", "fixed", "fixing", "add", "adds", "added", "adding", "update",
-            "updates", "updated", "updating", "change", "changes", "changed", "changing", "remove",
-            "removes", "removed", "removing", "delete", "deletes", "deleted", "deleting",
-        ];
-        let mut invalid_subjects = vec![];
-        for word in prefixes.iter() {
-            let uppercase_word = word.to_uppercase();
-            let mut chars = word.chars();
-            let capitalized_word = match chars.next() {
-                None => panic!("Could not capitalize word: {}", word),
-                Some(letter) => letter.to_uppercase().collect::<String>() + chars.as_str(),
-            };
-
-            invalid_subjects.push(uppercase_word.to_string());
-            invalid_subjects.push(capitalized_word.to_string());
-            invalid_subjects.push(word.to_string());
-            invalid_subjects.push(format!("{} test", uppercase_word));
-            invalid_subjects.push(format!("{} issue", capitalized_word));
-            invalid_subjects.push(format!("{} bug", word));
-            invalid_subjects.push(format!("{} readme", word));
-            invalid_subjects.push(format!("{} something", word));
-        }
-        for subject in invalid_subjects {
-            assert_commit_subject_as_invalid(subject.as_str(), &Rule::SubjectCliche);
-        }
-
-        let wip = validated_commit("WIP", "");
-        let issue = find_issue(wip.issues, &Rule::SubjectCliche);
-        assert_eq!(
-            issue.message,
-            "The subject does not explain the change in much detail"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | WIP\n\
-             \x20\x20| ^^^ Describe the change in more detail\n"
-        );
-
-        let cliche = validated_commit("Fixed bug", "");
-        let issue = find_issue(cliche.issues, &Rule::SubjectCliche);
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fixed bug\n\
-             \x20\x20| ^^^^^^^^^ Describe the change in more detail\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "WIP".to_string(),
-            "lintje:disable SubjectCliche".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectCliche);
     }
 
     #[test]
