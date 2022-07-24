@@ -8,6 +8,7 @@ pub mod subject_cliche;
 pub mod subject_length;
 pub mod subject_mood;
 pub mod subject_prefix;
+pub mod subject_punctuation;
 pub mod subject_whitespace;
 
 pub use merge_commit::MergeCommit;
@@ -20,4 +21,5 @@ pub use subject_cliche::SubjectCliche;
 pub use subject_length::SubjectLength;
 pub use subject_mood::SubjectMood;
 pub use subject_prefix::SubjectPrefix;
+pub use subject_punctuation::SubjectPunctuation;
 pub use subject_whitespace::SubjectWhitespace;

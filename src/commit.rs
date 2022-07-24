@@ -1,17 +1,10 @@
 use crate::issue::{Context, Issue, Position};
 use crate::rule::{rule_by_name, Rule};
-use crate::utils::{character_count_for_bytes_index, is_punctuation, line_length_stats};
+use crate::utils::{character_count_for_bytes_index, line_length_stats};
 use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
-    // Regex to match emoji, but not all emoji. Emoji using ASCII codepoints like the emojis for
-    // the numbers 0-9, and symbols like * and # are not included. Otherwise it would also catches
-    // plain numbers 0-9 and those symbols, even when they are not emoji.
-    // This regex matches all emoji but subtracts any object with ASCII codepoints.
-    // For more information, see:
-    // https://github.com/BurntSushi/ripgrep/discussions/1623#discussioncomment-28827
-    static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^[\p{Emoji}--\p{Ascii}]").unwrap();
     // Jira project keys are at least 2 uppercase characters long.
     // AB-123
     // JIRA-123
@@ -115,7 +108,7 @@ impl Commit {
             self.validate_rule(&Rule::SubjectPrefix);
             self.validate_rule(&Rule::SubjectCapitalization);
             self.validate_rule(&Rule::SubjectBuildTag);
-            self.validate_subject_punctuation();
+            self.validate_rule(&Rule::SubjectPunctuation);
             self.validate_subject_ticket_numbers();
             self.validate_message_ticket_numbers();
             self.validate_rule(&Rule::MessageEmptyFirstLine);
@@ -137,98 +130,6 @@ impl Commit {
             }
             None => {
                 debug!("No issues found for rule '{}'", rule);
-            }
-        }
-    }
-
-    fn validate_subject_punctuation(&mut self) {
-        if self.rule_ignored(&Rule::SubjectPunctuation) {
-            return;
-        }
-        if self.subject.chars().count() == 0 && self.has_issue(&Rule::SubjectLength) {
-            return;
-        }
-
-        if let Some(captures) = SUBJECT_STARTS_WITH_EMOJI.captures(&self.subject) {
-            match captures.get(0) {
-                Some(emoji) => {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        emoji.range(),
-                        "Remove emoji from the start of the subject".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectPunctuation,
-                        "The subject starts with an emoji".to_string(),
-                        1,
-                        context,
-                    );
-                }
-                None => {
-                    error!("SubjectPunctuation: Unable to fetch ticket number match from subject.");
-                }
-            }
-        }
-
-        match self.subject.chars().next() {
-            Some(character) => {
-                if is_punctuation(character) {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        Range {
-                            start: 0,
-                            end: character.len_utf8(),
-                        },
-                        "Remove punctuation from the start of the subject".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectPunctuation,
-                        format!(
-                            "The subject starts with a punctuation character: `{}`",
-                            character
-                        ),
-                        1,
-                        context,
-                    );
-                }
-            }
-            None => {
-                error!(
-                    "SubjectPunctuation validation failure: No first character found of subject."
-                );
-            }
-        }
-
-        match self.subject.chars().last() {
-            Some(character) => {
-                if is_punctuation(character) {
-                    let subject_length = self.subject.len();
-                    let context = Context::subject_error(
-                        self.subject.to_string(),
-                        Range {
-                            start: subject_length - character.len_utf8(),
-                            end: subject_length,
-                        },
-                        "Remove punctuation from the end of the subject".to_string(),
-                    );
-                    self.add_subject_error(
-                        Rule::SubjectPunctuation,
-                        format!(
-                            "The subject ends with a punctuation character: `{}`",
-                            character
-                        ),
-                        character_count_for_bytes_index(
-                            &self.subject,
-                            subject_length - character.len_utf8(),
-                        ),
-                        vec![context],
-                    );
-                }
-            }
-            None => {
-                error!(
-                    "SubjectPunctuation validation failure: No last character found of subject."
-                );
             }
         }
     }
@@ -494,104 +395,6 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_subject_punctuation() {
-        let subjects = vec![
-            "Fix test",
-            "あ commit",
-            "123 digits",
-            "0 digit",
-            // These should not be allowed, but won't match using the Emoji -- ASCII regex matcher.
-            // See the comment for SUBJECT_STARTS_WITH_EMOJI for more information.
-            "0️⃣ emoji",
-            "﹟emoji",
-            "＊emoji",
-        ];
-        assert_commit_subjects_as_valid(subjects, &Rule::SubjectPunctuation);
-
-        let invalid_subjects = vec![
-            "Fix test.",
-            "Fix test!",
-            "Fix test?",
-            "Fix test:",
-            "Fix test\'",
-            "Fix test\"",
-            "Fix test…",
-            "Fix test⋯",
-            ".Fix test",
-            "!Fix test",
-            "?Fix test",
-            ":Fix test",
-            "…Fix test",
-            "⋯Fix test",
-            "📺Fix test",
-            "👍Fix test",
-            "👍🏻Fix test",
-            "[JIRA-123] Fix test",
-            "[Bug] Fix test",
-            "[chore] Fix test",
-            "[feat] Fix test",
-            "(feat) Fix test",
-            "{fix} Fix test",
-            "|fix| Fix test",
-            "-fix- Fix test",
-            "+fix+ Fix test",
-            "*fix* Fix test",
-            "%fix% Fix test",
-            "@fix Fix test",
-        ];
-        assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPunctuation);
-
-        let start = validated_commit(".Fix test", "");
-        let issue = find_issue(start.issues, &Rule::SubjectPunctuation);
-        assert_eq!(
-            issue.message,
-            "The subject starts with a punctuation character: `.`"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | .Fix test\n\
-             \x20\x20| ^ Remove punctuation from the start of the subject\n"
-        );
-
-        let end = validated_commit("Fix test…", "");
-        let issue = find_issue(end.issues, &Rule::SubjectPunctuation);
-        assert_eq!(
-            issue.message,
-            "The subject ends with a punctuation character: `…`"
-        );
-        assert_eq!(issue.position, subject_position(9));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fix test…\n\
-             \x20\x20|         ^ Remove punctuation from the end of the subject\n"
-        );
-
-        let emoji = validated_commit("👍 Fix test", "");
-        let issue = find_issue(emoji.issues, &Rule::SubjectPunctuation);
-        assert_eq!(issue.message, "The subject starts with an emoji");
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | 👍 Fix test\n\
-             \x20\x20| ^^ Remove emoji from the start of the subject\n"
-        );
-
-        // Already a empty SubjectLength issue, so it's skipped
-        assert_commit_subject_as_invalid("", &Rule::SubjectLength);
-        assert_commit_subject_as_valid("", &Rule::SubjectPunctuation);
-
-        let ignore_commit = validated_commit(
-            "Fix test.".to_string(),
-            "lintje:disable SubjectPunctuation".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectPunctuation);
     }
 
     #[test]

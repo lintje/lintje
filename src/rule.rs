@@ -65,6 +65,7 @@ impl Rule {
             Rule::SubjectMood => Box::new(SubjectMood::new()),
             Rule::SubjectWhitespace => Box::new(SubjectWhitespace::new()),
             Rule::SubjectCapitalization => Box::new(SubjectCapitalization::new()),
+            Rule::SubjectPunctuation => Box::new(SubjectPunctuation::new()),
             Rule::SubjectPrefix => Box::new(SubjectPrefix::new()),
             Rule::SubjectBuildTag => Box::new(SubjectBuildTag::new()),
             Rule::SubjectCliche => Box::new(SubjectCliche::new()),
