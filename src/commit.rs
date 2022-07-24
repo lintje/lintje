@@ -43,49 +43,6 @@ lazy_static! {
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
     static ref CODE_BLOCK_LINE_END: Regex = Regex::new(r"^\s*```$").unwrap();
-    static ref MOOD_WORDS: Vec<&'static str> = vec![
-        "fixed",
-        "fixes",
-        "fixing",
-        "solved",
-        "solves",
-        "solving",
-        "resolved",
-        "resolves",
-        "resolving",
-        "closed",
-        "closes",
-        "closing",
-        "added",
-        "adding",
-        "updated",
-        "updates",
-        "updating",
-        "removed",
-        "removes",
-        "removing",
-        "deleted",
-        "deletes",
-        "deleting",
-        "changed",
-        "changes",
-        "changing",
-        "moved",
-        "moves",
-        "moving",
-        "refactored",
-        "refactors",
-        "refactoring",
-        "checked",
-        "checks",
-        "checking",
-        "adjusted",
-        "adjusts",
-        "adjusting",
-        "tests",
-        "tested",
-        "testing",
-    ];
 }
 
 #[derive(Debug)]
@@ -166,7 +123,7 @@ impl Commit {
         if !self.has_issue(&Rule::MergeCommit) && !self.has_issue(&Rule::NeedsRebase) {
             self.validate_subject_cliches();
             self.validate_rule(&Rule::SubjectLength);
-            self.validate_subject_mood();
+            self.validate_rule(&Rule::SubjectMood);
             self.validate_subject_whitespace();
             self.validate_subject_prefix();
             self.validate_subject_capitalization();
@@ -193,37 +150,6 @@ impl Commit {
             }
             None => {
                 debug!("No issues found for rule '{}'", rule);
-            }
-        }
-    }
-
-    fn validate_subject_mood(&mut self) {
-        if self.rule_ignored(&Rule::SubjectMood) {
-            return;
-        }
-
-        match self.subject.split(' ').next() {
-            Some(raw_word) => {
-                let word = raw_word.to_lowercase();
-                if MOOD_WORDS.contains(&word.as_str()) {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        Range {
-                            start: 0,
-                            end: word.len(),
-                        },
-                        "Use the imperative mood for the subject".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectMood,
-                        "The subject does not use the imperative grammatical mood".to_string(),
-                        1,
-                        context,
-                    );
-                }
-            }
-            None => {
-                error!("SubjectMood validation failure: No first word found of commit subject.");
             }
         }
     }
@@ -721,7 +647,6 @@ enum CodeBlockStyle {
 
 #[cfg(test)]
 mod tests {
-    use super::MOOD_WORDS;
     use crate::issue::Position;
     use crate::rule::Rule;
     use crate::test::formatted_context;
@@ -742,46 +667,6 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_subject_mood() {
-        let subjects = vec!["Fix test"];
-        assert_commit_subjects_as_valid(subjects, &Rule::SubjectMood);
-
-        let mut invalid_subjects = vec![];
-        for word in MOOD_WORDS.iter() {
-            invalid_subjects.push(format!("{} test", word));
-            let mut chars = word.chars();
-            let capitalized_word = match chars.next() {
-                None => panic!("Could not capitalize word: {}", word),
-                Some(letter) => letter.to_uppercase().collect::<String>() + chars.as_str(),
-            };
-            invalid_subjects.push(format!("{} test", capitalized_word));
-        }
-        for subject in invalid_subjects {
-            assert_commit_subject_as_invalid(subject.as_str(), &Rule::SubjectMood);
-        }
-
-        let subject = validated_commit("Fixing bug", "");
-        let issue = find_issue(subject.issues, &Rule::SubjectMood);
-        assert_eq!(
-            issue.message,
-            "The subject does not use the imperative grammatical mood"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fixing bug\n\
-             \x20\x20| ^^^^^^ Use the imperative mood for the subject\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "Fixed test".to_string(),
-            "lintje:disable SubjectMood".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectMood);
     }
 
     #[test]
