@@ -2,19 +2,9 @@ use crate::issue::{Context, Issue, Position};
 use crate::rule::{rule_by_name, Rule};
 use crate::utils::line_length_stats;
 use core::ops::Range;
-use regex::{Regex, RegexBuilder};
-
-use crate::rules::CONTAINS_FIX_TICKET;
+use regex::Regex;
 
 lazy_static! {
-    // Match "Part of #123"
-    static ref LINK_TO_TICKET: Regex = {
-        let mut tempregex = RegexBuilder::new(r"(part of|related):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
-        tempregex.case_insensitive(true);
-        tempregex.multi_line(false);
-        tempregex.build().unwrap()
-    };
-
     static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
     static ref CODE_BLOCK_LINE_END: Regex = Regex::new(r"^\s*```$").unwrap();
@@ -105,7 +95,7 @@ impl Commit {
             self.validate_rule(&Rule::SubjectBuildTag);
             self.validate_rule(&Rule::SubjectPunctuation);
             self.validate_rule(&Rule::SubjectTicketNumber);
-            self.validate_message_ticket_numbers();
+            self.validate_rule(&Rule::MessageTicketNumber);
             self.validate_rule(&Rule::MessageEmptyFirstLine);
             self.validate_rule(&Rule::MessagePresence);
             self.validate_message_line_length();
@@ -198,41 +188,6 @@ impl Commit {
         }
     }
 
-    fn validate_message_ticket_numbers(&mut self) {
-        let message = &self.message.to_string();
-        if CONTAINS_FIX_TICKET.captures(message).is_none()
-            && LINK_TO_TICKET.captures(message).is_none()
-        {
-            let line_count = message.lines().count() + 1; // + 1 for subject
-            let last_line = if line_count == 1 {
-                self.subject.to_string()
-            } else {
-                message.lines().last().unwrap_or("").to_string()
-            };
-            let context = vec![
-                Context::message_line(line_count, last_line),
-                // Add empty line for spacing
-                Context::message_line(line_count + 1, "".to_string()),
-                // Suggestion because it indicates a suggested change?
-                Context::message_line_addition(
-                    line_count + 2,
-                    "Fixes #123".to_string(),
-                    Range { start: 0, end: 10 },
-                    "Consider adding a reference to a ticket or issue".to_string(),
-                ),
-            ];
-            self.add_hint(
-                Rule::MessageTicketNumber,
-                "The message body does not contain a ticket or issue number".to_string(),
-                Position::MessageLine {
-                    line: line_count + 2,
-                    column: 1,
-                },
-                context,
-            );
-        }
-    }
-
     fn validate_changes(&mut self) {
         if self.rule_ignored(&Rule::DiffPresence) {
             return;
@@ -277,11 +232,6 @@ impl Commit {
         context: Vec<Context>,
     ) {
         self.add_error(rule, message, position, context);
-    }
-
-    fn add_hint(&mut self, rule: Rule, message: String, position: Position, context: Vec<Context>) {
-        self.issues
-            .push(Issue::hint(rule, message, position, context));
     }
 
     pub fn has_issue(&self, rule: &Rule) -> bool {
@@ -513,67 +463,6 @@ mod tests {
                 invalid_long_ling_outside_indended_code_block,
             ),
             &Rule::MessageLineLength,
-        );
-    }
-
-    #[test]
-    fn test_validate_message_ticket_numbers() {
-        let message_with_ticket_number = [
-            "Beginning of message.",
-            "",
-            "Some explanation.",
-            "",
-            "Fixes #123",
-        ]
-        .join("\n");
-        assert_commit_valid_for(
-            &validated_commit("Subject".to_string(), message_with_ticket_number),
-            &Rule::MessageTicketNumber,
-        );
-
-        let message_with_ticket_number_part_of = [
-            "Beginning of message.",
-            "",
-            "Some explanation.",
-            "",
-            "Part of #123",
-        ]
-        .join("\n");
-        assert_commit_valid_for(
-            &validated_commit("Subject".to_string(), message_with_ticket_number_part_of),
-            &Rule::MessageTicketNumber,
-        );
-
-        let message_with_ticket_number_related = [
-            "Beginning of message.",
-            "",
-            "Some explanation.",
-            "",
-            "Related #123",
-        ]
-        .join("\n");
-        assert_commit_valid_for(
-            &validated_commit("Subject".to_string(), message_with_ticket_number_related),
-            &Rule::MessageTicketNumber,
-        );
-
-        let message_without_ticket_number =
-            ["", "Beginning of message.", "", "Some explanation."].join("\n");
-        let without_ticket_number =
-            validated_commit("Subject".to_string(), message_without_ticket_number);
-        let issue = find_issue(without_ticket_number.issues, &Rule::MessageTicketNumber);
-        assert_eq!(
-            issue.message,
-            "The message body does not contain a ticket or issue number"
-        );
-        assert_eq!(issue.position, message_position(7, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   5 | Some explanation.\n\
-                   6 | \n\
-                   7 | Fixes #123\n\
-             \x20\x20| ---------- Consider adding a reference to a ticket or issue\n"
         );
     }
 
