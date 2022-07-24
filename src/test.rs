@@ -73,28 +73,6 @@ pub fn assert_commit_invalid_for(commit: &Commit, rule: &Rule) {
     );
 }
 
-pub fn assert_commit_subject_as_valid(subject: &str, rule: &Rule) {
-    let commit = validated_commit(subject.to_string(), "".to_string());
-    assert_commit_valid_for(&commit, rule);
-}
-
-pub fn assert_commit_subjects_as_valid(subjects: Vec<&str>, rule: &Rule) {
-    for subject in subjects {
-        assert_commit_subject_as_valid(subject, rule)
-    }
-}
-
-pub fn assert_commit_subject_as_invalid<S: AsRef<str>>(subject: S, rule: &Rule) {
-    let commit = validated_commit(subject.as_ref().to_string(), "".to_string());
-    assert_commit_invalid_for(&commit, rule);
-}
-
-pub fn assert_commit_subjects_as_invalid<S: AsRef<str>>(subjects: Vec<S>, rule: &Rule) {
-    for subject in subjects {
-        assert_commit_subject_as_invalid(subject, rule)
-    }
-}
-
 pub fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
     issues.iter().any(|v| &v.rule == rule)
 }
