@@ -5,6 +5,7 @@ pub mod needs_rebase;
 pub mod subject_cliche;
 pub mod subject_length;
 pub mod subject_mood;
+pub mod subject_whitespace;
 
 pub use merge_commit::MergeCommit;
 pub use message_empty_first_line::MessageEmptyFirstLine;
@@ -13,3 +14,4 @@ pub use needs_rebase::NeedsRebase;
 pub use subject_cliche::SubjectCliche;
 pub use subject_length::SubjectLength;
 pub use subject_mood::SubjectMood;
+pub use subject_whitespace::SubjectWhitespace;

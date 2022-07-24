@@ -118,7 +118,7 @@ impl Commit {
             self.validate_rule(&Rule::SubjectCliche);
             self.validate_rule(&Rule::SubjectLength);
             self.validate_rule(&Rule::SubjectMood);
-            self.validate_subject_whitespace();
+            self.validate_rule(&Rule::SubjectWhitespace);
             self.validate_subject_prefix();
             self.validate_subject_capitalization();
             self.validate_subject_build_tags();
@@ -144,42 +144,6 @@ impl Commit {
             }
             None => {
                 debug!("No issues found for rule '{}'", rule);
-            }
-        }
-    }
-
-    fn validate_subject_whitespace(&mut self) {
-        if self.rule_ignored(&Rule::SubjectWhitespace) {
-            return;
-        }
-        if self.subject.chars().count() == 0 && self.has_issue(&Rule::SubjectLength) {
-            return;
-        }
-
-        match self.subject.chars().next() {
-            Some(character) => {
-                if character.is_whitespace() {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        Range {
-                            start: 0,
-                            end: character.len_utf8(),
-                        },
-                        "Remove the leading whitespace from the subject".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectWhitespace,
-                        "The subject starts with a whitespace character such as a space or a tab"
-                            .to_string(),
-                        1,
-                        context,
-                    );
-                }
-            }
-            None => {
-                error!(
-                    "SubjectWhitespace validation failure: No first character found of subject."
-                );
             }
         }
     }
@@ -636,64 +600,6 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
-    }
-
-    #[test]
-    fn test_validate_subject_whitespace() {
-        let subjects = vec!["Fix test"];
-        assert_commit_subjects_as_valid(subjects, &Rule::SubjectWhitespace);
-
-        let space = validated_commit(" Fix test", "");
-        let issue = find_issue(space.issues, &Rule::SubjectWhitespace);
-        assert_eq!(
-            issue.message,
-            "The subject starts with a whitespace character such as a space or a tab"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 |  Fix test\n\
-             \x20\x20| ^ Remove the leading whitespace from the subject\n"
-        );
-
-        let space = validated_commit("\x20Fix test", "");
-        let issue = find_issue(space.issues, &Rule::SubjectWhitespace);
-        assert_eq!(
-            issue.message,
-            "The subject starts with a whitespace character such as a space or a tab"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | \x20Fix test\n\
-             \x20\x20| ^ Remove the leading whitespace from the subject\n"
-        );
-
-        let tab = validated_commit("\tFix test", "");
-        let issue = find_issue(tab.issues, &Rule::SubjectWhitespace);
-        assert_eq!(
-            issue.message,
-            "The subject starts with a whitespace character such as a space or a tab"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 |     Fix test\n\
-             \x20\x20| ^^^^ Remove the leading whitespace from the subject\n"
-        );
-
-        // Rule is ignored because the subject is empty, a SubjectLength issue
-        assert_commit_subject_as_invalid("", &Rule::SubjectLength);
-        assert_commit_subject_as_valid("", &Rule::SubjectWhitespace);
-
-        let ignore_commit = validated_commit(
-            " Fix test".to_string(),
-            "lintje:disable SubjectWhitespace".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectWhitespace);
     }
 
     #[test]

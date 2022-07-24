@@ -63,6 +63,7 @@ impl Rule {
             Rule::NeedsRebase => Box::new(NeedsRebase::new()),
             Rule::SubjectLength => Box::new(SubjectLength::new()),
             Rule::SubjectMood => Box::new(SubjectMood::new()),
+            Rule::SubjectWhitespace => Box::new(SubjectWhitespace::new()),
             Rule::SubjectCliche => Box::new(SubjectCliche::new()),
             Rule::MessagePresence => Box::new(MessagePresence::new()),
             Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
