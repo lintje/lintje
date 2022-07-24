@@ -72,6 +72,7 @@ impl Rule {
             Rule::SubjectCliche => Box::new(SubjectCliche::new()),
             Rule::MessagePresence => Box::new(MessagePresence::new()),
             Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
+            Rule::MessageLineLength => Box::new(MessageLineLength::new()),
             Rule::MessageTicketNumber => Box::new(MessageTicketNumber::new()),
             _ => panic!("Rule '{}' not implemented yet", self),
         }

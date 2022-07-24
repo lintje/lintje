@@ -2,6 +2,7 @@ use regex::Regex;
 
 pub mod merge_commit;
 pub mod message_empty_first_line;
+pub mod message_line_length;
 pub mod message_presence;
 pub mod message_ticket_number;
 pub mod needs_rebase;
@@ -17,6 +18,7 @@ pub mod subject_whitespace;
 
 pub use merge_commit::MergeCommit;
 pub use message_empty_first_line::MessageEmptyFirstLine;
+pub use message_line_length::MessageLineLength;
 pub use message_presence::MessagePresence;
 pub use message_ticket_number::MessageTicketNumber;
 pub use needs_rebase::NeedsRebase;
