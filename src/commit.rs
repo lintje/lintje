@@ -5,7 +5,6 @@ use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
-    static ref SUBJECT_STARTS_WITH_PREFIX: Regex = Regex::new(r"^([\w\(\)/!]+:)\s.*").unwrap();
     // Regex to match emoji, but not all emoji. Emoji using ASCII codepoints like the emojis for
     // the numbers 0-9, and symbols like * and # are not included. Otherwise it would also catches
     // plain numbers 0-9 and those symbols, even when they are not emoji.
@@ -119,7 +118,7 @@ impl Commit {
             self.validate_rule(&Rule::SubjectLength);
             self.validate_rule(&Rule::SubjectMood);
             self.validate_rule(&Rule::SubjectWhitespace);
-            self.validate_subject_prefix();
+            self.validate_rule(&Rule::SubjectPrefix);
             self.validate_subject_capitalization();
             self.validate_subject_build_tags();
             self.validate_subject_punctuation();
@@ -328,33 +327,6 @@ impl Commit {
             character_count_for_bytes_index(&self.subject, capture.start()),
             context,
         );
-    }
-
-    fn validate_subject_prefix(&mut self) {
-        if self.rule_ignored(&Rule::SubjectPrefix) {
-            return;
-        }
-
-        let subject = &self.subject.to_string();
-        if let Some(captures) = SUBJECT_STARTS_WITH_PREFIX.captures(subject) {
-            // Get first match from captures, the prefix
-            match captures.get(1) {
-                Some(capture) => {
-                    let context = vec![Context::subject_error(
-                        self.subject.to_string(),
-                        capture.range(),
-                        "Remove the prefix from the subject".to_string(),
-                    )];
-                    self.add_subject_error(
-                        Rule::SubjectPrefix,
-                        format!("Remove the `{}` prefix from the subject", capture.as_str()),
-                        1,
-                        context,
-                    );
-                }
-                None => error!("SubjectPrefix: Unable to fetch prefix capture from subject."),
-            }
-        }
     }
 
     fn validate_subject_build_tags(&mut self) {
@@ -899,56 +871,6 @@ mod tests {
             "lintje:disable SubjectTicketNumber".to_string(),
         );
         assert_commit_valid_for(&ignore_merge_request_number, &Rule::SubjectTicketNumber);
-    }
-
-    #[test]
-    fn test_validate_subject_prefix() {
-        let subjects = vec!["This is a commit without prefix"];
-        assert_commit_subjects_as_valid(subjects, &Rule::SubjectPrefix);
-
-        let invalid_subjects = vec![
-            "fix: bug",
-            "fix!: bug",
-            "Fix: bug",
-            "Fix!: bug",
-            "fix(scope): bug",
-            "fix(scope)!: bug",
-            "Fix(scope123)!: bug",
-            "fix(scope/scope): bug",
-            "fix(scope/scope)!: bug",
-        ];
-        assert_commit_subjects_as_invalid(invalid_subjects, &Rule::SubjectPrefix);
-
-        let prefix = validated_commit("Fix: bug", "");
-        let issue = find_issue(prefix.issues, &Rule::SubjectPrefix);
-        assert_eq!(issue.message, "Remove the `Fix:` prefix from the subject");
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fix: bug\n\
-             \x20\x20| ^^^^ Remove the prefix from the subject\n"
-        );
-
-        let scoped = validated_commit("chore(package)!: some package bug", "");
-        let issue = find_issue(scoped.issues, &Rule::SubjectPrefix);
-        assert_eq!(
-            issue.message,
-            "Remove the `chore(package)!:` prefix from the subject"
-        );
-        assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | chore(package)!: some package bug\n\
-             \x20\x20| ^^^^^^^^^^^^^^^^ Remove the prefix from the subject\n"
-        );
-
-        let ignore_commit = validated_commit(
-            "fix: bug".to_string(),
-            "lintje:disable SubjectPrefix".to_string(),
-        );
-        assert_commit_valid_for(&ignore_commit, &Rule::SubjectPrefix);
     }
 
     #[test]
