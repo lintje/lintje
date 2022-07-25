@@ -57,25 +57,30 @@ impl fmt::Display for Rule {
 }
 
 impl Rule {
-    pub fn instance(&self) -> Box<dyn RuleValidation> {
+    pub fn validate_commit(&self, commit: &Commit) -> Option<Vec<Issue>> {
         match self {
-            Rule::MergeCommit => Box::new(MergeCommit::new()),
-            Rule::NeedsRebase => Box::new(NeedsRebase::new()),
-            Rule::SubjectLength => Box::new(SubjectLength::new()),
-            Rule::SubjectMood => Box::new(SubjectMood::new()),
-            Rule::SubjectWhitespace => Box::new(SubjectWhitespace::new()),
-            Rule::SubjectCapitalization => Box::new(SubjectCapitalization::new()),
-            Rule::SubjectPunctuation => Box::new(SubjectPunctuation::new()),
-            Rule::SubjectTicketNumber => Box::new(SubjectTicketNumber::new()),
-            Rule::SubjectPrefix => Box::new(SubjectPrefix::new()),
-            Rule::SubjectBuildTag => Box::new(SubjectBuildTag::new()),
-            Rule::SubjectCliche => Box::new(SubjectCliche::new()),
-            Rule::MessagePresence => Box::new(MessagePresence::new()),
-            Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
-            Rule::MessageLineLength => Box::new(MessageLineLength::new()),
-            Rule::MessageTicketNumber => Box::new(MessageTicketNumber::new()),
-            Rule::DiffPresence => Box::new(DiffPresence::new()),
-            _ => panic!("Rule '{}' not implemented yet", self),
+            Rule::MergeCommit => MergeCommit::new().validate(commit),
+            Rule::NeedsRebase => NeedsRebase::new().validate(commit),
+            Rule::SubjectLength => SubjectLength::new().validate(commit),
+            Rule::SubjectMood => SubjectMood::new().validate(commit),
+            Rule::SubjectWhitespace => SubjectWhitespace::new().validate(commit),
+            Rule::SubjectCapitalization => SubjectCapitalization::new().validate(commit),
+            Rule::SubjectPunctuation => SubjectPunctuation::new().validate(commit),
+            Rule::SubjectTicketNumber => SubjectTicketNumber::new().validate(commit),
+            Rule::SubjectPrefix => SubjectPrefix::new().validate(commit),
+            Rule::SubjectBuildTag => SubjectBuildTag::new().validate(commit),
+            Rule::SubjectCliche => SubjectCliche::new().validate(commit),
+            Rule::MessagePresence => MessagePresence::new().validate(commit),
+            Rule::MessageEmptyFirstLine => MessageEmptyFirstLine::new().validate(commit),
+            Rule::MessageLineLength => MessageLineLength::new().validate(commit),
+            Rule::MessageTicketNumber => MessageTicketNumber::new().validate(commit),
+            Rule::DiffPresence => DiffPresence::new().validate(commit),
+            Rule::BranchNameTicketNumber
+            | Rule::BranchNameLength
+            | Rule::BranchNamePunctuation
+            | Rule::BranchNameCliche => {
+                panic!("Unknown rule for commit validation: {}", self)
+            }
         }
     }
 }
@@ -100,10 +105,4 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "DiffPresence" => Some(Rule::DiffPresence),
         _ => None,
     }
-}
-pub trait RuleValidation {
-    fn new() -> Self
-    where
-        Self: Sized;
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>>;
 }

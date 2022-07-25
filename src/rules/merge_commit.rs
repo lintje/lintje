@@ -3,18 +3,18 @@ use core::ops::Range;
 use crate::commit::Commit;
 use crate::git::SUBJECT_WITH_MERGE_REMOTE_BRANCH;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 pub struct MergeCommit {}
 
-impl RuleValidation for MergeCommit {
-    fn new() -> Self {
+impl MergeCommit {
+    pub fn new() -> Self {
         Self {}
     }
 
     // Note: Some merge commits are ignored in git.rs and won't be validated here, because they are
     // Pull/Merge Requests, which are valid.
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject;
         if !SUBJECT_WITH_MERGE_REMOTE_BRANCH.is_match(subject) {
             return None;

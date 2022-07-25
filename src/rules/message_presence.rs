@@ -2,17 +2,17 @@ use core::ops::Range;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 use crate::utils::display_width;
 
 pub struct MessagePresence {}
 
-impl RuleValidation for MessagePresence {
-    fn new() -> Self {
+impl MessagePresence {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let message = &commit.message.trim();
         let width = display_width(message);
         if width == 0 {

@@ -2,16 +2,16 @@ use core::ops::Range;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 pub struct SubjectWhitespace {}
 
-impl RuleValidation for SubjectWhitespace {
-    fn new() -> Self {
+impl SubjectWhitespace {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.subject.chars().count() == 0 && commit.has_issue(&Rule::SubjectLength) {
             return None;
         }

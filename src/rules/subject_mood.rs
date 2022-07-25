@@ -2,7 +2,7 @@ use core::ops::Range;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 const MOOD_WORDS: [&str; 41] = [
     "fixed",
@@ -50,12 +50,12 @@ const MOOD_WORDS: [&str; 41] = [
 
 pub struct SubjectMood {}
 
-impl RuleValidation for SubjectMood {
-    fn new() -> Self {
+impl SubjectMood {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         match commit.subject.split(' ').next() {
             Some(raw_word) => {
                 let word = raw_word.to_lowercase();

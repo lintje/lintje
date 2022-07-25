@@ -2,17 +2,17 @@ use core::ops::Range;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 use crate::utils::line_length_stats;
 
 pub struct SubjectLength {}
 
-impl RuleValidation for SubjectLength {
-    fn new() -> Self {
+impl SubjectLength {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.has_issue(&Rule::SubjectCliche) {
             return None;
         }

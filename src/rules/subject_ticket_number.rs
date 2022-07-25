@@ -3,7 +3,7 @@ use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 use crate::utils::character_count_for_bytes_index;
 
 use crate::rules::CONTAINS_FIX_TICKET;
@@ -17,12 +17,12 @@ lazy_static! {
 
 pub struct SubjectTicketNumber {}
 
-impl RuleValidation for SubjectTicketNumber {
-    fn new() -> Self {
+impl SubjectTicketNumber {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let mut issues = vec![];
         let subject = &commit.subject.to_string();
         if let Some(captures) = SUBJECT_WITH_TICKET.captures(subject) {

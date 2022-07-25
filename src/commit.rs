@@ -99,8 +99,7 @@ impl Commit {
             return;
         }
 
-        let instance = rule.instance();
-        match instance.validate(self) {
+        match rule.validate_commit(self) {
             Some(mut issues) => {
                 self.issues.append(&mut issues);
             }

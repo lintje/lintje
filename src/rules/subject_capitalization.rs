@@ -3,7 +3,7 @@ use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 lazy_static! {
     static ref SUBJECT_STARTS_WITH_PREFIX: Regex = Regex::new(r"^([\w\(\)/!]+:)\s.*").unwrap();
@@ -11,12 +11,12 @@ lazy_static! {
 
 pub struct SubjectCapitalization {}
 
-impl RuleValidation for SubjectCapitalization {
-    fn new() -> Self {
+impl SubjectCapitalization {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.has_issue(&Rule::SubjectPrefix) {
             return None;
         }

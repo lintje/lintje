@@ -3,7 +3,7 @@ use regex::{Regex, RegexBuilder};
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 lazy_static! {
     static ref SUBJECT_WITH_CLICHE: Regex = {
@@ -18,12 +18,12 @@ lazy_static! {
 
 pub struct SubjectCliche {}
 
-impl RuleValidation for SubjectCliche {
-    fn new() -> Self {
+impl SubjectCliche {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject.to_lowercase();
         let wip_commit = subject.starts_with("wip ") || subject == &"wip".to_string();
         if wip_commit || SUBJECT_WITH_CLICHE.is_match(subject) {

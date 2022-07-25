@@ -2,16 +2,16 @@ use core::ops::Range;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 pub struct DiffPresence {}
 
-impl RuleValidation for DiffPresence {
-    fn new() -> Self {
+impl DiffPresence {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.has_changes {
             return None;
         }

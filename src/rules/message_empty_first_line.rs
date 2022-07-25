@@ -2,16 +2,16 @@ use core::ops::Range;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 pub struct MessageEmptyFirstLine {}
 
-impl RuleValidation for MessageEmptyFirstLine {
-    fn new() -> Self {
+impl MessageEmptyFirstLine {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if let Some(line) = commit.message.lines().next() {
             if !line.is_empty() {
                 let context = vec![

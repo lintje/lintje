@@ -3,7 +3,7 @@ use regex::{Regex, RegexBuilder};
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 use crate::rules::CONTAINS_FIX_TICKET;
 
@@ -19,12 +19,12 @@ lazy_static! {
 
 pub struct MessageTicketNumber {}
 
-impl RuleValidation for MessageTicketNumber {
-    fn new() -> Self {
+impl MessageTicketNumber {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let message = &commit.message.to_string();
         if CONTAINS_FIX_TICKET.captures(message).is_none()
             && LINK_TO_TICKET.captures(message).is_none()

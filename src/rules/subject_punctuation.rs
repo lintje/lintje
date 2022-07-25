@@ -3,7 +3,7 @@ use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 use crate::utils::{character_count_for_bytes_index, is_punctuation};
 
 lazy_static! {
@@ -18,12 +18,12 @@ lazy_static! {
 
 pub struct SubjectPunctuation {}
 
-impl RuleValidation for SubjectPunctuation {
-    fn new() -> Self {
+impl SubjectPunctuation {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.subject.chars().count() == 0 && commit.has_issue(&Rule::SubjectLength) {
             return None;
         }

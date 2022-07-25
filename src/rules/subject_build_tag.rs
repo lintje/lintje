@@ -3,7 +3,7 @@ use regex::{Regex, RegexBuilder};
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 use crate::utils::character_count_for_bytes_index;
 
 lazy_static! {
@@ -18,12 +18,12 @@ lazy_static! {
 
 pub struct SubjectBuildTag {}
 
-impl RuleValidation for SubjectBuildTag {
-    fn new() -> Self {
+impl SubjectBuildTag {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject.to_string();
         if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {
             match captures.get(1) {

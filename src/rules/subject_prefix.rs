@@ -2,7 +2,7 @@ use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 
 lazy_static! {
     static ref SUBJECT_STARTS_WITH_PREFIX: Regex = Regex::new(r"^([\w\(\)/!]+:)\s.*").unwrap();
@@ -10,12 +10,12 @@ lazy_static! {
 
 pub struct SubjectPrefix {}
 
-impl RuleValidation for SubjectPrefix {
-    fn new() -> Self {
+impl SubjectPrefix {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject.to_string();
         if let Some(captures) = SUBJECT_STARTS_WITH_PREFIX.captures(subject) {
             // Get first match from captures, the prefix

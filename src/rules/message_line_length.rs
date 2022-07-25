@@ -3,7 +3,7 @@ use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
-use crate::rule::{Rule, RuleValidation};
+use crate::rule::Rule;
 use crate::utils::line_length_stats;
 
 lazy_static! {
@@ -21,12 +21,12 @@ enum CodeBlockStyle {
 
 pub struct MessageLineLength {}
 
-impl RuleValidation for MessageLineLength {
-    fn new() -> Self {
+impl MessageLineLength {
+    pub fn new() -> Self {
         Self {}
     }
 
-    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let mut code_block_style = CodeBlockStyle::None;
         let mut previous_line_was_empty_line = false;
         let mut issues = vec![];
