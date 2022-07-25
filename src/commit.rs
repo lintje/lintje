@@ -47,7 +47,7 @@ impl Commit {
         }
     }
 
-    pub fn find_ignored_rules(message: &str) -> Vec<Rule> {
+    fn find_ignored_rules(message: &str) -> Vec<Rule> {
         let disable_prefix = "lintje:disable ";
         let mut ignored = vec![];
         for line in message.lines() {
