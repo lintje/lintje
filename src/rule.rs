@@ -102,11 +102,11 @@ impl Rule {
             | Rule::MessageEmptyFirstLine
             | Rule::MessageLineLength
             | Rule::MessageTicketNumber
-            | Rule::DiffPresence
-            | Rule::BranchNameCliche => panic!("Unknown rule for commit validation: {}", self),
+            | Rule::DiffPresence => panic!("Unknown rule for branch validation: {}", self),
             Rule::BranchNameLength => BranchNameLength::new().validate(branch),
             Rule::BranchNameTicketNumber => BranchNameTicketNumber::new().validate(branch),
             Rule::BranchNamePunctuation => BranchNamePunctuation::new().validate(branch),
+            Rule::BranchNameCliche => BranchNameCliche::new().validate(branch),
         }
     }
 }
