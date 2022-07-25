@@ -137,6 +137,14 @@ mod tests {
     }
 
     #[test]
+    fn is_valid() {
+        let mut commit = commit("".to_string(), "Intentionally invalid commit".to_string());
+        assert!(commit.is_valid());
+        commit.validate();
+        assert!(!commit.is_valid());
+    }
+
+    #[test]
     fn ignored_rule() {
         let mut ignored_rule = commit(
             "".to_string(),
