@@ -116,6 +116,7 @@ impl Commit {
 
 #[cfg(test)]
 mod tests {
+    use crate::rule::Rule;
     use crate::test::*;
 
     #[test]
@@ -133,5 +134,24 @@ mod tests {
             commit_with_sha(long_sha, "Subject".to_string(), "Message".to_string());
         assert_eq!(without_long_sha.long_sha, Some("a".to_string()));
         assert_eq!(without_long_sha.short_sha, None);
+    }
+
+    #[test]
+    fn ignored_rule() {
+        let mut ignored_rule = commit(
+            "".to_string(),
+            "...\n\
+            lintje:disable SubjectLength\n\
+            lintje:disable MessageEmptyFirstLine"
+                .to_string(),
+        );
+        assert_eq!(
+            ignored_rule.ignored_rules,
+            vec![Rule::SubjectLength, Rule::MessageEmptyFirstLine]
+        );
+
+        ignored_rule.validate();
+        assert!(!ignored_rule.has_issue(&Rule::SubjectLength));
+        assert!(!ignored_rule.has_issue(&Rule::MessageEmptyFirstLine));
     }
 }
