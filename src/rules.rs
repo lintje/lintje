@@ -1,6 +1,7 @@
 use regex::Regex;
 
 pub mod branch_name_length;
+pub mod branch_name_ticket_number;
 pub mod diff_presence;
 pub mod merge_commit;
 pub mod message_empty_first_line;
@@ -19,6 +20,7 @@ pub mod subject_ticket_number;
 pub mod subject_whitespace;
 
 pub use branch_name_length::BranchNameLength;
+pub use branch_name_ticket_number::BranchNameTicketNumber;
 pub use diff_presence::DiffPresence;
 pub use merge_commit::MergeCommit;
 pub use message_empty_first_line::MessageEmptyFirstLine;

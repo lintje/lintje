@@ -5,12 +5,6 @@ use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
-    static ref BRANCH_WITH_TICKET_NUMBER: Regex = {
-        let mut tempregex = RegexBuilder::new(r"^(\w+[-_/\.])?\d{2,}([-_/\.]\w+)?([-_/\.]\w+)?");
-        tempregex.case_insensitive(true);
-        tempregex.multi_line(false);
-        tempregex.build().unwrap()
-    };
     static ref BRANCH_WITH_CLICHE: Regex = {
         let mut tempregex = RegexBuilder::new(
             r"^(wip|fix(es|ed|ing)?|add(s|ed|ing)?|(updat|chang|remov|delet)(e|es|ed|ing))([-_/]+\w+)?$",
@@ -41,7 +35,7 @@ impl Branch {
 
     pub fn validate(&mut self) {
         self.validate_rule(&Rule::BranchNameLength);
-        self.validate_ticket_number();
+        self.validate_rule(&Rule::BranchNameTicketNumber);
         self.validate_punctuation();
         self.validate_cliche();
     }
@@ -53,35 +47,6 @@ impl Branch {
             }
             None => {
                 debug!("No issues found for rule '{}'", rule);
-            }
-        }
-    }
-
-    fn validate_ticket_number(&mut self) {
-        let name = &self.name;
-        if let Some(captures) = BRANCH_WITH_TICKET_NUMBER.captures(name) {
-            let valid = match (captures.get(1), captures.get(2), captures.get(3)) {
-                (None, None, _) => false,
-                (Some(_prefix), None, _) => false,
-                (None, Some(_suffix), None) => false,
-                (None, Some(_suffix), Some(_suffix_more)) => true,
-                (Some(_prefix), Some(_suffix), _) => true,
-            };
-            if !valid {
-                let context = vec![Context::branch_error(
-                    name.to_string(),
-                    Range {
-                        start: 0,
-                        end: name.len(),
-                    },
-                    "Remove the ticket number from the branch name or expand the branch name with more details".to_string(),
-                )];
-                self.add_error(
-                    Rule::BranchNameTicketNumber,
-                    "A ticket number was detected in the branch name".to_string(),
-                    1,
-                    context,
-                );
             }
         }
     }
@@ -241,59 +206,6 @@ mod tests {
 
     fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
         issues.iter().any(|v| &v.rule == rule)
-    }
-
-    #[test]
-    fn test_branch_ticket_number() {
-        let valid_names = vec![
-            "123-fix-bug",
-            "123_fix-bug",
-            "123/fix-bug",
-            "123-add-feature",
-            "fix-123-bug",
-            "fix_123-bug",
-            "fix/123-bug",
-            "feature-123-cool",
-            "add-feature-123",
-            "add-feature-123-cool",
-            "ruby-3",
-            "elixir-1.13.2-ci",
-            "erlang-20.2",
-            "fix-bug",
-        ];
-        assert_branch_names_as_valid(valid_names, &Rule::BranchNameTicketNumber);
-
-        let invalid_names = vec![
-            "123",
-            "123-FIX",
-            "123-Fix",
-            "123-fix",
-            "123_fix",
-            "123/fix",
-            "123-feature",
-            "FIX-123",
-            "Fix-123",
-            "fix-123",
-            "fix_123",
-            "fix/123",
-            "feature-123",
-            "JIRA-123",
-        ];
-        assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameTicketNumber);
-
-        let branch = validated_branch("fix-123".to_string());
-        let issue = find_issue(branch.issues, &Rule::BranchNameTicketNumber);
-        assert_eq!(
-            issue.message,
-            "A ticket number was detected in the branch name"
-        );
-        assert_eq!(issue.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | fix-123\n\
-             | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
-        );
     }
 
     #[test]
