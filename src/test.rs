@@ -1,3 +1,4 @@
+use crate::branch::Branch;
 use crate::commit::Commit;
 use crate::formatter::formatted_context as formatted_context_real;
 use crate::issue::{Issue, Position};
@@ -38,6 +39,10 @@ pub fn commit<S: AsRef<str>>(subject: S, message: S) -> Commit {
         subject,
         message,
     )
+}
+
+pub fn branch(name: &str) -> Branch {
+    Branch::new(name.to_string())
 }
 
 pub fn first_issue(issues_option: Option<Vec<Issue>>) -> Issue {

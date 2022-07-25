@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::branch::Branch;
 use crate::commit::Commit;
 use crate::issue::Issue;
 use crate::rules::*;
@@ -81,6 +82,31 @@ impl Rule {
             | Rule::BranchNameCliche => {
                 panic!("Unknown rule for commit validation: {}", self)
             }
+        }
+    }
+
+    pub fn validate_branch(&self, branch: &Branch) -> Option<Vec<Issue>> {
+        match self {
+            Rule::MergeCommit
+            | Rule::NeedsRebase
+            | Rule::SubjectLength
+            | Rule::SubjectMood
+            | Rule::SubjectWhitespace
+            | Rule::SubjectCapitalization
+            | Rule::SubjectPunctuation
+            | Rule::SubjectTicketNumber
+            | Rule::SubjectPrefix
+            | Rule::SubjectBuildTag
+            | Rule::SubjectCliche
+            | Rule::MessagePresence
+            | Rule::MessageEmptyFirstLine
+            | Rule::MessageLineLength
+            | Rule::MessageTicketNumber
+            | Rule::DiffPresence
+            | Rule::BranchNameTicketNumber
+            | Rule::BranchNamePunctuation
+            | Rule::BranchNameCliche => panic!("Unknown rule for commit validation: {}", self),
+            Rule::BranchNameLength => BranchNameLength::new().validate(branch),
         }
     }
 }

@@ -1,6 +1,6 @@
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
-use crate::utils::{character_count_for_bytes_index, display_width, is_punctuation};
+use crate::utils::{character_count_for_bytes_index, is_punctuation};
 use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
@@ -40,30 +40,20 @@ impl Branch {
     }
 
     pub fn validate(&mut self) {
-        self.validate_length();
+        self.validate_rule(&Rule::BranchNameLength);
         self.validate_ticket_number();
         self.validate_punctuation();
         self.validate_cliche();
     }
 
-    fn validate_length(&mut self) {
-        let name = &self.name;
-        let width = display_width(name);
-        if width < 4 {
-            let context = vec![Context::branch_error(
-                name.to_string(),
-                Range {
-                    start: 0,
-                    end: name.len(),
-                },
-                "Describe the change in more detail".to_string(),
-            )];
-            self.add_error(
-                Rule::BranchNameLength,
-                format!("Branch name of {} characters is too short", width),
-                1,
-                context,
-            );
+    fn validate_rule(&mut self, rule: &Rule) {
+        match rule.validate_branch(self) {
+            Some(mut issues) => {
+                self.issues.append(&mut issues);
+            }
+            None => {
+                debug!("No issues found for rule '{}'", rule);
+            }
         }
     }
 
@@ -251,33 +241,6 @@ mod tests {
 
     fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
         issues.iter().any(|v| &v.rule == rule)
-    }
-
-    #[test]
-    fn test_validate_name_length() {
-        let valid_names = vec![
-            "abcd".to_string(),
-            "-_/!".to_string(),
-            "a".repeat(5),
-            "a".repeat(50),
-            "あ".repeat(4),
-            "✨".repeat(4),
-        ];
-        assert_branch_names_as_valid(valid_names, &Rule::BranchNameLength);
-
-        let invalid_names = vec!["", "a", "ab", "abc"];
-        assert_branch_names_as_invalid(invalid_names, &Rule::BranchNameLength);
-
-        let branch = validated_branch("abc".to_string());
-        let issue = find_issue(branch.issues, &Rule::BranchNameLength);
-        assert_eq!(issue.message, "Branch name of 3 characters is too short");
-        assert_eq!(issue.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | abc\n\
-             | ^^^ Describe the change in more detail\n"
-        );
     }
 
     #[test]
