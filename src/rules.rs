@@ -1,6 +1,7 @@
 use regex::Regex;
 
 pub mod branch_name_length;
+pub mod branch_name_punctuation;
 pub mod branch_name_ticket_number;
 pub mod diff_presence;
 pub mod merge_commit;
@@ -20,6 +21,7 @@ pub mod subject_ticket_number;
 pub mod subject_whitespace;
 
 pub use branch_name_length::BranchNameLength;
+pub use branch_name_punctuation::BranchNamePunctuation;
 pub use branch_name_ticket_number::BranchNameTicketNumber;
 pub use diff_presence::DiffPresence;
 pub use merge_commit::MergeCommit;

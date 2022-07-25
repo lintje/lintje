@@ -1,6 +1,5 @@
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
-use crate::utils::{character_count_for_bytes_index, is_punctuation};
 use core::ops::Range;
 use regex::{Regex, RegexBuilder};
 
@@ -36,7 +35,7 @@ impl Branch {
     pub fn validate(&mut self) {
         self.validate_rule(&Rule::BranchNameLength);
         self.validate_rule(&Rule::BranchNameTicketNumber);
-        self.validate_punctuation();
+        self.validate_rule(&Rule::BranchNamePunctuation);
         self.validate_cliche();
     }
 
@@ -47,66 +46,6 @@ impl Branch {
             }
             None => {
                 debug!("No issues found for rule '{}'", rule);
-            }
-        }
-    }
-
-    fn validate_punctuation(&mut self) {
-        match &self.name.chars().next() {
-            Some(character) => {
-                if is_punctuation(*character) {
-                    let branch = &self.name;
-                    let context = vec![Context::branch_error(
-                        branch.to_string(),
-                        Range {
-                            start: 0,
-                            end: character.len_utf8(),
-                        },
-                        "Remove punctuation from the start of the branch name".to_string(),
-                    )];
-                    self.add_error(
-                        Rule::BranchNamePunctuation,
-                        "The branch name starts with a punctuation character".to_string(),
-                        1,
-                        context,
-                    );
-                }
-            }
-            None => {
-                error!(
-                    "BranchNamePunctuation validation failure: No first character found of branch name."
-                );
-            }
-        }
-
-        match &self.name.chars().last() {
-            Some(character) => {
-                if is_punctuation(*character) {
-                    let branch_length = self.name.len();
-                    let branch = &self.name;
-                    let context = vec![Context::branch_error(
-                        branch.to_string(),
-                        Range {
-                            start: branch_length - character.len_utf8(),
-                            end: branch_length,
-                        },
-                        "Remove punctuation from the end of the branch name".to_string(),
-                    )];
-                    self.add_error(
-                        Rule::BranchNamePunctuation,
-                        "The branch name ends with a punctuation character".to_string(),
-                        character_count_for_bytes_index(
-                            &self.name,
-                            self.name.len() - character.len_utf8(),
-                        ),
-                        context,
-                    );
-                }
-            }
-            None => {
-                error!(
-                    "BranchNamePunctuation validation failure: No last character found of branch name."
-                );
             }
         }
     }
@@ -198,82 +137,8 @@ mod tests {
         }
     }
 
-    fn assert_branch_names_as_invalid<S: AsRef<str>>(names: Vec<S>, rule: &Rule) {
-        for name in names {
-            assert_branch_name_as_invalid(name, rule)
-        }
-    }
-
     fn has_issue(issues: &[Issue], rule: &Rule) -> bool {
         issues.iter().any(|v| &v.rule == rule)
-    }
-
-    #[test]
-    fn test_validate_punctuation() {
-        let subjects = vec!["fix-test", "fix-あ-test"];
-        assert_branch_names_as_valid(subjects, &Rule::BranchNamePunctuation);
-
-        let invalid_subjects = vec![
-            "fix.",
-            "fix!",
-            "fix?",
-            "fix:",
-            "fix-",
-            "fix_",
-            "fix/",
-            "fix\'",
-            "fix\"",
-            "fix…",
-            "fix⋯",
-            ".fix",
-            "!fix",
-            "?fix",
-            ":fix",
-            "-fix",
-            "_fix",
-            "/fix",
-            "…fix",
-            "⋯fix",
-            "[JIRA-123",
-            "[bug-fix",
-            "(feat-fix",
-            "{fix-test",
-            "|fix-test",
-            "-fix-test",
-            "+fix-test",
-            "*fix-test",
-            "%fix-test",
-            "@fix-test",
-        ];
-        assert_branch_names_as_invalid(invalid_subjects, &Rule::BranchNamePunctuation);
-
-        let punctuation_start = validated_branch("!fix".to_string());
-        let issue = find_issue(punctuation_start.issues, &Rule::BranchNamePunctuation);
-        assert_eq!(
-            issue.message,
-            "The branch name starts with a punctuation character"
-        );
-        assert_eq!(issue.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | !fix\n\
-             | ^ Remove punctuation from the start of the branch name\n"
-        );
-
-        let punctuation_end = validated_branch("fix!".to_string());
-        let issue = find_issue(punctuation_end.issues, &Rule::BranchNamePunctuation);
-        assert_eq!(
-            issue.message,
-            "The branch name ends with a punctuation character"
-        );
-        assert_eq!(issue.position, Position::Branch { column: 4 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | fix!\n\
-             |    ^ Remove punctuation from the end of the branch name\n"
-        );
     }
 
     #[test]
