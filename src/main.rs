@@ -601,19 +601,19 @@ mod tests {
             output,
             "Error[SubjectCliche]: The subject does not explain the change in much detail\n\
             \x20\x200000000:1:1: Fixing tests\n\
-            \x20\x20  |\n\
+            \x20\x20  | \n\
             \x20\x201 | Fixing tests\n\
             \x20\x20  | ^^^^^^^^^^^^ Describe the change in more detail\n\
             \n\
             Error[SubjectMood]: The subject does not use the imperative grammatical mood\n\
             \x20\x200000000:1:1: Fixing tests\n\
-            \x20\x20  |\n\
+            \x20\x20  | \n\
             \x20\x201 | Fixing tests\n\
             \x20\x20  | ^^^^^^ Use the imperative mood for the subject\n\
             \n\
             Error[MessagePresence]: No message body was found\n\
             \x20\x200000000:3:1: Fixing tests\n\
-            \x20\x20  |\n\
+            \x20\x20  | \n\
             \x20\x201 | Fixing tests\n\
             \x20\x202 | \n\
             \x20\x203 | \n\
@@ -643,23 +643,23 @@ mod tests {
             output,
             "\u{1b}[0m\u{1b}[31mError[SubjectCliche]\u{1b}[0m: The subject does not explain the change in much detail\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Fixing tests\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^^^^^^^^^^^^ Describe the change in more detail\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mFixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m^^^^^^^^^^^^ Describe the change in more detail\u{1b}[0m\n\
             \n\
             \u{1b}[0m\u{1b}[31mError[SubjectMood]\u{1b}[0m: The subject does not use the imperative grammatical mood\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Fixing tests\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^^^^^^ Use the imperative mood for the subject\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mFixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m^^^^^^ Use the imperative mood for the subject\u{1b}[0m\n\
             \n\
             \u{1b}[0m\u{1b}[31mError[MessagePresence]\u{1b}[0m: No message body was found\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:3:1:\u{1b}[0m Fixing tests\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Fixing tests\n\
-            \u{1b}[0m\u{1b}[38;5;12m  2 |\u{1b}[0m \n\
-            \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m \n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m ^ Add a message body with context about the change and why it was made\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mFixing tests\n\
+            \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m^ Add a message body with context about the change and why it was made\u{1b}[0m\n\
             \n\
             1 commit and branch inspected, \u{1b}[0m\u{1b}[31m3 errors detected\u{1b}[0m\n"
         );
@@ -971,19 +971,19 @@ mod tests {
             .stdout(predicate::str::contains(
                 "Error[BranchNameTicketNumber]: A ticket number was detected in the branch name\n\
                 \x20\x20Branch:1: fix-123\n\
-                \x20\x20|\n\
+                \x20\x20| \n\
                 \x20\x20| fix-123\n\
                 \x20\x20| ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
             ))
             .stdout(predicate::str::contains(
                 "Error[BranchNameCliche]: The branch name does not explain the change in much detail\n\
                 \x20\x20Branch:1: fix-123\n\
-                \x20\x20|\n\
+                \x20\x20| \n\
                 \x20\x20| fix-123\n\
                 \x20\x20| ^^^^^^^ Describe the change in more detail\n"
             ))
             .stdout(predicate::str::contains(
-                    "1 commit and branch inspected, 2 errors detected",
+                "1 commit and branch inspected, 2 errors detected",
             ));
     }
 

@@ -1,10 +1,32 @@
+use std::fmt;
 use std::io;
 use termcolor::{Color, ColorSpec, WriteColor};
 
 use crate::branch::Branch;
 use crate::commit::Commit;
-use crate::issue::{ContextType, Issue, IssueType, Position};
+use crate::issue::{Context, ContextType, Issue, IssueType, Position};
 use crate::utils::display_width;
+
+enum Prefix {
+    Pipe,
+    Scissors,
+}
+
+impl fmt::Display for Prefix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            Prefix::Pipe => " | ",
+            Prefix::Scissors => "~~~",
+        };
+        write!(f, "{}", label)
+    }
+}
+
+struct ContextLine {
+    prefix: Prefix,
+    width: usize,
+    line_number: Option<usize>,
+}
 
 pub fn red_color() -> ColorSpec {
     let mut cs = ColorSpec::new();
@@ -111,12 +133,9 @@ pub fn formatted_branch_issue(
     Ok(())
 }
 
-pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result<()> {
-    let mut first_line = true;
-    let mut last_line_number = None;
+fn line_number_width(contexts: &[Context]) -> usize {
     let default_indent = 1;
-    let line_number_width = issue
-        .context
+    contexts
         .iter()
         .map(|l| match l.line {
             Some(line_number) => line_number.to_string().chars().count() + 1,
@@ -124,21 +143,40 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         })
         .max()
         .unwrap_or(0)
-        + default_indent;
+        + default_indent
+}
+
+fn context_line(out: &mut impl WriteColor, detail: &ContextLine) -> io::Result<()> {
+    out.set_color(&muted_color())?;
+    let width = detail.width;
+    if let Some(line_number) = detail.line_number {
+        let line_prefix = format!("{:>spaces$}", line_number.to_string(), spaces = width);
+        write!(out, "{}", line_prefix)?;
+    } else {
+        let empty_prefix = " ".repeat(width);
+        write!(out, "{}", empty_prefix)?;
+    }
+    write!(out, "{}", detail.prefix)?;
+    out.reset()?;
+    Ok(())
+}
+
+pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result<()> {
+    let mut first_line = true;
+    let mut last_line_number = None;
+    let line_number_width = line_number_width(&issue.context);
 
     for context in &issue.context {
-        let plain_line_number = if let Some(line_number) = context.line {
-            format!("{}", line_number)
-        } else {
-            "".to_string()
-        };
-        let line_prefix = format!("{:>spaces$}", plain_line_number, spaces = line_number_width);
-        let empty_prefix = " ".repeat(line_prefix.len());
         if first_line {
             // Add empty line to give some space between issue and commit lines
-            out.set_color(&muted_color())?;
-            write!(out, "{} |", empty_prefix)?;
-            out.reset()?;
+            context_line(
+                out,
+                &ContextLine {
+                    prefix: Prefix::Pipe,
+                    width: line_number_width,
+                    line_number: None,
+                },
+            )?;
             writeln!(out)?;
         }
 
@@ -148,23 +186,35 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         match (context.line, last_line_number) {
             (Some(line_number), Some(previous_line_number)) => {
                 if line_number != previous_line_number + 1 {
-                    out.set_color(&muted_color())?;
-                    writeln!(out, "{}~~~", empty_prefix)?;
-                    out.reset()?;
+                    context_line(
+                        out,
+                        &ContextLine {
+                            prefix: Prefix::Scissors,
+                            width: line_number_width,
+                            line_number: None,
+                        },
+                    )?;
+                    writeln!(out)?;
                 }
             }
             (_, _) => {}
         }
 
-        out.set_color(&muted_color())?;
-        write!(out, "{} |", line_prefix)?;
-        out.reset()?;
+        context_line(
+            out,
+            &ContextLine {
+                prefix: Prefix::Pipe,
+                width: line_number_width,
+                line_number: context.line,
+            },
+        )?;
+
         // Add line that provides context to the issue
         let content = &context.content;
         // Print tabs as 4 spaces because that will render more consistently than render the tab
         // character
         let formatted_content = content.replace("\t", "    ");
-        writeln!(out, " {}", formatted_content)?;
+        writeln!(out, "{}", formatted_content)?;
 
         // Add a message if any
         match (&context.message, &context.range) {
@@ -190,12 +240,18 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
 
                 let leading_spaces = " ".repeat(leading);
                 let underline = underline_char.repeat(rest);
-                out.set_color(&muted_color())?;
-                write!(out, "{} |", empty_prefix)?;
+                context_line(
+                    out,
+                    &ContextLine {
+                        prefix: Prefix::Pipe,
+                        width: line_number_width,
+                        line_number: None,
+                    },
+                )?;
                 if let Some(color) = message_color {
                     out.set_color(&color)?;
                 }
-                write!(out, " {}{} {}", leading_spaces, underline, message)?;
+                write!(out, "{}{} {}", leading_spaces, underline, message)?;
                 out.reset()?;
                 writeln!(out)?;
             }
@@ -299,11 +355,11 @@ pub mod tests {
             output,
             "\u{1b}[0m\u{1b}[31mError[SubjectLength]\u{1b}[0m: The error message\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Subject\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Subject\n\
-            \u{1b}[0m\u{1b}[38;5;12m  2 |\u{1b}[0m Message body\n\
-            \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m Message body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[38;5;9m  ^^ The error hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mSubject\n\
+            \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0mMessage body\n\
+            \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0mMessage body line\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m ^^ The error hint\u{1b}[0m\n\n"
         );
     }
 
@@ -331,11 +387,11 @@ pub mod tests {
             output,
             "\u{1b}[0m\u{1b}[34mHint[SubjectLength]\u{1b}[0m: The hint message\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Subject\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m  1 |\u{1b}[0m Subject\n\
-            \u{1b}[0m\u{1b}[38;5;12m  2 |\u{1b}[0m Message body\n\
-            \u{1b}[0m\u{1b}[38;5;12m  3 |\u{1b}[0m Message body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    |\u{1b}[0m\u{1b}[36m  -- The hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mSubject\n\
+            \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0mMessage body\n\
+            \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0mMessage body line\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[36m -- The hint\u{1b}[0m\n\n"
         );
     }
 
@@ -354,7 +410,7 @@ pub mod tests {
             output,
             "Error[SubjectLength]: The error message\n\
             \x20\x200000000:1:1: Subject\n\
-            \x20\x20  |\n\
+            \x20\x20  | \n\
             \x20\x201 | Subject\n\n"
         );
     }
@@ -374,7 +430,7 @@ pub mod tests {
             output,
             "Error[SubjectLength]: The error message\n\
             \x20\x201234567:1:1: Subject\n\
-            \x20\x20  |\n\
+            \x20\x20  | \n\
             \x20\x201 | Subject\n\n"
         );
     }
@@ -398,7 +454,7 @@ pub mod tests {
             output,
             "Error[SubjectMood]: The error message\n\
             \x20\x201234567:1:2: Subject\n\
-            \x20\x20  |\n\
+            \x20\x20  | \n\
             \x20\x201 | Subject\n\
             \x20\x20  |  ^^ The hint\n\n"
         );
@@ -422,7 +478,7 @@ pub mod tests {
             output,
             "Error[MessageLineLength]: The error message\n\
             \x20\x201234567:11:50: Subject\n\
-            \x20\x20   |\n\
+            \x20\x20   | \n\
             \x20\x2011 | Message line\n\n"
         );
     }
@@ -453,7 +509,7 @@ pub mod tests {
             output,
             "Error[MessageLineLength]: The error message\n\
             \x20\x201234567:11:50: Subject\n\
-            \x20\x20   |\n\
+            \x20\x20   | \n\
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with hint\n\
             \x20\x20   |    ^^^^^^^ My hint\n\n"
@@ -486,7 +542,7 @@ pub mod tests {
             output,
             "Hint[MessageLineLength]: The hint message\n\
             \x20\x201234567:11:50: Subject\n\
-            \x20\x20   |\n\
+            \x20\x20   | \n\
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with addition\n\
             \x20\x20   |    ------- My addition suggestion\n\n"
@@ -512,7 +568,7 @@ pub mod tests {
             output,
             "Error[DiffPresence]: The error message\n\
             \x20\x201234567: Subject\n\
-            \x20\x20|\n\
+            \x20\x20| \n\
             \x20\x20| Diff line\n\
             \x20\x20|    ^^ My suggestion\n\n"
         );
@@ -537,7 +593,7 @@ pub mod tests {
             output,
             "Error[BranchNameLength]: The error message\n\
             \x20\x20Branch:3: branch-name\n\
-            \x20\x20|\n\
+            \x20\x20| \n\
             \x20\x20| branch-name\n\
             \x20\x20|    ^^ My hint\n\n"
         );
@@ -562,9 +618,9 @@ pub mod tests {
             output,
             "\u{1b}[0m\u{1b}[31mError[BranchNameLength]\u{1b}[0m: The error message\n\
             \u{1b}[0m\u{1b}[38;5;12m  Branch:3:\u{1b}[0m branch-name\n\
-            \u{1b}[0m\u{1b}[38;5;12m  |\u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m  |\u{1b}[0m branch-name\n\
-            \u{1b}[0m\u{1b}[38;5;12m  |\u{1b}[0m\u{1b}[38;5;9m    ^^ My hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0mbranch-name\n\
+            \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m   ^^ My hint\u{1b}[0m\n\n"
         );
     }
 
@@ -583,7 +639,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&issue),
-            "\x20 |\n\
+            "\x20 | \n\
                 1 | Subject\n\
                 2 | \n\
                 3 | Line 1\n"
@@ -611,7 +667,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&issue),
-            "\x20\x20 |\n\
+            "\x20\x20 | \n\
                 \x209 | Line 9\n\
                    10 | Line 10\n\
                    11 | Line 11\n\
@@ -635,7 +691,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&issue),
-            "|\n\
+            "| \n\
              | branch-name\n\
              |  ^^ A message\n"
         );
@@ -656,7 +712,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&issue),
-            "|\n\
+            "| \n\
              | Some diff\n\
              |  ^^ A message\n"
         );
@@ -683,7 +739,7 @@ pub mod tests {
             output,
             "Hint[MessageLineLength]: The hint message\n\
             \x20\x201234567:11:50: Subject\n\
-            \x20\x20   |\n\
+            \x20\x20   | \n\
             \x20\x20 3 | Message line 3\n\
             \x20\x20  ~~~\n\
             \x20\x2010 | Message line 10\n\n"
@@ -695,7 +751,7 @@ pub mod tests {
         let v_start = subject_issue_error("Lorem ipsum", "A lorem", Range { start: 0, end: 5 });
         assert_eq!(
             formatted_context(&v_start),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | Lorem ipsum\n\
              \x20\x20| ^^^^^ A lorem\n"
         );
@@ -703,7 +759,7 @@ pub mod tests {
         let v_end = subject_issue_error("Lorem ipsum", "A sum", Range { start: 8, end: 11 });
         assert_eq!(
             formatted_context(&v_end),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | Lorem ipsum\n\
              \x20\x20|         ^^^ A sum\n"
         );
@@ -711,7 +767,7 @@ pub mod tests {
         let v_middle = subject_issue_error("Lorem ipsum", "A space", Range { start: 5, end: 6 });
         assert_eq!(
             formatted_context(&v_middle),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | Lorem ipsum\n\
              \x20\x20|      ^ A space\n"
         );
@@ -722,7 +778,7 @@ pub mod tests {
         let v_space = subject_issue_error(" Lorem ipsum", "A space", Range { start: 0, end: 1 });
         assert_eq!(
             formatted_context(&v_space),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 |  Lorem ipsum\n\
              \x20\x20| ^ A space\n"
         );
@@ -730,7 +786,7 @@ pub mod tests {
         let v_space = subject_issue_error("\x20Lorem ipsum", "A space", Range { start: 0, end: 1 });
         assert_eq!(
             formatted_context(&v_space),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | \x20Lorem ipsum\n\
              \x20\x20| ^ A space\n"
         );
@@ -745,7 +801,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&v_tab),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 |     Lorem ipsum\n\
              \x20\x20| ^^^^ A tab\n"
         );
@@ -765,7 +821,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&v),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | This is a̐ char with an accent\n\
              \x20\x20|         ^ Mark accent\n"
         );
@@ -776,7 +832,7 @@ pub mod tests {
         let v = subject_issue_error("Aa😀Bb", "Mark emoji", Range { start: 2, end: 4 });
         assert_eq!(
             formatted_context(&v),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | Aa😀Bb\n\
              \x20\x20|   ^^ Mark emoji\n"
         );
@@ -784,7 +840,7 @@ pub mod tests {
         let v = subject_issue_error("Aa👍Bb", "Mark emoji", Range { start: 2, end: 4 });
         assert_eq!(
             formatted_context(&v),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | Aa👍Bb\n\
              \x20\x20|   ^^ Mark emoji\n"
         );
@@ -796,7 +852,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&v),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | Fix ❤️ in controller Fix #123\n\
              \x20\x20|                     ^^^^^^^^ Mark fix ticket\n"
         );
@@ -811,7 +867,7 @@ pub mod tests {
         );
         assert_eq!(
             formatted_context(&v),
-            "\x20\x20|\n\
+            "\x20\x20| \n\
                    1 | ああああああああああああああああああああああああああ\n\
              \x20\x20|                                                   ^^ Mark double width character\n"
         );
