@@ -10,6 +10,7 @@ use crate::utils::display_width;
 enum Prefix {
     Pipe,
     Scissors,
+    Note,
 }
 
 impl fmt::Display for Prefix {
@@ -17,6 +18,7 @@ impl fmt::Display for Prefix {
         let label = match self {
             Prefix::Pipe => " | ",
             Prefix::Scissors => "~~~",
+            Prefix::Note => " = ",
         };
         write!(f, "{}", label)
     }
@@ -260,6 +262,27 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         first_line = false;
         last_line_number = context.line;
     }
+
+    // Add empty line to give some space between issues and help lines
+    context_line(
+        out,
+        &ContextLine {
+            prefix: Prefix::Pipe,
+            width: line_number_width,
+            line_number: None,
+        },
+    )?;
+    writeln!(out)?;
+
+    context_line(
+        out,
+        &ContextLine {
+            prefix: Prefix::Note,
+            width: line_number_width,
+            line_number: None,
+        },
+    )?;
+    writeln!(out, "help: {}", issue.rule.link())?;
     writeln!(out)?;
     Ok(())
 }
@@ -359,7 +382,9 @@ pub mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mSubject\n\
             \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0mMessage body\n\
             \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0mMessage body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m ^^ The error hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m ^^ The error hint\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n\n"
         );
     }
 
@@ -391,7 +416,9 @@ pub mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mSubject\n\
             \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0mMessage body\n\
             \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0mMessage body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[36m -- The hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[36m -- The hint\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n\n"
         );
     }
 
@@ -411,7 +438,9 @@ pub mod tests {
             "Error[SubjectLength]: The error message\n\
             \x20\x200000000:1:1: Subject\n\
             \x20\x20  | \n\
-            \x20\x201 | Subject\n\n"
+            \x20\x201 | Subject\n\
+            \x20\x20  | \n\
+            \x20\x20  = help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n\n"
         );
     }
 
@@ -431,7 +460,9 @@ pub mod tests {
             "Error[SubjectLength]: The error message\n\
             \x20\x201234567:1:1: Subject\n\
             \x20\x20  | \n\
-            \x20\x201 | Subject\n\n"
+            \x20\x201 | Subject\n\
+            \x20\x20  | \n\
+            \x20\x20  = help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n\n"
         );
     }
 
@@ -456,7 +487,9 @@ pub mod tests {
             \x20\x201234567:1:2: Subject\n\
             \x20\x20  | \n\
             \x20\x201 | Subject\n\
-            \x20\x20  |  ^^ The hint\n\n"
+            \x20\x20  |  ^^ The hint\n\
+            \x20\x20  | \n\
+            \x20\x20  = help: https://lintje.dev/docs/rules/commit-subject/#subjectmood\n\n"
         );
     }
 
@@ -479,7 +512,9 @@ pub mod tests {
             "Error[MessageLineLength]: The error message\n\
             \x20\x201234567:11:50: Subject\n\
             \x20\x20   | \n\
-            \x20\x2011 | Message line\n\n"
+            \x20\x2011 | Message line\n\
+            \x20\x20   | \n\
+            \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );
     }
 
@@ -512,7 +547,9 @@ pub mod tests {
             \x20\x20   | \n\
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with hint\n\
-            \x20\x20   |    ^^^^^^^ My hint\n\n"
+            \x20\x20   |    ^^^^^^^ My hint\n\
+            \x20\x20   | \n\
+            \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );
     }
 
@@ -545,7 +582,9 @@ pub mod tests {
             \x20\x20   | \n\
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with addition\n\
-            \x20\x20   |    ------- My addition suggestion\n\n"
+            \x20\x20   |    ------- My addition suggestion\n\
+            \x20\x20   | \n\
+            \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );
     }
 
@@ -570,7 +609,9 @@ pub mod tests {
             \x20\x201234567: Subject\n\
             \x20\x20| \n\
             \x20\x20| Diff line\n\
-            \x20\x20|    ^^ My suggestion\n\n"
+            \x20\x20|    ^^ My suggestion\n\
+            \x20\x20| \n\
+            \x20\x20= help: https://lintje.dev/docs/rules/commit-type/#diffpresence\n\n"
         );
     }
 
@@ -595,7 +636,9 @@ pub mod tests {
             \x20\x20Branch:3: branch-name\n\
             \x20\x20| \n\
             \x20\x20| branch-name\n\
-            \x20\x20|    ^^ My hint\n\n"
+            \x20\x20|    ^^ My hint\n\
+            \x20\x20| \n\
+            \x20\x20= help: https://lintje.dev/docs/rules/branch/#branchnamelength\n\n"
         );
     }
 
@@ -620,7 +663,9 @@ pub mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  Branch:3:\u{1b}[0m branch-name\n\
             \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0mbranch-name\n\
-            \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m   ^^ My hint\u{1b}[0m\n\n"
+            \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m   ^^ My hint\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  | \u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m  = \u{1b}[0mhelp: https://lintje.dev/docs/rules/branch/#branchnamelength\n\n"
         );
     }
 
@@ -642,7 +687,9 @@ pub mod tests {
             "\x20 | \n\
                 1 | Subject\n\
                 2 | \n\
-                3 | Line 1\n"
+                3 | Line 1\n\
+             \x20 | \n\
+             \x20 = help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
     }
 
@@ -672,7 +719,9 @@ pub mod tests {
                    10 | Line 10\n\
                    11 | Line 11\n\
                    12 | Line 12\n\
-             \x20\x20 |  ^ Message\n"
+             \x20\x20 |  ^ Message\n\
+             \x20\x20 | \n\
+             \x20\x20 = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n"
         );
     }
 
@@ -693,7 +742,9 @@ pub mod tests {
             formatted_context(&issue),
             "| \n\
              | branch-name\n\
-             |  ^^ A message\n"
+             |  ^^ A message\n\
+             | \n\
+             = help: https://lintje.dev/docs/rules/branch/#branchnamelength\n"
         );
     }
 
@@ -714,7 +765,9 @@ pub mod tests {
             formatted_context(&issue),
             "| \n\
              | Some diff\n\
-             |  ^^ A message\n"
+             |  ^^ A message\n\
+             | \n\
+             = help: https://lintje.dev/docs/rules/commit-type/#diffpresence\n"
         );
     }
 
@@ -742,7 +795,9 @@ pub mod tests {
             \x20\x20   | \n\
             \x20\x20 3 | Message line 3\n\
             \x20\x20  ~~~\n\
-            \x20\x2010 | Message line 10\n\n"
+            \x20\x2010 | Message line 10\n\
+            \x20\x20   | \n\
+            \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );
     }
 
@@ -753,7 +808,9 @@ pub mod tests {
             formatted_context(&v_start),
             "\x20\x20| \n\
                    1 | Lorem ipsum\n\
-             \x20\x20| ^^^^^ A lorem\n"
+             \x20\x20| ^^^^^ A lorem\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
 
         let v_end = subject_issue_error("Lorem ipsum", "A sum", Range { start: 8, end: 11 });
@@ -761,7 +818,9 @@ pub mod tests {
             formatted_context(&v_end),
             "\x20\x20| \n\
                    1 | Lorem ipsum\n\
-             \x20\x20|         ^^^ A sum\n"
+             \x20\x20|         ^^^ A sum\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
 
         let v_middle = subject_issue_error("Lorem ipsum", "A space", Range { start: 5, end: 6 });
@@ -769,7 +828,9 @@ pub mod tests {
             formatted_context(&v_middle),
             "\x20\x20| \n\
                    1 | Lorem ipsum\n\
-             \x20\x20|      ^ A space\n"
+             \x20\x20|      ^ A space\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
     }
 
@@ -780,7 +841,9 @@ pub mod tests {
             formatted_context(&v_space),
             "\x20\x20| \n\
                    1 |  Lorem ipsum\n\
-             \x20\x20| ^ A space\n"
+             \x20\x20| ^ A space\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
 
         let v_space = subject_issue_error("\x20Lorem ipsum", "A space", Range { start: 0, end: 1 });
@@ -788,7 +851,9 @@ pub mod tests {
             formatted_context(&v_space),
             "\x20\x20| \n\
                    1 | \x20Lorem ipsum\n\
-             \x20\x20| ^ A space\n"
+             \x20\x20| ^ A space\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
 
         let v_tab = subject_issue_error(
@@ -803,7 +868,9 @@ pub mod tests {
             formatted_context(&v_tab),
             "\x20\x20| \n\
                    1 |     Lorem ipsum\n\
-             \x20\x20| ^^^^ A tab\n"
+             \x20\x20| ^^^^ A tab\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
     }
 
@@ -823,7 +890,9 @@ pub mod tests {
             formatted_context(&v),
             "\x20\x20| \n\
                    1 | This is a̐ char with an accent\n\
-             \x20\x20|         ^ Mark accent\n"
+             \x20\x20|         ^ Mark accent\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
     }
 
@@ -834,7 +903,9 @@ pub mod tests {
             formatted_context(&v),
             "\x20\x20| \n\
                    1 | Aa😀Bb\n\
-             \x20\x20|   ^^ Mark emoji\n"
+             \x20\x20|   ^^ Mark emoji\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
 
         let v = subject_issue_error("Aa👍Bb", "Mark emoji", Range { start: 2, end: 4 });
@@ -842,7 +913,9 @@ pub mod tests {
             formatted_context(&v),
             "\x20\x20| \n\
                    1 | Aa👍Bb\n\
-             \x20\x20|   ^^ Mark emoji\n"
+             \x20\x20|   ^^ Mark emoji\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
 
         let v = subject_issue_error(
@@ -854,7 +927,9 @@ pub mod tests {
             formatted_context(&v),
             "\x20\x20| \n\
                    1 | Fix ❤️ in controller Fix #123\n\
-             \x20\x20|                     ^^^^^^^^ Mark fix ticket\n"
+             \x20\x20|                     ^^^^^^^^ Mark fix ticket\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
     }
 
@@ -869,7 +944,9 @@ pub mod tests {
             formatted_context(&v),
             "\x20\x20| \n\
                    1 | ああああああああああああああああああああああああああ\n\
-             \x20\x20|                                                   ^^ Mark double width character\n"
+             \x20\x20|                                                   ^^ Mark double width character\n\
+             \x20\x20| \n\
+             \x20\x20= help: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n"
         );
     }
 }

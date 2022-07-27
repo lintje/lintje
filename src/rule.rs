@@ -5,6 +5,8 @@ use crate::commit::Commit;
 use crate::issue::Issue;
 use crate::rules::*;
 
+const BASE_URL: &str = "https://lintje.dev/docs/";
+
 #[derive(Debug, PartialEq)]
 pub enum Rule {
     MergeCommit,
@@ -109,6 +111,32 @@ impl Rule {
             Rule::BranchNameCliche => BranchNameCliche::new().validate(branch),
         }
     }
+
+    pub fn link(&self) -> String {
+        let path = match self {
+            Rule::MergeCommit => "commit-type/#mergecommit",
+            Rule::NeedsRebase => "commit-type/#needsrebase",
+            Rule::SubjectLength => "commit-subject/#subjectlength",
+            Rule::SubjectMood => "commit-subject/#subjectmood",
+            Rule::SubjectWhitespace => "commit-subject/#subjectwhitespace",
+            Rule::SubjectCapitalization => "commit-subject/#subjectcapitalization",
+            Rule::SubjectPunctuation => "commit-subject/#subjectpunctuation",
+            Rule::SubjectTicketNumber => "commit-subject/#subjectticketnumber",
+            Rule::SubjectPrefix => "commit-subject/#subjectprefix",
+            Rule::SubjectBuildTag => "commit-subject/#subjectbuildtag",
+            Rule::SubjectCliche => "commit-subject/#subjectcliche",
+            Rule::MessageEmptyFirstLine => "commit-message/#messageemptyfirstline",
+            Rule::MessagePresence => "commit-message/#messagepresence",
+            Rule::MessageLineLength => "commit-message/#messagelinelength",
+            Rule::MessageTicketNumber => "commit-message/#messageticketnumber",
+            Rule::DiffPresence => "commit-type/#diffpresence",
+            Rule::BranchNameTicketNumber => "branch/#branchnameticketnumber",
+            Rule::BranchNameLength => "branch/#branchnamelength",
+            Rule::BranchNamePunctuation => "branch/#branchnamepunctuation",
+            Rule::BranchNameCliche => "branch/#branchnamecliche",
+        };
+        format!("{}rules/{}", BASE_URL, path)
+    }
 }
 
 pub fn rule_by_name(name: &str) -> Option<Rule> {
@@ -130,5 +158,18 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "MessageTicketNumber" => Some(Rule::MessageTicketNumber),
         "DiffPresence" => Some(Rule::DiffPresence),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Rule;
+
+    #[test]
+    fn link_to_docs() {
+        assert_eq!(
+            Rule::SubjectLength.link(),
+            "https://lintje.dev/docs/rules/commit-subject/#subjectlength"
+        );
     }
 }

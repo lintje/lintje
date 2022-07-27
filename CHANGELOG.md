@@ -2,6 +2,11 @@
 
 ## Next version
 
+### Added
+
+- Link to Lintje.dev from issue output in the terminal for more documentation
+  and examples on the website.
+
 ### Changed
 
 - Add and extra line between message body and moved ticket number at the end of
