@@ -136,14 +136,13 @@ mod tests {
             "The `[skip ci]` build tag was found in the subject"
         );
         assert_eq!(issue.position, subject_position(16));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Edit CHANGELOG [skip ci]\n\
-             \x20\x20|                ^^^^^^^^^ Remove the build tag from the subject\n\
-                \x20~~~\n\
-                   3 | [skip ci]\n\
-             \x20\x20| --------- Move build tag to message body\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Edit CHANGELOG [skip ci]\n\
+               |                ^^^^^^^^^ Remove the build tag from the subject\n\
+              ~~~\n\
+             3 | [skip ci]\n\
+               | --------- Move build tag to message body",
         );
     }
 }

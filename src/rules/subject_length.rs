@@ -118,11 +118,10 @@ mod tests {
         let issue = first_issue(validate(&commit("", "")));
         assert_eq!(issue.message, "The commit has no subject");
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | \n\
-             \x20\x20| ^ Add a subject to describe the change\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | \n\
+               | ^ Add a subject to describe the change",
         );
     }
 
@@ -134,11 +133,10 @@ mod tests {
             "The subject of `4` characters wide is too short"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | aaaa\n\
-             \x20\x20| ^^^^ Describe the change in more detail\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | aaaa\n\
+               | ^^^^ Describe the change in more detail",
         );
     }
 
@@ -150,12 +148,10 @@ mod tests {
             "The subject of `51` characters wide is too long"
         );
         assert_eq!(issue.position, subject_position(51));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-             \x20\x20|                                                   ^ \
-             Shorten the subject to a maximum width of 50 characters\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+               |                                                   ^ Shorten the subject to a maximum width of 50 characters",
         );
     }
 
@@ -169,11 +165,10 @@ mod tests {
             "The subject of `3` characters wide is too short"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | A ö̲\n\
-             \x20\x20| ^^^ Describe the change in more detail\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | A ö̲\n\
+               | ^^^ Describe the change in more detail",
         );
     }
 
@@ -185,11 +180,10 @@ mod tests {
             "The subject of `2` characters wide is too short"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | 👁️‍🗨️\n\
-             \x20\x20| ^^ Describe the change in more detail\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | 👁️‍🗨️\n\
+               | ^^ Describe the change in more detail",
         );
     }
 
@@ -210,12 +204,10 @@ mod tests {
             "The subject of `52` characters wide is too long"
         );
         assert_eq!(issue.position, subject_position(26));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | ああああああああああああああああああああああああああ\n\
-             \x20\x20|                                                   ^^ \
-             Shorten the subject to a maximum width of 50 characters\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | ああああああああああああああああああああああああああ\n\
+               |                                                   ^^ Shorten the subject to a maximum width of 50 characters",
         );
     }
 }

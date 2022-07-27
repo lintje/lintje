@@ -70,11 +70,10 @@ mod tests {
         )));
         assert_eq!(issue.message, "No file changes found");
         assert_eq!(issue.position, Position::Diff);
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | 0 files changed, 0 insertions(+), 0 deletions(-)\n\
-             | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add changes to the commit or remove the commit\n"
+        assert_contains_issue_output(
+            &issue,
+            "| 0 files changed, 0 insertions(+), 0 deletions(-)\n\
+             | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add changes to the commit or remove the commit"
         );
     }
 }

@@ -205,11 +205,10 @@ mod tests {
             "The subject starts with a punctuation character: `.`"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | .Fix test\n\
-             \x20\x20| ^ Remove punctuation from the start of the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | .Fix test\n\
+               | ^ Remove punctuation from the start of the subject",
         );
     }
 
@@ -221,11 +220,10 @@ mod tests {
             "The subject ends with a punctuation character: `…`"
         );
         assert_eq!(issue.position, subject_position(9));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fix test…\n\
-             \x20\x20|         ^ Remove punctuation from the end of the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Fix test…\n\
+               |         ^ Remove punctuation from the end of the subject",
         );
     }
 
@@ -234,11 +232,10 @@ mod tests {
         let issue = first_issue(validate(&commit("👍 Fix test", "")));
         assert_eq!(issue.message, "The subject starts with an emoji");
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | 👍 Fix test\n\
-             \x20\x20| ^^ Remove emoji from the start of the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | 👍 Fix test\n\
+               | ^^ Remove emoji from the start of the subject",
         );
     }
 

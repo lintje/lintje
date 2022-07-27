@@ -134,11 +134,10 @@ mod tests {
             "The subject does not use the imperative grammatical mood"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                1 | Fixing bug\n\
-             \x20\x20| ^^^^^^ Use the imperative mood for the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Fixing bug\n\
+               | ^^^^^^ Use the imperative mood for the subject",
         );
     }
 }

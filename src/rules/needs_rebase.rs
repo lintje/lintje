@@ -66,11 +66,10 @@ mod tests {
         let issue = first_issue(validate(&commit("fixup! I need a rebase", "")));
         assert_eq!(issue.message, "A fixup commit was found");
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | fixup! I need a rebase\n\
-             \x20\x20| ^^^^^^ Rebase fixup commits before pushing or merging\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | fixup! I need a rebase\n\
+               | ^^^^^^ Rebase fixup commits before pushing or merging",
         );
     }
 
@@ -79,11 +78,10 @@ mod tests {
         let issue = first_issue(validate(&commit("squash! I need a rebase", "")));
         assert_eq!(issue.message, "A squash commit was found");
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | squash! I need a rebase\n\
-             \x20\x20| ^^^^^^^ Rebase squash commits before pushing or merging\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | squash! I need a rebase\n\
+               | ^^^^^^^ Rebase squash commits before pushing or merging",
         );
     }
 }

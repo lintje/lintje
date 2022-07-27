@@ -111,11 +111,10 @@ mod tests {
             "The branch name does not explain the change in much detail"
         );
         assert_eq!(issue.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | fix-bug\n\
-             | ^^^^^^^ Describe the change in more detail\n"
+        assert_contains_issue_output(
+            &issue,
+            "| fix-bug\n\
+             | ^^^^^^^ Describe the change in more detail",
         );
     }
 }

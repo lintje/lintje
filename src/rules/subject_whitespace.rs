@@ -89,11 +89,10 @@ mod tests {
             "The subject starts with a whitespace character such as a space or a tab"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 |  Fix test\n\
-             \x20\x20| ^ Remove the leading whitespace from the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 |  Fix test\n\
+               | ^ Remove the leading whitespace from the subject",
         );
     }
 
@@ -105,11 +104,10 @@ mod tests {
             "The subject starts with a whitespace character such as a space or a tab"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | \x20Fix test\n\
-             \x20\x20| ^ Remove the leading whitespace from the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | \x20Fix test\n\
+               | ^ Remove the leading whitespace from the subject",
         );
     }
 
@@ -121,11 +119,10 @@ mod tests {
             "The subject starts with a whitespace character such as a space or a tab"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 |     Fix test\n\
-             \x20\x20| ^^^^ Remove the leading whitespace from the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 |     Fix test\n\
+               | ^^^^ Remove the leading whitespace from the subject",
         );
     }
 }

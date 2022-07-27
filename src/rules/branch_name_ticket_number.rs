@@ -124,11 +124,10 @@ mod tests {
             "A ticket number was detected in the branch name"
         );
         assert_eq!(issue.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | fix-123\n\
-             | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
+        assert_contains_issue_output(
+            &issue,
+            "| fix-123\n\
+             | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details"
         );
     }
 }

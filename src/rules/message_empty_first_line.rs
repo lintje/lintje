@@ -63,12 +63,11 @@ mod tests {
         let issue = first_issue(validate(&without_empty_line));
         assert_eq!(issue.message, "No empty line found below the subject");
         assert_eq!(issue.position, message_position(2, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Subject\n\
-                   2 | No empty line after subject\n\
-             \x20\x20| ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add an empty line below the subject line\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Subject\n\
+             2 | No empty line after subject\n\
+               | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add an empty line below the subject line",
         );
     }
 }

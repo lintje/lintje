@@ -85,13 +85,12 @@ mod tests {
         let issue = first_issue(validate(&without_message));
         assert_eq!(issue.message, "No message body was found");
         assert_eq!(issue.position, message_position(3, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Subject\n\
-                   2 | \n\
-                   3 | \n\
-             \x20\x20| ^ Add a message body with context about the change and why it was made\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Subject\n\
+             2 | \n\
+             3 | \n\
+               | ^ Add a message body with context about the change and why it was made",
         );
     }
 
@@ -101,11 +100,10 @@ mod tests {
         let issue = first_issue(validate(&short));
         assert_eq!(issue.message, "The message body is too short");
         assert_eq!(issue.position, message_position(3, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   3 | Short.\n\
-             \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
+        assert_contains_issue_output(
+            &issue,
+            "3 | Short.\n\
+               | ^^^^^^ Add a longer message with context about the change and why it was made",
         );
     }
 
@@ -115,11 +113,10 @@ mod tests {
         let issue = first_issue(validate(&very_short));
         assert_eq!(issue.message, "The message body is too short");
         assert_eq!(issue.position, message_position(2, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   2 | ...\n\
-             \x20\x20| ^^^ Add a longer message with context about the change and why it was made\n"
+        assert_contains_issue_output(
+            &issue,
+            "2 | ...\n\
+               | ^^^ Add a longer message with context about the change and why it was made",
         );
     }
 
@@ -130,11 +127,10 @@ mod tests {
         let issue = first_issue(issues);
         assert_eq!(issue.message, "The message body is too short");
         assert_eq!(issue.position, message_position(4, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   4 | Short.\n\
-             \x20\x20| ^^^^^^ Add a longer message with context about the change and why it was made\n"
+        assert_contains_issue_output(
+            &issue,
+            "4 | Short.\n\
+               | ^^^^^^ Add a longer message with context about the change and why it was made",
         );
     }
 }

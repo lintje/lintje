@@ -69,12 +69,10 @@ mod tests {
         )));
         assert_eq!(issue.message, "A remote merge commit was found");
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Merge branch 'develop' of github.com/org/repo into develop\n\
-             \x20\x20| ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ \
-                Rebase on the remote branch, rather than merging the remote branch into the local branch\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Merge branch 'develop' of github.com/org/repo into develop\n\
+             | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Rebase on the remote branch, rather than merging the remote branch into the local branch"
         );
     }
 }

@@ -126,11 +126,10 @@ mod tests {
             "Line 4 in the message body is longer than 72 characters"
         );
         assert_eq!(issue.position, message_position(4, 73));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   4 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-             \x20\x20|                                                                         ^ Shorten line to maximum 72 characters\n"
+        assert_contains_issue_output(
+            &issue,
+            "4 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+               |                                                                         ^ Shorten line to maximum 72 characters"
         );
     }
 
@@ -164,11 +163,10 @@ mod tests {
             "Line 2 in the message body is longer than 72 characters"
         );
         assert_eq!(issue.position, message_position(2, 73));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   2 | This a too long line with only protocols http:// https://, not accepted!!\n\
-             \x20\x20|                                                                         ^ Shorten line to maximum 72 characters\n"
+        assert_contains_issue_output(
+            &issue,
+            "2 | This a too long line with only protocols http:// https://, not accepted!!\n\
+               |                                                                         ^ Shorten line to maximum 72 characters"
         );
     }
 

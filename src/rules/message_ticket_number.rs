@@ -127,13 +127,12 @@ mod tests {
             "The message body does not contain a ticket or issue number"
         );
         assert_eq!(issue.position, message_position(7, 1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   5 | Some explanation.\n\
-                   6 | \n\
-                   7 | Fixes #123\n\
-             \x20\x20| ---------- Consider adding a reference to a ticket or issue\n"
+        assert_contains_issue_output(
+            &issue,
+            "5 | Some explanation.\n\
+             6 | \n\
+             7 | Fixes #123\n\
+               | ---------- Consider adding a reference to a ticket or issue",
         );
     }
 }

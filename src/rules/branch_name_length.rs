@@ -81,11 +81,10 @@ mod tests {
         let issue = first_issue(validate(&branch("abc")));
         assert_eq!(issue.message, "Branch name of 3 characters is too short");
         assert_eq!(issue.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | abc\n\
-             | ^^^ Describe the change in more detail\n"
+        assert_contains_issue_output(
+            &issue,
+            "| abc\n\
+             | ^^^ Describe the change in more detail",
         );
     }
 }

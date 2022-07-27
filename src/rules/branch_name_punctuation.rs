@@ -154,11 +154,10 @@ mod tests {
             "The branch name starts with a punctuation character"
         );
         assert_eq!(issue.position, Position::Branch { column: 1 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | !fix\n\
-             | ^ Remove punctuation from the start of the branch name\n"
+        assert_contains_issue_output(
+            &issue,
+            "| !fix\n\
+             | ^ Remove punctuation from the start of the branch name",
         );
     }
 
@@ -170,11 +169,10 @@ mod tests {
             "The branch name ends with a punctuation character"
         );
         assert_eq!(issue.position, Position::Branch { column: 4 });
-        assert_eq!(
-            formatted_context(&issue),
-            "|\n\
-             | fix!\n\
-             |    ^ Remove punctuation from the end of the branch name\n"
+        assert_contains_issue_output(
+            &issue,
+            "| fix!\n\
+             |    ^ Remove punctuation from the end of the branch name",
         );
     }
 

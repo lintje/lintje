@@ -89,11 +89,10 @@ mod tests {
         let issue = first_issue(validate(&commit("Fix: bug", "")));
         assert_eq!(issue.message, "Remove the `Fix:` prefix from the subject");
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fix: bug\n\
-             \x20\x20| ^^^^ Remove the prefix from the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Fix: bug\n\
+               | ^^^^ Remove the prefix from the subject\n",
         );
     }
 
@@ -105,11 +104,10 @@ mod tests {
             "Remove the `chore(package)!:` prefix from the subject"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | chore(package)!: some package bug\n\
-             \x20\x20| ^^^^^^^^^^^^^^^^ Remove the prefix from the subject\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | chore(package)!: some package bug\n\
+               | ^^^^^^^^^^^^^^^^ Remove the prefix from the subject",
         );
     }
 }

@@ -88,11 +88,10 @@ mod tests {
             "The subject does not explain the change in much detail"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | WIP\n\
-             \x20\x20| ^^^ Describe the change in more detail\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | WIP\n\
+               | ^^^ Describe the change in more detail",
         );
     }
 
@@ -130,11 +129,10 @@ mod tests {
     fn cliche_subject_detail() {
         let issue = first_issue(validate(&commit("Fixed bug", "")));
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fixed bug\n\
-             \x20\x20| ^^^^^^^^^ Describe the change in more detail\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Fixed bug\n\
+               | ^^^^^^^^^ Describe the change in more detail",
         );
     }
 }

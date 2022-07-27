@@ -198,15 +198,14 @@ mod tests {
         let issue = first_issue(validate(&commit("Fix JIRA-123 about email validation", "")));
         assert_eq!(issue.message, "The subject contains a ticket number");
         assert_eq!(issue.position, subject_position(5));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fix JIRA-123 about email validation\n\
-             \x20\x20|     ^^^^^^^^ Remove the ticket number from the subject\n\
-                \x20~~~\n\
-                   3 | \n\
-                   4 | JIRA-123\n\
-             \x20\x20| -------- Move the ticket number to the message body\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Fix JIRA-123 about email validation\n\
+               |     ^^^^^^^^ Remove the ticket number from the subject\n\
+              ~~~\n\
+             3 | \n\
+             4 | JIRA-123\n\
+               | -------- Move the ticket number to the message body",
         );
     }
 
@@ -217,15 +216,14 @@ mod tests {
             "",
         )));
         assert_eq!(issue.position, subject_position(7));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Fix ❤️ JIRA-123 about email validation\n\
-             \x20\x20|       ^^^^^^^^ Remove the ticket number from the subject\n\
-                \x20~~~\n\
-                   3 | \n\
-                   4 | JIRA-123\n\
-             \x20\x20| -------- Move the ticket number to the message body\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Fix ❤️ JIRA-123 about email validation\n\
+               |       ^^^^^^^^ Remove the ticket number from the subject\n\
+              ~~~\n\
+             3 | \n\
+             4 | JIRA-123\n\
+               | -------- Move the ticket number to the message body",
         );
     }
 
@@ -237,15 +235,14 @@ mod tests {
         )));
         assert_eq!(issue.message, "The subject contains a ticket number");
         assert_eq!(issue.position, subject_position(19));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Email validation: Fixes #123 for good\n\
-             \x20\x20|                   ^^^^^^^^^^ Remove the ticket number from the subject\n\
-                \x20~~~\n\
-                   3 | \n\
-                   4 | Fixes #123\n\
-             \x20\x20| ---------- Move the ticket number to the message body\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Email validation: Fixes #123 for good\n\
+               |                   ^^^^^^^^^^ Remove the ticket number from the subject\n\
+              ~~~\n\
+             3 | \n\
+             4 | Fixes #123\n\
+               | ---------- Move the ticket number to the message body",
         );
     }
 
@@ -263,15 +260,14 @@ mod tests {
         )));
         assert_eq!(issue.message, "The subject contains a ticket number");
         assert_eq!(issue.position, subject_position(19));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | Email validation: Closed org/repo#123 for good\n\
-             \x20\x20|                   ^^^^^^^^^^^^^^^^^^^ Remove the ticket number from the subject\n\
-                \x20~~~\n\
-                   3 | \n\
-                   4 | Closed org/repo#123\n\
-             \x20\x20| ------------------- Move the ticket number to the message body\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | Email validation: Closed org/repo#123 for good\n\
+               |                   ^^^^^^^^^^^^^^^^^^^ Remove the ticket number from the subject\n\
+              ~~~\n\
+             3 | \n\
+             4 | Closed org/repo#123\n\
+               | ------------------- Move the ticket number to the message body",
         );
     }
 

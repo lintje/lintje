@@ -79,11 +79,10 @@ mod tests {
             "The subject does not start with a capital letter"
         );
         assert_eq!(issue.position, subject_position(1));
-        assert_eq!(
-            formatted_context(&issue),
-            "\x20\x20|\n\
-                   1 | fix test\n\
-             \x20\x20| ^ Start the subject with a capital letter\n"
+        assert_contains_issue_output(
+            &issue,
+            "1 | fix test\n\
+               | ^ Start the subject with a capital letter",
         );
     }
 
