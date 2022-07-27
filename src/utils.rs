@@ -142,7 +142,7 @@ pub fn pluralize(label: &str, count: usize) -> String {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::{character_count_for_bytes_index, display_width, line_length_stats, MarkerStats};
 
     #[test]
