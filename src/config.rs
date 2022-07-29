@@ -76,7 +76,7 @@ impl Lint {
         if self.color {
             return true;
         }
-        false // By default color is turned off
+        true // By default color is turned on
     }
 }
 
@@ -104,6 +104,6 @@ mod tests {
         assert!(!Lint::parse_from(["lintje", "--no-color"]).color());
 
         // No flags are set
-        assert!(!Lint::parse_from(["lintje"]).color());
+        assert!(Lint::parse_from(["lintje"]).color());
     }
 }
