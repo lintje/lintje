@@ -17,7 +17,7 @@
   --no-hints
   ```
   More information can be found on the [options file documentation
-  page](http://lintje.dev/docs/configuration/#options-file).
+  page](https://lintje.dev/docs/configuration/#options-file).
 
 ### Changed
 
