@@ -21,7 +21,7 @@
 
 ### Changed
 
-- Add and extra line between message body and moved ticket number at the end of
+- Add an extra line between message body and moved ticket number at the end of
   the body in SubjectTicketNumber suggestions.
 - Color output is turned on by default if the system supports it.
 
