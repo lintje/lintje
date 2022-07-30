@@ -104,7 +104,11 @@ impl Commit {
                 self.issues.append(&mut issues);
             }
             None => {
-                debug!("No issues found for rule '{}'", rule);
+                debug!(
+                    "No issues found for commit '{}' in rule '{}'",
+                    self.long_sha.as_ref().unwrap_or(&"".to_string()),
+                    rule
+                );
             }
         }
     }

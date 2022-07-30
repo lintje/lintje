@@ -107,9 +107,13 @@ fn parse_commit(message: &str) -> Option<Commit> {
         Some(raw_has_changes) => {
             let has_changes_str = raw_has_changes.trim();
             if has_changes_str.is_empty() {
-                debug!("No stats found");
+                debug!("No stats found for commit '{}'", long_sha.unwrap_or(""));
             } else {
-                debug!("Stats line found: {}", has_changes_str.to_string());
+                debug!(
+                    "Stats line found for commit '{}': {}",
+                    long_sha.unwrap_or(""),
+                    has_changes_str.to_string()
+                );
                 has_changes = true;
             }
         }
