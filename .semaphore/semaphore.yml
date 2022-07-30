@@ -41,7 +41,8 @@ blocks:
           - cache restore v2-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock)
           - cargo test
           - cache store v2-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock) $CARGO_HOME
-          - artifact push workflow target/debug/lintje --expire-in 1w
+          - cache delete v1-build-atrifact-$SEMAPHORE_WORKFLOW_ID
+          - cache store v1-build-atrifact-$SEMAPHORE_WORKFLOW_ID target/debug/lintje
   - name: Test run the project
     dependencies: ["Build"]
     task:
@@ -52,6 +53,6 @@ blocks:
       jobs:
       - name: Run project to lint
         commands:
-          - artifact pull workflow lintje
-          - chmod +x lintje
-          - ./lintje --debug $SEMAPHORE_GIT_COMMIT_RANGE
+          - cache restore v1-build-atrifact-$SEMAPHORE_WORKFLOW_ID
+          - chmod +x target/debug/lintje
+          - target/debug/lintje --debug $SEMAPHORE_GIT_COMMIT_RANGE
