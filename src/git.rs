@@ -372,7 +372,7 @@ mod tests {
     fn commit_with_file_changes(message: &str) -> String {
         format!(
             "{}\n{}\n{}",
-            message, COMMIT_BODY_DELIMITER, "\nsrc/main.rs"
+            message, COMMIT_BODY_DELIMITER, "\nsrc/main.rs\nsrc/utils.rs\n"
         )
     }
 
@@ -401,7 +401,10 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
-        assert_eq!(commit.file_changes, vec!["src/main.rs".to_string()]);
+        assert_eq!(
+            commit.file_changes,
+            vec!["src/main.rs".to_string(), "src/utils.rs".to_string()]
+        );
         assert!(commit
             .issues
             .into_iter()
