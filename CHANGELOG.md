@@ -24,6 +24,8 @@
 - Add an extra line between message body and moved ticket number at the end of
   the body in SubjectTicketNumber suggestions.
 - Color output is turned on by default if the system supports it.
+- Change suggestions symbol from a dash (-) to a plus (+) to better indicate
+  the suggestion is an addition.
 
 ### Fixed
 

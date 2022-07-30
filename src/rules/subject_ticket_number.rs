@@ -205,7 +205,7 @@ mod tests {
               ~~~\n\
              3 | \n\
              4 | JIRA-123\n\
-               | -------- Move the ticket number to the message body",
+               | ++++++++ Move the ticket number to the message body",
         );
     }
 
@@ -223,7 +223,7 @@ mod tests {
               ~~~\n\
              3 | \n\
              4 | JIRA-123\n\
-               | -------- Move the ticket number to the message body",
+               | ++++++++ Move the ticket number to the message body",
         );
     }
 
@@ -242,7 +242,7 @@ mod tests {
               ~~~\n\
              3 | \n\
              4 | Fixes #123\n\
-               | ---------- Move the ticket number to the message body",
+               | ++++++++++ Move the ticket number to the message body",
         );
     }
 
@@ -267,7 +267,7 @@ mod tests {
               ~~~\n\
              3 | \n\
              4 | Closed org/repo#123\n\
-               | ------------------- Move the ticket number to the message body",
+               | +++++++++++++++++++ Move the ticket number to the message body",
         );
     }
 

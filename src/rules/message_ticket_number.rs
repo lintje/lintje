@@ -132,7 +132,7 @@ mod tests {
             "5 | Some explanation.\n\
              6 | \n\
              7 | Fixes #123\n\
-               | ---------- Consider adding a reference to a ticket or issue",
+               | ++++++++++ Consider adding a reference to a ticket or issue",
         );
     }
 }

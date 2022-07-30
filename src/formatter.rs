@@ -237,7 +237,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                         (None, "x")
                     }
                     ContextType::Error => (Some(bright_red_color()), "^"),
-                    ContextType::Addition => (Some(cyan_color()), "-"),
+                    ContextType::Addition => (Some(cyan_color()), "+"),
                 };
 
                 let leading_spaces = " ".repeat(leading);
@@ -416,7 +416,7 @@ pub mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mSubject\n\
             \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0mMessage body\n\
             \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0mMessage body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[36m -- The hint\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[36m ++ The hint\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n\n"
         );
@@ -582,7 +582,7 @@ pub mod tests {
             \x20\x20   | \n\
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with addition\n\
-            \x20\x20   |    ------- My addition suggestion\n\
+            \x20\x20   |    +++++++ My addition suggestion\n\
             \x20\x20   | \n\
             \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );

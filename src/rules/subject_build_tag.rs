@@ -142,7 +142,7 @@ mod tests {
                |                ^^^^^^^^^ Remove the build tag from the subject\n\
               ~~~\n\
              3 | [skip ci]\n\
-               | --------- Move build tag to message body",
+               | +++++++++ Move build tag to message body",
         );
     }
 }
