@@ -95,10 +95,10 @@ pub fn assert_contains_issue_output(issue: &Issue, expected_format: &str) {
         let actual_line = actual_lines.next().expect("No new line expected");
         assert!(
             actual_line.contains(expected_line),
-            "Lines #{} don't match.\nActual:\n{}\nExpected to contain:\n{}",
+            "Lines #{} don't match.\nActual:\n{}\nExpected to contain (indenting may not match):\n{}",
             asserted_line_number,
-            actual_line,
-            expected_line
+            formatted_message,
+            expected_format
         );
     }
 }
