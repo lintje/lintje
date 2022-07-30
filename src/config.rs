@@ -175,7 +175,7 @@ fn parse_options_file(contents: &str) -> Vec<String> {
         .flat_map(|line| {
             // Split up words so multiple flags on one line work
             line.split(' ')
-                .map(|w| w.to_string())
+                .map(std::string::ToString::to_string)
                 .collect::<Vec<String>>()
         })
         .collect::<Vec<String>>()
