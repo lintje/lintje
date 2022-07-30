@@ -85,20 +85,22 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
             // Run the diff command to fetch the current staged changes and determine if the commit is
             // empty or not. The contents of the commit message file is too unreliable as it depends on
             // user config and how the user called the `git commit` command.
-            let mut has_changes = true;
-            match run_command("git", &["diff", "--cached", "--shortstat"]) {
-                Ok(stdout) => {
-                    if stdout.is_empty() {
-                        has_changes = false;
-                    }
+            let file_changes = match run_command("git", &["diff", "--cached", "--name-only"]) {
+                Ok(stdout) => stdout
+                    .trim()
+                    .lines()
+                    .map(std::string::ToString::to_string)
+                    .collect::<Vec<String>>(),
+                Err(e) => {
+                    error!("Unable to determine commit changes.\nError: {}", e.message);
+                    vec![]
                 }
-                Err(e) => error!("Unable to determine commit changes.\nError: {}", e.message),
-            }
+            };
             let commit = parse_commit_hook_format(
                 &contents,
                 &git::cleanup_mode(),
                 &git::comment_char(),
-                has_changes,
+                file_changes,
             );
             vec![commit]
         }

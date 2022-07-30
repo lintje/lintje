@@ -304,7 +304,7 @@ pub mod tests {
             Some("test@example.com".to_string()),
             subject.as_ref(),
             message.as_ref().to_string(),
-            true,
+            vec!["src/main.rs".to_string()],
         )
     }
 

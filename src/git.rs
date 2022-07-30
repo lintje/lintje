@@ -49,7 +49,7 @@ pub fn fetch_and_parse_commits(selector: &Option<String>) -> Result<Vec<Commit>,
             "--pretty={}{}{}",
             COMMIT_DELIMITER, format, COMMIT_BODY_DELIMITER
         ),
-        "--shortstat".to_string(),
+        "--name-only".to_string(),
     ];
     match selector {
         Some(selection) => {
@@ -88,7 +88,6 @@ fn parse_commit(message: &str) -> Option<Commit> {
     let mut email = None;
     let mut subject = None;
     let mut message_lines = vec![];
-    let mut has_changes = false;
     let mut message_parts = message.split(COMMIT_BODY_DELIMITER);
     match message_parts.next() {
         Some(body) => {
@@ -103,22 +102,22 @@ fn parse_commit(message: &str) -> Option<Commit> {
         }
         None => error!("No commit body found!"),
     }
-    match message_parts.next() {
-        Some(raw_has_changes) => {
-            let has_changes_str = raw_has_changes.trim();
-            if has_changes_str.is_empty() {
-                debug!("No stats found for commit '{}'", long_sha.unwrap_or(""));
-            } else {
-                debug!(
-                    "Stats line found for commit '{}': {}",
-                    long_sha.unwrap_or(""),
-                    has_changes_str.to_string()
-                );
-                has_changes = true;
-            }
-        }
-        None => debug!("Commit has no stats"),
+
+    let file_changes_str = message_parts.next().unwrap_or("").trim();
+    let file_changes = file_changes_str
+        .lines()
+        .map(std::string::ToString::to_string)
+        .collect::<Vec<String>>();
+    if file_changes.is_empty() {
+        debug!("No stats found for commit '{}'", long_sha.unwrap_or(""));
+    } else {
+        debug!(
+            "Stats line found for commit '{}': {}",
+            long_sha.unwrap_or(""),
+            file_changes.join(", ")
+        );
     }
+
     match (long_sha, subject) {
         (Some(long_sha), subject) => {
             let used_subject = subject.unwrap_or_else(|| {
@@ -130,7 +129,7 @@ fn parse_commit(message: &str) -> Option<Commit> {
                 email,
                 used_subject,
                 message_lines,
-                has_changes,
+                file_changes,
             ))
         }
         _ => {
@@ -144,7 +143,7 @@ pub fn parse_commit_hook_format(
     message: &str,
     cleanup_mode: &CleanupMode,
     comment_char: &str,
-    has_changes: bool,
+    file_changes: Vec<String>,
 ) -> Commit {
     let mut subject = None;
     let mut message_lines = vec![];
@@ -196,7 +195,7 @@ pub fn parse_commit_hook_format(
         "".to_string()
     });
 
-    commit_for(None, None, &used_subject, message_lines, has_changes)
+    commit_for(None, None, &used_subject, message_lines, file_changes)
 }
 
 fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> Option<String> {
@@ -218,9 +217,9 @@ fn commit_for(
     email: Option<String>,
     subject: &str,
     message: Vec<String>,
-    has_changes: bool,
+    file_changes: Vec<String>,
 ) -> Commit {
-    let mut commit = Commit::new(sha, email, subject, message.join("\n"), has_changes);
+    let mut commit = Commit::new(sha, email, subject, message.join("\n"), file_changes);
     if ignored(&commit) {
         commit.ignored = true;
     } else {
@@ -373,9 +372,7 @@ mod tests {
     fn commit_with_file_changes(message: &str) -> String {
         format!(
             "{}\n{}\n{}",
-            message,
-            COMMIT_BODY_DELIMITER,
-            "\n 3 files changed, 116 insertions(+), 11 deletions(-)"
+            message, COMMIT_BODY_DELIMITER, "\nsrc/main.rs"
         )
     }
 
@@ -404,7 +401,7 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
-        assert!(commit.has_changes);
+        assert_eq!(commit.file_changes, vec!["src/main.rs".to_string()]);
         assert!(commit
             .issues
             .into_iter()
@@ -431,7 +428,7 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
-        assert!(commit.has_changes);
+        assert!(commit.has_changes());
         assert!(!commit.issues.is_empty());
     }
 
@@ -449,7 +446,7 @@ mod tests {
         assert_eq!(commit.email, None);
         assert_eq!(commit.subject, "");
         assert_eq!(commit.message, "");
-        assert!(!commit.has_changes);
+        assert!(!commit.has_changes());
         assert!(!commit.issues.is_empty());
     }
 
@@ -473,7 +470,8 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is a message.");
-        assert!(!commit.has_changes);
+        assert_eq!(commit.file_changes, Vec::<String>::new());
+        assert!(!commit.has_changes());
         assert!(!commit.issues.is_empty());
     }
 
@@ -610,7 +608,7 @@ mod tests {
             "This is a subject\n\nThis is a message.",
             &CleanupMode::Default,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -622,8 +620,12 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_without_message() {
-        let commit =
-            parse_commit_hook_format("This is a subject", &CleanupMode::Default, "#", true);
+        let commit = parse_commit_hook_format(
+            "This is a subject",
+            &CleanupMode::Default,
+            "#",
+            vec!["main.rs".to_string()],
+        );
 
         assert_eq!(commit.long_sha, None);
         assert_eq!(commit.short_sha, None);
@@ -647,7 +649,7 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -675,7 +677,7 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -703,7 +705,7 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -730,7 +732,7 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "-",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -756,7 +758,7 @@ mod tests {
             ",
             &CleanupMode::Scissors,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -777,7 +779,7 @@ mod tests {
             ",
             &CleanupMode::Scissors,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -799,7 +801,7 @@ mod tests {
             ",
             &CleanupMode::Verbatim,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -827,7 +829,7 @@ mod tests {
             ",
             &CleanupMode::Verbatim,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -858,7 +860,7 @@ mod tests {
             ",
             &CleanupMode::Whitespace,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -886,7 +888,7 @@ mod tests {
             This is the message body.",
             &CleanupMode::Whitespace,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);
@@ -913,7 +915,7 @@ mod tests {
             List of file changes",
             &CleanupMode::Strip,
             "#",
-            true,
+            vec!["main.rs".to_string()],
         );
 
         assert_eq!(commit.long_sha, None);

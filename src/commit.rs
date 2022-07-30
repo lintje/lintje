@@ -8,7 +8,7 @@ pub struct Commit {
     pub email: Option<String>,
     pub subject: String,
     pub message: String,
-    pub has_changes: bool,
+    pub file_changes: Vec<String>,
     pub issues: Vec<Issue>,
     pub ignored: bool,
     pub ignored_rules: Vec<Rule>,
@@ -20,7 +20,7 @@ impl Commit {
         email: Option<String>,
         subject: &str,
         message: String,
-        has_changes: bool,
+        file_changes: Vec<String>,
     ) -> Self {
         // Get first 7 characters of the commit SHA to get the short SHA.
         let short_sha = match &long_sha {
@@ -40,11 +40,15 @@ impl Commit {
             email,
             subject: subject.trim_end().to_string(),
             message,
-            has_changes,
+            file_changes,
             ignored: false,
             ignored_rules,
             issues: Vec::<Issue>::new(),
         }
+    }
+
+    pub fn has_changes(&self) -> bool {
+        !self.file_changes.is_empty()
     }
 
     fn find_ignored_rules(message: &str) -> Vec<Rule> {

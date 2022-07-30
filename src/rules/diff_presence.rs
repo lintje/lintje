@@ -12,7 +12,7 @@ impl DiffPresence {
     }
 
     pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
-        if commit.has_changes {
+        if commit.has_changes() {
             return None;
         }
 
@@ -50,7 +50,7 @@ mod tests {
             Some("test@example.com".to_string()),
             "Some subject",
             message,
-            false,
+            vec![],
         )
     }
 
