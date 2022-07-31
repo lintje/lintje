@@ -18,6 +18,11 @@
   ```
   More information can be found on the [options file documentation
   page](https://lintje.dev/docs/configuration/#options-file).
+- Add MessageSkipBuildTag hint rule to suggest adding a "[skip ci]" build tag
+  when a commit only changes plain text files that commonly don't require a
+  test suite, deploy or other automatic build to be run. Saves on resources,
+  time and money. Files that are checked include: README, LICENSE and
+  CODE_OF_CONDUCT.
 
 ### Changed
 

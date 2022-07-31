@@ -23,6 +23,7 @@ pub enum Rule {
     MessageEmptyFirstLine,
     MessagePresence,
     MessageLineLength,
+    MessageSkipBuildTag,
     MessageTicketNumber,
     DiffPresence,
     BranchNameTicketNumber,
@@ -48,6 +49,7 @@ impl fmt::Display for Rule {
             Rule::MessageEmptyFirstLine => "MessageEmptyFirstLine",
             Rule::MessagePresence => "MessagePresence",
             Rule::MessageLineLength => "MessageLineLength",
+            Rule::MessageSkipBuildTag => "MessageSkipBuildTag",
             Rule::MessageTicketNumber => "MessageTicketNumber",
             Rule::DiffPresence => "DiffPresence",
             Rule::BranchNameTicketNumber => "BranchNameTicketNumber",
@@ -76,6 +78,7 @@ impl Rule {
             Rule::MessagePresence => MessagePresence::new().validate(commit),
             Rule::MessageEmptyFirstLine => MessageEmptyFirstLine::new().validate(commit),
             Rule::MessageLineLength => MessageLineLength::new().validate(commit),
+            Rule::MessageSkipBuildTag => MessageSkipBuildTag::new().validate(commit),
             Rule::MessageTicketNumber => MessageTicketNumber::new().validate(commit),
             Rule::DiffPresence => DiffPresence::new().validate(commit),
             Rule::BranchNameTicketNumber
@@ -103,6 +106,7 @@ impl Rule {
             | Rule::MessagePresence
             | Rule::MessageEmptyFirstLine
             | Rule::MessageLineLength
+            | Rule::MessageSkipBuildTag
             | Rule::MessageTicketNumber
             | Rule::DiffPresence => panic!("Unknown rule for branch validation: {}", self),
             Rule::BranchNameLength => BranchNameLength::new().validate(branch),
@@ -128,6 +132,7 @@ impl Rule {
             Rule::MessageEmptyFirstLine => "commit-message/#messageemptyfirstline",
             Rule::MessagePresence => "commit-message/#messagepresence",
             Rule::MessageLineLength => "commit-message/#messagelinelength",
+            Rule::MessageSkipBuildTag => "commit-messsage/#messageskipbuildtag",
             Rule::MessageTicketNumber => "commit-message/#messageticketnumber",
             Rule::DiffPresence => "commit-type/#diffpresence",
             Rule::BranchNameTicketNumber => "branch/#branchnameticketnumber",
@@ -155,6 +160,7 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "MessageEmptyFirstLine" => Some(Rule::MessageEmptyFirstLine),
         "MessagePresence" => Some(Rule::MessagePresence),
         "MessageLineLength" => Some(Rule::MessageLineLength),
+        "MessageSkipBuildTag" => Some(Rule::MessageSkipBuildTag),
         "MessageTicketNumber" => Some(Rule::MessageTicketNumber),
         "DiffPresence" => Some(Rule::DiffPresence),
         _ => None,
