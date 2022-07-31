@@ -23,6 +23,8 @@
   test suite, deploy or other automatic build to be run. Saves on resources,
   time and money. Files that are checked include: README, LICENSE and
   CODE_OF_CONDUCT.
+- Recognize "amend!" commits, like "fixup!" commits, as to be rebased commits
+  and trigger the RebaseCommit rule.
 
 ### Changed
 
