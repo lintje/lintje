@@ -60,6 +60,7 @@ pub enum Position {
 #[derive(Debug, PartialEq)]
 pub enum ContextType {
     Plain,
+    Gap,
     Error,
     Addition,
 }
@@ -74,6 +75,16 @@ pub struct Context {
 }
 
 impl Context {
+    pub fn gap() -> Self {
+        Self {
+            r#type: ContextType::Gap,
+            line: None,
+            content: "".to_string(), // TODO: Make option?
+            range: None,
+            message: None,
+        }
+    }
+
     pub fn subject(content: String) -> Self {
         Self {
             r#type: ContextType::Plain,
@@ -131,6 +142,16 @@ impl Context {
             content,
             range: Some(range),
             message: Some(message),
+        }
+    }
+
+    pub fn diff_line(content: String) -> Self {
+        Self {
+            r#type: ContextType::Plain,
+            line: None,
+            content,
+            range: None,
+            message: None,
         }
     }
 

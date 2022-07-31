@@ -202,10 +202,15 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
             (_, _) => {}
         }
 
+        let prefix = match context.r#type {
+            ContextType::Gap => Prefix::Scissors,
+            ContextType::Plain | ContextType::Error | ContextType::Addition => Prefix::Pipe,
+        };
+
         context_line(
             out,
             &ContextLine {
-                prefix: Prefix::Pipe,
+                prefix,
                 width: line_number_width,
                 line_number: context.line,
             },
@@ -232,8 +237,11 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                     None => range.len(),
                 };
                 let (message_color, underline_char) = match context.r#type {
-                    ContextType::Plain => {
-                        error!("Unknown scenario occurs with ContextType::Plain formatting");
+                    ContextType::Plain | ContextType::Gap => {
+                        error!(
+                            "Unknown scenario occured with '{:?}' formatting",
+                            context.r#type
+                        );
                         (None, "x")
                     }
                     ContextType::Error => (Some(bright_red_color()), "^"),
@@ -798,6 +806,37 @@ pub mod tests {
             \x20\x2010 | Message line 10\n\
             \x20\x20   | \n\
             \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
+        );
+    }
+
+    #[test]
+    fn formatted_context_line_with_gap() {
+        let commit = commit(Some("1234567".to_string()), "Subject", "Message");
+        let context = vec![
+            Context::diff_line("Some diff line".to_string()),
+            Context::gap(),
+            Context::message_line(1, "Message line 10".to_string()),
+        ];
+        let issue = Issue::hint(
+            Rule::MessageLineLength,
+            "The hint message".to_string(),
+            Position::MessageLine {
+                line: 11,
+                column: 50,
+            },
+            context,
+        );
+        let output = commit_issue(&commit, &issue);
+        assert_eq!(
+            output,
+            "Hint[MessageLineLength]: The hint message\n\
+            \x20\x201234567:11:50: Subject\n\
+            \x20\x20  | \n\
+            \x20\x20  | Some diff line\n\
+            \x20\x20 ~~~\n\
+            \x20\x201 | Message line 10\n\
+            \x20\x20  | \n\
+            \x20\x20  = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );
     }
 
