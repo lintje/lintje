@@ -10,7 +10,7 @@ const BASE_URL: &str = "https://lintje.dev/docs/";
 #[derive(Debug, PartialEq)]
 pub enum Rule {
     MergeCommit,
-    NeedsRebase,
+    RebaseCommit,
     SubjectLength,
     SubjectMood,
     SubjectWhitespace,
@@ -36,7 +36,7 @@ impl fmt::Display for Rule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let label = match self {
             Rule::MergeCommit => "MergeCommit",
-            Rule::NeedsRebase => "NeedsRebase",
+            Rule::RebaseCommit => "RebaseCommit",
             Rule::SubjectLength => "SubjectLength",
             Rule::SubjectMood => "SubjectMood",
             Rule::SubjectWhitespace => "SubjectWhitespace",
@@ -65,7 +65,7 @@ impl Rule {
     pub fn validate_commit(&self, commit: &Commit) -> Option<Vec<Issue>> {
         match self {
             Rule::MergeCommit => MergeCommit::new().validate(commit),
-            Rule::NeedsRebase => NeedsRebase::new().validate(commit),
+            Rule::RebaseCommit => RebaseCommit::new().validate(commit),
             Rule::SubjectLength => SubjectLength::new().validate(commit),
             Rule::SubjectMood => SubjectMood::new().validate(commit),
             Rule::SubjectWhitespace => SubjectWhitespace::new().validate(commit),
@@ -93,7 +93,7 @@ impl Rule {
     pub fn validate_branch(&self, branch: &Branch) -> Option<Vec<Issue>> {
         match self {
             Rule::MergeCommit
-            | Rule::NeedsRebase
+            | Rule::RebaseCommit
             | Rule::SubjectLength
             | Rule::SubjectMood
             | Rule::SubjectWhitespace
@@ -119,7 +119,7 @@ impl Rule {
     pub fn link(&self) -> String {
         let path = match self {
             Rule::MergeCommit => "commit-type/#mergecommit",
-            Rule::NeedsRebase => "commit-type/#needsrebase",
+            Rule::RebaseCommit => "commit-type/#rebasecommit",
             Rule::SubjectLength => "commit-subject/#subjectlength",
             Rule::SubjectMood => "commit-subject/#subjectmood",
             Rule::SubjectWhitespace => "commit-subject/#subjectwhitespace",
@@ -147,7 +147,7 @@ impl Rule {
 pub fn rule_by_name(name: &str) -> Option<Rule> {
     match name {
         "MergeCommit" => Some(Rule::MergeCommit),
-        "NeedsRebase" => Some(Rule::NeedsRebase),
+        "RebaseCommit" | "NeedsRebase" => Some(Rule::RebaseCommit),
         "SubjectLength" => Some(Rule::SubjectLength),
         "SubjectMood" => Some(Rule::SubjectMood),
         "SubjectWhitespace" => Some(Rule::SubjectWhitespace),

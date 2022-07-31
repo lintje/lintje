@@ -75,12 +75,12 @@ impl Commit {
 
     pub fn validate(&mut self) {
         self.validate_rule(&Rule::MergeCommit);
-        self.validate_rule(&Rule::NeedsRebase);
+        self.validate_rule(&Rule::RebaseCommit);
 
-        // If a commit has a MergeCommit or NeedsRebase issue, other rules are skipped,
+        // If a commit has a MergeCommit or RebaseCommit issue, other rules are skipped,
         // because the commit itself will need to be rebased into other commits. So the format
         // of the commit won't matter.
-        if !self.has_issue(&Rule::MergeCommit) && !self.has_issue(&Rule::NeedsRebase) {
+        if !self.has_issue(&Rule::MergeCommit) && !self.has_issue(&Rule::RebaseCommit) {
             self.validate_rule(&Rule::SubjectCliche);
             self.validate_rule(&Rule::SubjectLength);
             self.validate_rule(&Rule::SubjectMood);

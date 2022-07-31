@@ -31,6 +31,11 @@
 - Color output is turned on by default if the system supports it.
 - Change suggestions symbol from a dash (-) to a plus (+) to better indicate
   the suggestion is an addition.
+- Rename NeedsRebase rule to RebaseCommit to match naming with MergeCommit rule
+  to indicate the type of commit rather than the action that needs to be taken
+  to resolve it. The NeedsRebase name can still be used as an alias to disable
+  the RebaseCommit rule with `lintje:disable NeedsRebase`. This alias will be
+  removed eventually.
 
 ### Fixed
 

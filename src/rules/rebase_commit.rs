@@ -4,9 +4,9 @@ use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
 
-pub struct NeedsRebase {}
+pub struct RebaseCommit {}
 
-impl NeedsRebase {
+impl RebaseCommit {
     pub fn new() -> Self {
         Self {}
     }
@@ -20,7 +20,7 @@ impl NeedsRebase {
                 "Rebase fixup commits before pushing or merging".to_string(),
             );
             return Some(vec![Issue::error(
-                Rule::NeedsRebase,
+                Rule::RebaseCommit,
                 "A fixup commit was found".to_string(),
                 Position::Subject { line: 1, column: 1 },
                 vec![context],
@@ -32,7 +32,7 @@ impl NeedsRebase {
                 "Rebase squash commits before pushing or merging".to_string(),
             );
             return Some(vec![Issue::error(
-                Rule::NeedsRebase,
+                Rule::RebaseCommit,
                 "A squash commit was found".to_string(),
                 Position::Subject { line: 1, column: 1 },
                 vec![context],
@@ -49,7 +49,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        NeedsRebase::new().validate(&commit)
+        RebaseCommit::new().validate(&commit)
     }
 
     fn assert_subject_as_valid(subject: &str) {
