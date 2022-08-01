@@ -15,7 +15,7 @@ function test_for() {
     docker build \
       $options \
       -f Dockerfile.$target \
-      -t tombruijn/lintje-$target:build \
+      -t lintje/lintje-$target:build \
       .
   )
   (
@@ -24,7 +24,7 @@ function test_for() {
       -v "$(pwd):/dist" \
       -w "/dist" \
       $options \
-      tombruijn/lintje-$target:build \
+      lintje/lintje-$target:build \
       /project/test $expected_version
   )
 }

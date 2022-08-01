@@ -120,7 +120,7 @@ rake release
 The release will be pushed to GitHub.
 
 Finally update the
-[Lintje Homebrew tap](https://github.com/tombruijn/homebrew-lintje).
+[Lintje Homebrew tap](https://github.com/lintje/homebrew-lintje).
 
 ## Code of Conduct
 
@@ -130,6 +130,6 @@ expected to adhere to it.
 [website]: https://lintje.dev
 [rules]: https://lintje.dev/docs/rules/
 [usage]: https://lintje.dev/docs/usage/
-[issues]: https://github.com/tombruijn/lintje/issues
-[discussions]: https://github.com/tombruijn/lintje/discussions
+[issues]: https://github.com/lintje/lintje/issues
+[discussions]: https://github.com/lintje/lintje/discussions
 [installation]: https://lintje.dev/docs/installation/

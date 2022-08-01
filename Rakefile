@@ -7,7 +7,7 @@ require "dotenv"
 PROJECT_NAME = "Lintje"
 PROJECT_SLUG = "lintje"
 PROJECT_MAINTAINER = "Tom de Bruijn tom@tomdebruijn.com"
-PROJECT_HOMEPAGE = "https://github.com/tombruijn/lintje"
+PROJECT_HOMEPAGE = "https://github.com/lintje/lintje"
 PROJECT_DESCRIPTION = "Lintje is an opinionated linter for Git."
 CLOUDSMITH_REPO = "lintje/lintje"
 
@@ -95,7 +95,7 @@ namespace :build do
         case options[:strip][:container]
         when true
           # Build development image
-          tag = "tombruijn/lintje-#{triple}:build"
+          tag = "lintje/lintje-#{triple}:build"
           build_docker_image tag, "Dockerfile.#{triple}", :platform => platform
           tag
         else
@@ -201,7 +201,7 @@ namespace :release do
     system "cargo publish"
 
     puts "Release of version #{version} done!"
-    puts "Please update the Homebrew tap next: https://github.com/tombruijn/homebrew-lintje"
+    puts "Please update the Homebrew tap next: https://github.com/lintje/homebrew-lintje"
   end
 
   task :docker_image do
