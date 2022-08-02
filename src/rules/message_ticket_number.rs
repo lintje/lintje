@@ -72,7 +72,65 @@ mod tests {
     }
 
     fn assert_valid(message: &str) {
-        assert_eq!(validate(&commit("Subject", message)), None);
+        assert_eq!(
+            validate(&commit("Subject", message)),
+            None,
+            "Message is not valid: {}",
+            message
+        );
+    }
+
+    fn assert_invalid(message: &str) {
+        assert!(
+            validate(&commit("Subject", message)).is_some(),
+            "Message is valid: {}",
+            message
+        );
+    }
+
+    fn assert_message_valid(message: &str) {
+        let message = [
+            "Beginning of message.",
+            "",
+            "Some explanation.",
+            "",
+            message,
+            "",
+            "Lorem ipsum",
+        ]
+        .join("\n");
+        assert_valid(&message);
+    }
+
+    fn assert_message_invalid(message: &str) {
+        let message = [
+            "Beginning of message.",
+            "",
+            "Some explanation.",
+            "",
+            message,
+            "",
+            "Lorem ipsum",
+        ]
+        .join("\n");
+        assert_invalid(&message);
+    }
+
+    #[test]
+    fn message_with_fix_issue() {
+        assert_message_valid("Fix #123");
+        assert_message_valid("Fixes org/repo#123");
+        assert_message_valid("Fixed org/repo!123");
+        assert_message_valid("Fixes https://website.om/org/repo/issues/123");
+    }
+
+    #[test]
+    fn message_without_fix_issue() {
+        assert_message_invalid("Fix /123");
+        assert_message_invalid("Fixes repo#123");
+        assert_message_invalid("Fixed repo!123");
+        assert_message_invalid("Fixes https://website.om/org/repo/issues#123");
+        assert_message_invalid("Fixes https://website.om/org/repo/issues!123");
     }
 
     #[test]

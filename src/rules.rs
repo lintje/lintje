@@ -47,7 +47,17 @@ pub use subject_whitespace::SubjectWhitespace;
 lazy_static! {
     // Match all GitHub and GitLab keywords
     pub static ref CONTAINS_FIX_TICKET: Regex = {
-        let mut regex = RegexBuilder::new(r"(fix(es|ed|ing)?|clos(e|es|ed|ing)|resolv(e|es|ed|ing)|implement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
+        let mut regex = RegexBuilder::new(r"(?x)
+            (fix(es|ed|ing)?|clos(e|es|ed|ing)|resolv(e|es|ed|ing)|implement(s|ed|ing)?) # Includes keyword
+            :? # Optional colon
+            \s+ # Separated by one or more spaces
+            (
+                https?://[^\s]+/| # Match entire URL
+                [\w\-_\.]+/[\w\-_\.]+[\#!]| # Repo shorthand format: org/repo#123 or org/repo!123
+                [\#!] # Only an issue or PR symbol
+            )
+            \d+ # Ends in an issue/PR number
+        ");
         regex.case_insensitive(true);
         regex.multi_line(false);
         regex.build().unwrap()

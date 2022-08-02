@@ -6,6 +6,9 @@
 
 - Update the MessageTicketNumber rule to also recognize issue keywords like
   "part of issue", "part of epic" and "part of project".
+- Update SubjectTicketNumber and MessageTicketNumber rule to also match full
+  URLs to issues, and match shorthands like `#123` and `org/repo#123` more
+  accurately.
 
 ## 0.8.0
 

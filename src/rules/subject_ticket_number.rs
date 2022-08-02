@@ -39,9 +39,7 @@ impl SubjectTicketNumber {
             match captures.get(0) {
                 Some(capture) => issues.push(add_subject_ticket_number_error(commit, capture)),
                 None => {
-                    error!(
-                        "SubjectTicketNumber: Unable to fetch ticket number match from subject."
-                    );
+                    error!("SubjectTicketNumber: Unable to fetch issue number match from subject.");
                 }
             };
         }
@@ -105,7 +103,8 @@ mod tests {
     }
 
     fn assert_subject_as_invalid(subject: &str) {
-        assert!(validate(&commit(subject, "")).is_some());
+        let issues = validate(&commit(subject, ""));
+        assert!(issues.is_some(), "No issues found for: {:?}", subject);
     }
 
     #[test]
@@ -118,6 +117,12 @@ mod tests {
             "Fix !",
             "Fix !!123",
             "Fix !a123",
+            "Fix /123",                                   // No org/repo format
+            "Fix repo/123",                               // Missing org
+            "Fix repo#123",                               // Missing org
+            "Fix repo!123",                               // Missing org
+            "Fix https://website.om/org/repo/issues#123", // No full format with only slashes
+            "Fix https://website.om/org/repo/issues!123", // No full format with only slashes
             "Change A-1 config",
             "Change A-12 config",
         ];
@@ -153,7 +158,6 @@ mod tests {
             "Fix {}1234 lorem",
             "Fix: {}1234 lorem",
             "Fix my-org/repo{}1234 lorem",
-            "Fix https://examplegithosting.com/my-org/repo{}1234 lorem",
             "Commit fixes {}1234",
             "Close {}1234",
             "Closed {}1234",
@@ -253,7 +257,7 @@ mod tests {
     }
 
     #[test]
-    fn fix_ticket_number_link() {
+    fn fix_ticket_number_link_shorthand() {
         let issue = first_issue(validate(&commit(
             "Email validation: Closed org/repo#123 for good",
             "",
@@ -268,6 +272,25 @@ mod tests {
              3 | \n\
              4 | Closed org/repo#123\n\
                | +++++++++++++++++++ Move the ticket number to the message body",
+        );
+    }
+
+    #[test]
+    fn fix_ticket_number_link() {
+        let issue = first_issue(validate(&commit(
+            "Email validation: Closes https://website.com:80/org/repo/issues/123 for good",
+            "",
+        )));
+        assert_eq!(issue.message, "The subject contains a ticket number");
+        assert_eq!(issue.position, subject_position(19));
+        assert_contains_issue_output(
+            &issue,
+            "1 | Email validation: Closes https://website.com:80/org/repo/issues/123 for good\n\
+               |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Remove the ticket number from the subject\n\
+              ~~~\n\
+             3 | \n\
+             4 | Closes https://website.com:80/org/repo/issues/123\n\
+               | +++++++++++++++++++++++++++++++++++++++++++++++++ Move the ticket number to the message body",
         );
     }
 
