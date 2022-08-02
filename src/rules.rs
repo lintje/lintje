@@ -1,4 +1,4 @@
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 
 pub mod branch_name_cliche;
 pub mod branch_name_length;
@@ -46,6 +46,10 @@ pub use subject_whitespace::SubjectWhitespace;
 
 lazy_static! {
     // Match all GitHub and GitLab keywords
-    pub static ref CONTAINS_FIX_TICKET: Regex =
-        Regex::new(r"([fF]ix(es|ed|ing)?|[cC]los(e|es|ed|ing)|[rR]esolv(e|es|ed|ing)|[iI]mplement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+").unwrap();
+    pub static ref CONTAINS_FIX_TICKET: Regex = {
+        let mut regex = RegexBuilder::new(r"(fix(es|ed|ing)?|clos(e|es|ed|ing)|resolv(e|es|ed|ing)|implement(s|ed|ing)?):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
+        regex.case_insensitive(true);
+        regex.multi_line(false);
+        regex.build().unwrap()
+    };
 }
