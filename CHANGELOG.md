@@ -1,5 +1,12 @@
 # Lintje changelog
 
+## Next version
+
+### Changed
+
+- Update the MessageTicketNumber rule to also recognize issue keywords like
+  "part of issue", "part of epic" and "part of project".
+
 ## 0.8.0
 
 ### Added

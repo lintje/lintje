@@ -10,7 +10,7 @@ use crate::rules::CONTAINS_FIX_TICKET;
 lazy_static! {
     // Match "Part of #123"
     static ref LINK_TO_TICKET: Regex = {
-        let mut tempregex = RegexBuilder::new(r"(part of|related):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
+        let mut tempregex = RegexBuilder::new(r"(part of|part of (issue|epic|project)|related):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
         tempregex.case_insensitive(true);
         tempregex.multi_line(false);
         tempregex.build().unwrap()
@@ -99,6 +99,22 @@ mod tests {
         ]
         .join("\n");
         assert_valid(&message);
+    }
+
+    #[test]
+    fn message_with_ticket_number_part_of_issue() {
+        let types = ["issue", "epic", "project"];
+        for reference_type in types {
+            let message = [
+                "Beginning of message.",
+                "",
+                "Some explanation.",
+                "",
+                &format!("Part of {} #123", reference_type),
+            ]
+            .join("\n");
+            assert_valid(&message);
+        }
     }
 
     #[test]
