@@ -47,16 +47,32 @@ use utils::pluralize;
 fn main() {
     let options = fetch_options();
     init_logger(options.debug);
-    let commit_result = match &options.hook_message_file {
-        Some(hook_message_file) => lint_commit_hook(hook_message_file),
-        None => lint_commit(&options.selection),
+    match handle_command(&options) {
+        Ok(_) => (),
+        Err(e) => {
+            error!("Lintje encountered an error and had to exit: {}", e);
+            std::process::exit(2)
+        }
+    }
+}
+
+fn handle_command(options: &Lint) -> Result<(), String> {
+    let commits = match &options.hook_message_file {
+        Some(hook_message_file) => lint_commit_hook(hook_message_file)?,
+        None => lint_commit(&options.selection)?,
     };
-    let branch_result = if options.branch_validation {
-        Some(lint_branch())
+    let branch = if options.branch_validation {
+        Some(lint_branch()?)
     } else {
         None
     };
-    handle_result(print_lint_result(commit_result, branch_result, &options));
+    match print_lint_result(commits, branch, options) {
+        Ok(_) => Ok(()),
+        Err(error) => Err(format!(
+            "Error encountered while printing output: {}",
+            error
+        )),
+    }
 }
 
 fn lint_branch() -> Result<Branch, String> {
@@ -115,16 +131,9 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
     Ok(commits)
 }
 
-fn handle_result(result: io::Result<()>) {
-    match result {
-        Ok(()) => {}
-        Err(error) => error!("Unexpected error encountered: {}", error),
-    }
-}
-
 fn print_lint_result(
-    commit_result: Result<Vec<Commit>, String>,
-    branch_result: Option<Result<Branch, String>>,
+    commits: Vec<Commit>,
+    branch: Option<Branch>,
     options: &Lint,
 ) -> io::Result<()> {
     let mut out = buffer_writer(options.color());
@@ -134,50 +143,42 @@ fn print_lint_result(
     let mut ignored_commit_count = 0;
     let mut branch_message = "";
 
-    if let Ok(ref commits) = commit_result {
-        debug!("Commits: {:?}", commits);
-        for commit in commits {
-            if commit.ignored {
-                ignored_commit_count += 1;
-                continue;
-            }
-            commit_count += 1;
-            if !commit.is_valid() {
-                for issue in &commit.issues {
-                    let show = match issue.r#type {
-                        IssueType::Error => {
-                            error_count += 1;
-                            true
-                        }
-                        IssueType::Hint => {
-                            hint_count += 1;
-                            options.hints
-                        }
-                    };
-                    if show {
-                        formatted_commit_issue(&mut out, commit, issue)?;
+    debug!("Commits: {:?}", commits);
+    for commit in commits {
+        if commit.ignored {
+            ignored_commit_count += 1;
+            continue;
+        }
+        commit_count += 1;
+        if !commit.is_valid() {
+            for issue in &commit.issues {
+                let show = match issue.r#type {
+                    IssueType::Error => {
+                        error_count += 1;
+                        true
                     }
+                    IssueType::Hint => {
+                        hint_count += 1;
+                        options.hints
+                    }
+                };
+                if show {
+                    formatted_commit_issue(&mut out, &commit, issue)?;
                 }
             }
         }
     }
-    let mut branch_error = None;
-    if let Some(result) = branch_result {
-        match result {
-            Ok(ref branch) => {
-                debug!("Branch: {:?}", branch);
-                branch_message = " and branch";
-                if !branch.is_valid() {
-                    for issue in &branch.issues {
-                        match issue.r#type {
-                            IssueType::Error => error_count += 1,
-                            IssueType::Hint => hint_count += 1,
-                        }
-                        formatted_branch_issue(&mut out, branch, issue)?;
-                    }
+    if let Some(branch) = branch {
+        debug!("Branch: {:?}", branch);
+        branch_message = " and branch";
+        if !branch.is_valid() {
+            for issue in &branch.issues {
+                match issue.r#type {
+                    IssueType::Error => error_count += 1,
+                    IssueType::Hint => hint_count += 1,
                 }
+                formatted_branch_issue(&mut out, &branch, issue)?;
             }
-            Err(error) => branch_error = Some(error),
         }
     }
 
@@ -197,18 +198,6 @@ fn print_lint_result(
         )?;
     }
     writeln!(out)?;
-    let mut has_error = false;
-    if let Err(error) = commit_result {
-        has_error = true;
-        error!("An error occurred validating commits: {}", error.trim());
-    }
-    if let Some(error) = branch_error {
-        has_error = true;
-        error!("An error occurred validating the branch: {}", error.trim());
-    }
-    if has_error {
-        std::process::exit(2)
-    }
     if error_count > 0 {
         std::process::exit(1)
     }
