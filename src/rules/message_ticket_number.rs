@@ -118,10 +118,34 @@ mod tests {
 
     #[test]
     fn message_with_fix_issue() {
+        assert_message_valid("fix #123");
         assert_message_valid("Fix #123");
+        assert_message_valid("Fixes #123");
+        assert_message_valid("Fixes: #123");
         assert_message_valid("Fixes org/repo#123");
         assert_message_valid("Fixed org/repo!123");
         assert_message_valid("Fixes https://website.om/org/repo/issues/123");
+    }
+
+    #[test]
+    fn message_with_ticket_number_part_of() {
+        assert_message_valid("part of #123");
+        assert_message_valid("Part of #123");
+        assert_message_valid("Part of: #123");
+        assert_message_valid("related #123");
+        assert_message_valid("Related #123");
+        assert_message_valid("Related: #123");
+    }
+
+    #[test]
+    fn message_with_ticket_number_part_of_issue() {
+        let types = ["issue", "epic", "project"];
+        for reference_type in types {
+            assert_message_valid(&format!("part of {}: #123", reference_type));
+            assert_message_valid(&format!("Part of {}: #123", reference_type));
+            assert_message_valid(&format!("part of {} #123", reference_type));
+            assert_message_valid(&format!("Part of {} #123", reference_type));
+        }
     }
 
     #[test]
@@ -131,61 +155,6 @@ mod tests {
         assert_message_invalid("Fixed repo!123");
         assert_message_invalid("Fixes https://website.om/org/repo/issues#123");
         assert_message_invalid("Fixes https://website.om/org/repo/issues!123");
-    }
-
-    #[test]
-    fn message_with_ticket_number() {
-        let message = [
-            "Beginning of message.",
-            "",
-            "Some explanation.",
-            "",
-            "Fixes #123",
-        ]
-        .join("\n");
-        assert_valid(&message);
-    }
-
-    #[test]
-    fn message_with_ticket_number_part_of() {
-        let message = [
-            "Beginning of message.",
-            "",
-            "Some explanation.",
-            "",
-            "Part of #123",
-        ]
-        .join("\n");
-        assert_valid(&message);
-    }
-
-    #[test]
-    fn message_with_ticket_number_part_of_issue() {
-        let types = ["issue", "epic", "project"];
-        for reference_type in types {
-            let message = [
-                "Beginning of message.",
-                "",
-                "Some explanation.",
-                "",
-                &format!("Part of {} #123", reference_type),
-            ]
-            .join("\n");
-            assert_valid(&message);
-        }
-    }
-
-    #[test]
-    fn message_with_ticket_number_related() {
-        let message = [
-            "Beginning of message.",
-            "",
-            "Some explanation.",
-            "",
-            "Related #123",
-        ]
-        .join("\n");
-        assert_valid(&message);
     }
 
     #[test]

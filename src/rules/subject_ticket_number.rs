@@ -132,7 +132,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_subjects() {
+    fn with_ticket_numbers() {
         let ticket_only_subjects = vec![
             "JI-1",
             "JI-12",
@@ -149,7 +149,10 @@ mod tests {
         for subject in ticket_only_subjects {
             assert_subject_as_invalid(subject);
         }
+    }
 
+    #[test]
+    fn with_keywords() {
         let invalid_subjects = vec![
             "Fix {}1234",
             "Fixed {}1234",
