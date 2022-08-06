@@ -15,6 +15,10 @@ impl MergeCommit {
 }
 
 impl RuleValidator<Commit> for MergeCommit {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     // Note: Some merge commits are ignored in git.rs and won't be validated here, because they are
     // Pull/Merge Requests, which are valid.
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {

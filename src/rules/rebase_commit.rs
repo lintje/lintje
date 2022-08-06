@@ -14,6 +14,10 @@ impl RebaseCommit {
 }
 
 impl RuleValidator<Commit> for RebaseCommit {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject;
         let fixup_check = validate_prefix("fixup", subject);

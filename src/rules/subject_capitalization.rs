@@ -19,6 +19,10 @@ impl SubjectCapitalization {
 }
 
 impl RuleValidator<Commit> for SubjectCapitalization {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        Some(vec![Rule::SubjectPrefix, Rule::SubjectLength])
+    }
+
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.has_issue(&Rule::SubjectPrefix) {
             return None;

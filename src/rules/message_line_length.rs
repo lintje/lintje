@@ -29,6 +29,10 @@ impl MessageLineLength {
 }
 
 impl RuleValidator<Commit> for MessageLineLength {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let mut code_block_style = CodeBlockStyle::None;
         let mut previous_line_was_empty_line = false;

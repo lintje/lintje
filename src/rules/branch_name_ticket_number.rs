@@ -24,6 +24,10 @@ impl BranchNameTicketNumber {
 }
 
 impl RuleValidator<Branch> for BranchNameTicketNumber {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let name = &branch.name;
         if let Some(captures) = BRANCH_WITH_TICKET_NUMBER.captures(name) {

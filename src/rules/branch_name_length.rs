@@ -15,6 +15,10 @@ impl BranchNameLength {
 }
 
 impl RuleValidator<Branch> for BranchNameLength {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let name = &branch.name;
         let width = display_width(name);

@@ -5,6 +5,7 @@ use crate::rule::Rule;
 pub struct Branch {
     pub name: String,
     pub issues: Vec<Issue>,
+    pub checked_rules: Vec<Rule>,
 }
 
 impl Branch {
@@ -12,6 +13,7 @@ impl Branch {
         Self {
             name,
             issues: Vec::<Issue>::new(),
+            checked_rules: Vec::<Rule>::new(),
         }
     }
 
@@ -20,13 +22,13 @@ impl Branch {
     }
 
     pub fn validate(&mut self) {
-        self.validate_rule(&Rule::BranchNameLength);
-        self.validate_rule(&Rule::BranchNameTicketNumber);
-        self.validate_rule(&Rule::BranchNamePunctuation);
-        self.validate_rule(&Rule::BranchNameCliche);
+        self.validate_rule(Rule::BranchNameLength);
+        self.validate_rule(Rule::BranchNameTicketNumber);
+        self.validate_rule(Rule::BranchNamePunctuation);
+        self.validate_rule(Rule::BranchNameCliche);
     }
 
-    fn validate_rule(&mut self, rule: &Rule) {
+    fn validate_rule(&mut self, rule: Rule) {
         match rule.validate_branch(self) {
             Some(mut issues) => {
                 self.issues.append(&mut issues);
@@ -34,6 +36,7 @@ impl Branch {
             None => {
                 debug!("No issues found for rule '{}'", rule);
             }
-        }
+        };
+        self.checked_rules.push(rule);
     }
 }

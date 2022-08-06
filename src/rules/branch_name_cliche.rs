@@ -26,6 +26,10 @@ impl BranchNameCliche {
 }
 
 impl RuleValidator<Branch> for BranchNameCliche {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let name = &branch.name.to_lowercase();
         if BRANCH_WITH_CLICHE.is_match(name) {

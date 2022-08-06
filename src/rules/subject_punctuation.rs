@@ -26,6 +26,10 @@ impl SubjectPunctuation {
 }
 
 impl RuleValidator<Commit> for SubjectPunctuation {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        Some(vec![Rule::SubjectLength])
+    }
+
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.subject.chars().count() == 0 && commit.has_issue(&Rule::SubjectLength) {
             return None;

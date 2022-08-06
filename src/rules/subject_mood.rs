@@ -58,6 +58,10 @@ impl SubjectMood {
 }
 
 impl RuleValidator<Commit> for SubjectMood {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         match commit.subject.split(' ').next() {
             Some(raw_word) => {

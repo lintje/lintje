@@ -15,6 +15,10 @@ impl MessagePresence {
 }
 
 impl RuleValidator<Commit> for MessagePresence {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let message = &commit.message.trim();
         let width = display_width(message);

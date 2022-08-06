@@ -88,6 +88,17 @@ impl Rule {
                 panic!("Unknown rule for commit validation: {}", self)
             }
         };
+        if let Some(dependent_rules) = rule_validator.dependent_rules() {
+            for dependent_rule in dependent_rules {
+                if !commit.checked_rules.contains(&dependent_rule) {
+                    panic!(
+                        "Commit rules were checked out of order. Rule '{}' has a dependency on '{}', which has not been validated yet.",
+                        self,
+                        dependent_rule
+                    );
+                }
+            }
+        }
         rule_validator.validate(commit)
     }
 
@@ -115,6 +126,17 @@ impl Rule {
             Rule::BranchNamePunctuation => Box::new(BranchNamePunctuation::new()),
             Rule::BranchNameCliche => Box::new(BranchNameCliche::new()),
         };
+        if let Some(dependent_rules) = rule_validator.dependent_rules() {
+            for dependent_rule in dependent_rules {
+                if !branch.checked_rules.contains(&dependent_rule) {
+                    panic!(
+                        "Branch rules were checked out of order. Rule '{}' has a dependency on '{}', which has not been validated yet.",
+                        self,
+                        dependent_rule
+                    );
+                }
+            }
+        }
         rule_validator.validate(branch)
     }
 
@@ -147,6 +169,7 @@ impl Rule {
 }
 
 pub trait RuleValidator<T> {
+    fn dependent_rules(&self) -> Option<Vec<Rule>>;
     fn validate(&self, commit: &T) -> Option<Vec<Issue>>;
 }
 

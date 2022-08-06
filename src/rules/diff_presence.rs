@@ -14,6 +14,10 @@ impl DiffPresence {
 }
 
 impl RuleValidator<Commit> for DiffPresence {
+    fn dependent_rules(&self) -> Option<Vec<Rule>> {
+        None
+    }
+
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.has_changes() {
             return None;

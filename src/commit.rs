@@ -12,6 +12,7 @@ pub struct Commit {
     pub issues: Vec<Issue>,
     pub ignored: bool,
     pub ignored_rules: Vec<Rule>,
+    pub checked_rules: Vec<Rule>,
 }
 
 impl Commit {
@@ -44,6 +45,7 @@ impl Commit {
             ignored: false,
             ignored_rules,
             issues: Vec::<Issue>::new(),
+            checked_rules: Vec::<Rule>::new(),
         }
     }
 
@@ -74,48 +76,47 @@ impl Commit {
     }
 
     pub fn validate(&mut self) {
-        self.validate_rule(&Rule::MergeCommit);
-        self.validate_rule(&Rule::RebaseCommit);
+        self.validate_rule(Rule::MergeCommit);
+        self.validate_rule(Rule::RebaseCommit);
 
         // If a commit has a MergeCommit or RebaseCommit issue, other rules are skipped,
         // because the commit itself will need to be rebased into other commits. So the format
         // of the commit won't matter.
         if !self.has_issue(&Rule::MergeCommit) && !self.has_issue(&Rule::RebaseCommit) {
-            self.validate_rule(&Rule::SubjectCliche);
-            self.validate_rule(&Rule::SubjectLength);
-            self.validate_rule(&Rule::SubjectMood);
-            self.validate_rule(&Rule::SubjectWhitespace);
-            self.validate_rule(&Rule::SubjectPrefix);
-            self.validate_rule(&Rule::SubjectCapitalization);
-            self.validate_rule(&Rule::SubjectBuildTag);
-            self.validate_rule(&Rule::SubjectPunctuation);
-            self.validate_rule(&Rule::SubjectTicketNumber);
-            self.validate_rule(&Rule::MessageTicketNumber);
-            self.validate_rule(&Rule::MessageEmptyFirstLine);
-            self.validate_rule(&Rule::MessagePresence);
-            self.validate_rule(&Rule::MessageLineLength);
-            self.validate_rule(&Rule::MessageSkipBuildTag);
+            self.validate_rule(Rule::SubjectCliche);
+            self.validate_rule(Rule::SubjectLength);
+            self.validate_rule(Rule::SubjectMood);
+            self.validate_rule(Rule::SubjectWhitespace);
+            self.validate_rule(Rule::SubjectPrefix);
+            self.validate_rule(Rule::SubjectCapitalization);
+            self.validate_rule(Rule::SubjectBuildTag);
+            self.validate_rule(Rule::SubjectPunctuation);
+            self.validate_rule(Rule::SubjectTicketNumber);
+            self.validate_rule(Rule::MessageTicketNumber);
+            self.validate_rule(Rule::MessageEmptyFirstLine);
+            self.validate_rule(Rule::MessagePresence);
+            self.validate_rule(Rule::MessageLineLength);
+            self.validate_rule(Rule::MessageSkipBuildTag);
         }
-        self.validate_rule(&Rule::DiffPresence);
+        self.validate_rule(Rule::DiffPresence);
     }
 
-    fn validate_rule(&mut self, rule: &Rule) {
-        if self.rule_ignored(rule) {
-            return;
-        }
-
-        match rule.validate_commit(self) {
-            Some(mut issues) => {
-                self.issues.append(&mut issues);
-            }
-            None => {
-                debug!(
-                    "No issues found for commit '{}' in rule '{}'",
-                    self.long_sha.as_ref().unwrap_or(&"".to_string()),
-                    rule
-                );
+    fn validate_rule(&mut self, rule: Rule) {
+        if !self.rule_ignored(&rule) {
+            match rule.validate_commit(self) {
+                Some(mut issues) => {
+                    self.issues.append(&mut issues);
+                }
+                None => {
+                    debug!(
+                        "No issues found for commit '{}' in rule '{}'",
+                        self.long_sha.as_ref().unwrap_or(&"".to_string()),
+                        rule
+                    );
+                }
             }
         }
+        self.checked_rules.push(rule);
     }
 
     pub fn has_issue(&self, rule: &Rule) -> bool {
