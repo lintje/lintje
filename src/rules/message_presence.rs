@@ -20,8 +20,14 @@ impl RuleValidator<Commit> for MessagePresence {
     }
 
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
-        let message = &commit.message.trim();
-        let width = display_width(message);
+        let message_without_line_breaks = &commit
+            .message
+            .trim()
+            .lines()
+            .filter(|l| !l.is_empty())
+            .collect::<Vec<&str>>()
+            .join("");
+        let width = display_width(message_without_line_breaks);
         if width == 0 {
             let context = vec![
                 Context::subject(commit.subject.to_string()),
@@ -97,6 +103,14 @@ mod tests {
              3 | \n\
                | ^ Add a message that describes the change and why it was made",
         );
+    }
+
+    #[test]
+    fn with_only_line_numbers() {
+        // More than 10 characters in line numbers, would be valid if line breaks aren't ignored
+        let commit = commit("Subject", &"\n".repeat(11));
+        let issues = validate(&commit);
+        assert!(issues.is_some());
     }
 
     #[test]

@@ -14,6 +14,7 @@
   detail. The detailed error message including which command was run with which
   arguments is available behind the `--debug` flag.
 - Improve MessagePresence rule error message to more concise.
+- Don't count line breaks towards the minimum MessagePresence character count.
 
 ## 0.8.0
 
