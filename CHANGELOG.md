@@ -2,6 +2,13 @@
 
 ## Next version
 
+### Added
+
+- The MessagePresence rule checks if the commit message is only a reference to
+  a ticket or issue number, e.g. a message that is only "Closes #123" is no
+  longer valid. Some detail about the issue should also be recorded in the
+  commit message itself, not just the linked issue.
+
 ### Changed
 
 - Update the MessageTicketNumber rule to also recognize issue keywords like

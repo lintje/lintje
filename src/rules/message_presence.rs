@@ -4,6 +4,7 @@ use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
 use crate::rule::RuleValidator;
+use crate::rules::CONTAINS_FIX_TICKET;
 use crate::utils::display_width;
 
 pub struct MessagePresence {}
@@ -45,7 +46,16 @@ impl RuleValidator<Commit> for MessagePresence {
                 Position::MessageLine { line: 3, column: 1 },
                 context,
             )]);
-        } else if width < 10 {
+        }
+
+        // The message body is only ticket numbers. Return those issues. No need to check for the
+        // message length after this.
+        let issues = issues_for_lines_with_only_ticket_numbers(&commit.message);
+        if issues.is_some() {
+            return issues;
+        }
+
+        if width < 10 {
             let mut context = vec![];
             let message = commit.message.trim_end();
             let line_length = message.lines().count();
@@ -107,6 +117,78 @@ impl RuleValidator<Commit> for MessagePresence {
 
         None
     }
+}
+
+fn issues_for_lines_with_only_ticket_numbers(message: &str) -> Option<Vec<Issue>> {
+    let mut context = vec![];
+    let mut ticket_starting_line_number = None;
+    let lines = message.lines();
+    for (line_number, line) in lines.enumerate() {
+        let trimmed_line = line.trim();
+        if trimmed_line.is_empty() {
+            continue;
+        }
+
+        if let Some(capture) = scan_for_ticket_number(line) {
+            let line_label = line_number + 2;
+            let capture_str = capture.as_str();
+            let capture_len = capture_str.len();
+            if trimmed_line.len() == capture_len {
+                if ticket_starting_line_number.is_none() {
+                    // The line number to start showing the context from. Empty lines at the start
+                    // are ignored and not shown.
+                    ticket_starting_line_number = Some(line_label);
+                }
+
+                context.push(Context::message_line_error(
+                    line_label,
+                    capture_str.to_string(),
+                    // Rebuild the range because the capture range uses indexes based on the whole
+                    // message string and not only the line on which the ticket number was found.
+                    Range {
+                        start: 0,
+                        end: capture_len,
+                    },
+                    "Add more detail about the change and why it was made".to_string(),
+                ));
+            } else {
+                // The message is not only line numbers, some kind of description is probably
+                // present. Skip the rest of this check.
+                return None;
+            }
+        } else {
+            // No ticket number found on line, skip the rest of this check. All lines need to
+            // match.
+            return None;
+        }
+    }
+    if context.is_empty() {
+        None
+    } else {
+        Some(vec![Issue::error(
+            Rule::MessagePresence,
+            "The message body is only a reference to a ticket number".to_string(),
+            Position::MessageLine {
+                line: ticket_starting_line_number.unwrap_or(2),
+                column: 1,
+            },
+            context,
+        )])
+    }
+}
+
+// Helper function to cleanly return ticket number captures without having to do the debug logging
+// in the loop.
+fn scan_for_ticket_number(message: &str) -> Option<regex::Match> {
+    if let Some(captures) = CONTAINS_FIX_TICKET.captures(message) {
+        match captures.get(0) {
+            Some(capture) => return Some(capture),
+            None => {
+                error!("MessagePresence: Unable to fetch ticket number match from message.");
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -190,5 +272,88 @@ mod tests {
              6 | Short.\n\
                | ^^^^^^ Add more detail about the change and why it was made",
         );
+    }
+
+    #[test]
+    fn with_only_ticket_number() {
+        // Message is more than 10 chars
+        let ticket_only = commit("Subject".to_string(), "\nCloses #123\n".to_string());
+        let issue = first_issue(validate(&ticket_only));
+        assert_eq!(
+            issue.message,
+            "The message body is only a reference to a ticket number"
+        );
+        assert_eq!(issue.position, message_position(3, 1));
+        assert_contains_issue_output(
+            &issue,
+            "3 | Closes #123\n\
+               | ^^^^^^^^^^^ Add more detail about the change and why it was made",
+        );
+    }
+
+    #[test]
+    fn with_multiple_ticket_numbers() {
+        // Message is more than 10 chars
+        let tickets_only = commit(
+            "Subject".to_string(),
+            "\nImplements #123\nCloses #234\n".to_string(),
+        );
+        let issue = first_issue(validate(&tickets_only));
+        assert_eq!(
+            issue.message,
+            "The message body is only a reference to a ticket number"
+        );
+        assert_eq!(issue.position, message_position(3, 1));
+        assert_contains_issue_output(
+            &issue,
+            "3 | Implements #123\n\
+               | ^^^^^^^^^^^^^^^\n\
+             4 | Closes #234\n\
+               | ^^^^^^^^^^^ Add more detail about the change and why it was made",
+        );
+    }
+
+    #[test]
+    fn with_only_ticket_number_on_second_line() {
+        let ticket_only = commit("Subject".to_string(), "Closes #123\n".to_string());
+        let issue = first_issue(validate(&ticket_only));
+        assert_eq!(
+            issue.message,
+            "The message body is only a reference to a ticket number"
+        );
+        assert_eq!(issue.position, message_position(2, 1));
+        assert_contains_issue_output(
+            &issue,
+            "2 | Closes #123\n\
+               | ^^^^^^^^^^^ Add more detail about the change and why it was made",
+        );
+    }
+
+    #[test]
+    fn with_only_ticket_number_on_forth_line() {
+        let ticket_only = commit("Subject".to_string(), "\n\nCloses #123\n".to_string());
+        let issue = first_issue(validate(&ticket_only));
+        assert_eq!(
+            issue.message,
+            "The message body is only a reference to a ticket number"
+        );
+        assert_eq!(issue.position, message_position(4, 1));
+        // It shouldn't show line 3 here because it's empty
+        assert_contains_issue_output(
+            &issue,
+            "4 | Closes #123\n\
+               | ^^^^^^^^^^^ Add more detail about the change and why it was made",
+        );
+    }
+
+    #[test]
+    fn with_message_and_ticket_number() {
+        // The message contains more than just a ticket reference
+        let commit = commit(
+            "Subject".to_string(),
+            "\nThis commit fixes a bug and it also closes #123\n".to_string(),
+        );
+        let issues = validate(&commit);
+        assert_eq!(issues, None);
     }
 }
