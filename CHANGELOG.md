@@ -4,6 +4,9 @@
 
 ### Added
 
+- Update the SubjectTicketNumber and MessageTicketNumber rules to also match
+  full URLs to issues, and match shorthands like `#123` and `org/repo#123` more
+  accurately.
 - The MessagePresence rule checks if the commit message is only a reference to
   a ticket or issue number, e.g. a message that is only "Closes #123" is no
   longer valid. Some detail about the issue should also be recorded in the
@@ -13,9 +16,6 @@
 
 - Update the MessageTicketNumber rule to also recognize issue keywords like
   "part of issue", "part of epic" and "part of project".
-- Update SubjectTicketNumber and MessageTicketNumber rule to also match full
-  URLs to issues, and match shorthands like `#123` and `org/repo#123` more
-  accurately.
 - Improve error messages from Lintje. When Lintje is run in a directory that's
   not a Git repository it will now print a more to the point message with less
   detail. The detailed error message including which command was run with which
