@@ -9,6 +9,10 @@
 - Update SubjectTicketNumber and MessageTicketNumber rule to also match full
   URLs to issues, and match shorthands like `#123` and `org/repo#123` more
   accurately.
+- Improve error messages from Lintje. When Lintje is run in a directory that's
+  not a Git repository it will now print a more to the point message with less
+  detail. The detailed error message including which command was run with which
+  arguments is available behind the `--debug` flag.
 
 ## 0.8.0
 

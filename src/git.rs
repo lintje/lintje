@@ -26,10 +26,14 @@ pub enum CleanupMode {
 }
 
 pub fn fetch_and_parse_branch() -> Result<Branch, String> {
-    let name = match run_command("git", &["rev-parse", "--abbrev-ref", "HEAD"]) {
-        Ok(output) => output.trim().to_string(),
-        Err(e) => return Err(e.message),
+    let output = match run_command("git", &["rev-parse", "--abbrev-ref", "HEAD"]) {
+        Ok(o) => o,
+        Err(e) => {
+            debug!("Failed to fetch Git branch: {:?}", e);
+            return Err(e.message());
+        }
     };
+    let name = output.trim().to_string();
     let mut branch = Branch::new(name);
     branch.validate();
     Ok(branch)
@@ -67,8 +71,11 @@ pub fn fetch_and_parse_commits(selector: &Option<String>) -> Result<Vec<Commit>,
     };
 
     let output = match run_command("git", &args) {
-        Ok(out) => out,
-        Err(e) => return Err(e.message),
+        Ok(o) => o,
+        Err(e) => {
+            debug!("Failed to fetch Git log: {:?}", e);
+            return Err(e.message());
+        }
     };
     let messages = output.split(COMMIT_DELIMITER);
     for message in messages {
@@ -292,7 +299,7 @@ pub fn cleanup_mode() -> CleanupMode {
             "whitespace" => CleanupMode::Whitespace,
             option => {
                 info!(
-                    "Unsupported commit.cleanup config: {}\nFalling back on 'default'.",
+                    "Unsupported Git commit.cleanup config: {}\nFalling back on 'default'.",
                     option
                 );
                 CleanupMode::Default
@@ -301,14 +308,15 @@ pub fn cleanup_mode() -> CleanupMode {
         Err(e) => {
             let message = format!(
                 "Unable to determine Git's commit.cleanup config. \
-                Falling back on default commit.cleanup config.\nError: {}",
-                e.message
+                Falling back on default commit.cleanup config.\nError: {:?}",
+                e
             );
-            if e.code == Some(1) {
+            if e.error.is_exit_code(1) {
                 // Git returns exit code 1 if the config option is not set
                 // So no need to error when that happens
                 debug!("{}", message);
             } else {
+                // Other error that we do not expect so print the error
                 error!("{}", message);
             }
             CleanupMode::Default
@@ -330,14 +338,15 @@ pub fn comment_char() -> String {
         Err(e) => {
             let message = format!(
                 "Unable to determine Git's core.commentChar config. \
-                Falling back on default core.commentChar: `#`\nError: {}",
-                e.message
+                Falling back on default core.commentChar: `#`\nError: {:?}",
+                e
             );
-            if e.code == Some(1) {
+            if e.error.is_exit_code(1) {
                 // Git returns exit code 1 if the config option is not set
                 // So no need to error when that happens
                 debug!("{}", message);
             } else {
+                // Other error that we do not expect so print the error
                 error!("{}", message);
             }
             "#".to_string()

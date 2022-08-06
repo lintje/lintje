@@ -50,7 +50,8 @@ fn main() {
     match handle_command(&options) {
         Ok(_) => (),
         Err(e) => {
-            error!("Lintje encountered an error and had to exit: {}", e);
+            // No println because the error message ends in a line break
+            eprint!("Lintje encountered an error: {}", e);
             std::process::exit(2)
         }
     }
@@ -108,7 +109,7 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
                     .map(std::string::ToString::to_string)
                     .collect::<Vec<String>>(),
                 Err(e) => {
-                    error!("Unable to determine commit changes.\nError: {}", e.message);
+                    error!("Unable to determine commit changes.\nError: {:?}", e);
                     vec![]
                 }
             };
@@ -918,8 +919,8 @@ mod tests {
             .assert()
             .failure()
             .code(2);
-        assert.stdout(predicate::str::contains(
-            "Unable to open commit message file: commit_message_file",
+        assert.stderr(predicate::str::contains(
+            "Lintje encountered an error: Unable to open commit message file: commit_message_file",
         ));
     }
 
