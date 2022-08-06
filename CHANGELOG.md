@@ -11,6 +11,10 @@
   a ticket or issue number, e.g. a message that is only "Closes #123" is no
   longer valid. Some detail about the issue should also be recorded in the
   commit message itself, not just the linked issue.
+- Add the DiffChangeset rule, which checks for the presence of a
+  changeset file when the repository has a `.changeset` or `.changesets`
+  directory. If found, it will give a hint to add a changeset to the commit.
+  Learn more about [changesets](https://github.com/changesets/changesets).
 
 ### Changed
 

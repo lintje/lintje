@@ -25,6 +25,7 @@ pub enum Rule {
     MessageLineLength,
     MessageSkipBuildTag,
     MessageTicketNumber,
+    DiffChangeset,
     DiffPresence,
     BranchNameTicketNumber,
     BranchNameLength,
@@ -51,6 +52,7 @@ impl fmt::Display for Rule {
             Rule::MessageLineLength => "MessageLineLength",
             Rule::MessageSkipBuildTag => "MessageSkipBuildTag",
             Rule::MessageTicketNumber => "MessageTicketNumber",
+            Rule::DiffChangeset => "DiffChangeset",
             Rule::DiffPresence => "DiffPresence",
             Rule::BranchNameTicketNumber => "BranchNameTicketNumber",
             Rule::BranchNameLength => "BranchNameLength",
@@ -80,6 +82,7 @@ impl Rule {
             Rule::MessageLineLength => Box::new(MessageLineLength::new()),
             Rule::MessageSkipBuildTag => Box::new(MessageSkipBuildTag::new()),
             Rule::MessageTicketNumber => Box::new(MessageTicketNumber::new()),
+            Rule::DiffChangeset => Box::new(DiffChangeset::new()),
             Rule::DiffPresence => Box::new(DiffPresence::new()),
             Rule::BranchNameTicketNumber
             | Rule::BranchNameLength
@@ -120,6 +123,7 @@ impl Rule {
             | Rule::MessageLineLength
             | Rule::MessageSkipBuildTag
             | Rule::MessageTicketNumber
+            | Rule::DiffChangeset
             | Rule::DiffPresence => panic!("Unknown rule for branch validation: {}", self),
             Rule::BranchNameLength => Box::new(BranchNameLength::new()),
             Rule::BranchNameTicketNumber => Box::new(BranchNameTicketNumber::new()),
@@ -158,6 +162,7 @@ impl Rule {
             Rule::MessageLineLength => "commit-message/#messagelinelength",
             Rule::MessageSkipBuildTag => "commit-messsage/#messageskipbuildtag",
             Rule::MessageTicketNumber => "commit-message/#messageticketnumber",
+            Rule::DiffChangeset => "commit-type/#diffchangeset",
             Rule::DiffPresence => "commit-type/#diffpresence",
             Rule::BranchNameTicketNumber => "branch/#branchnameticketnumber",
             Rule::BranchNameLength => "branch/#branchnamelength",
@@ -191,6 +196,7 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "MessageLineLength" => Some(Rule::MessageLineLength),
         "MessageSkipBuildTag" => Some(Rule::MessageSkipBuildTag),
         "MessageTicketNumber" => Some(Rule::MessageTicketNumber),
+        "DiffChangeset" => Some(Rule::DiffChangeset),
         "DiffPresence" => Some(Rule::DiffPresence),
         _ => None,
     }

@@ -95,6 +95,7 @@ impl Commit {
             self.validate_rule(Rule::MessagePresence);
             self.validate_rule(Rule::MessageLineLength);
             self.validate_rule(Rule::MessageSkipBuildTag);
+            self.validate_rule(Rule::DiffChangeset);
         }
         self.validate_rule(Rule::DiffPresence);
     }

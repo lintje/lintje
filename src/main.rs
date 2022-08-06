@@ -541,7 +541,7 @@ mod tests {
                 "Hint[MessageTicketNumber]: The message body does not contain a ticket or issue number",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 0 errors detected, 1 hint\n",
+                "1 commit and branch inspected, 0 errors detected, 2 hints\n",
             ));
     }
 
