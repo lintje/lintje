@@ -15,6 +15,10 @@
   arguments is available behind the `--debug` flag.
 - Improve MessagePresence rule error message to more concise.
 - Don't count line breaks towards the minimum MessagePresence character count.
+- Show the whole message body as context in MessagePresence issues that are
+  about message bodies that are too short. Since they are so short Lintje can
+  print it in full. Previously it only showed the last line which did not
+  provide enough context in some cases.
 
 ## 0.8.0
 

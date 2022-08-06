@@ -261,7 +261,10 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                 if let Some(color) = message_color {
                     out.set_color(&color)?;
                 }
-                write!(out, "{}{} {}", leading_spaces, underline, message)?;
+                write!(out, "{}{}", leading_spaces, underline)?;
+                if !message.is_empty() {
+                    write!(out, " {}", message)?;
+                }
                 out.reset()?;
                 writeln!(out)?;
             }

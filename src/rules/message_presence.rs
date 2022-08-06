@@ -47,24 +47,59 @@ impl RuleValidator<Commit> for MessagePresence {
             )]);
         } else if width < 10 {
             let mut context = vec![];
-            let line_count = commit.message.lines().count();
-            let line_number = line_count + 1;
-            if let Some(line) = commit.message.lines().last() {
-                context.push(Context::message_line_error(
-                    line_number,
-                    line.to_string(),
-                    Range {
-                        start: 0,
-                        end: line.len(),
-                    },
-                    "Add more detail about the change and why it was made".to_string(),
-                ));
+            let message = commit.message.trim_end();
+            let line_length = message.lines().count();
+            for (line_number, line) in message.lines().enumerate() {
+                if line_number == 0 && line.is_empty() {
+                    // Skip first line only if it's empty. It should be empty, but if not, print
+                    // it. See also the MessageEmptyFirstLine rule.
+                    continue;
+                }
+
+                let human_line_number = line_number + 2;
+                // Account for zero index array to find last line
+                if line_number + 1 == line_length {
+                    // Only show error message on last line
+                    context.push(Context::message_line_error(
+                        human_line_number,
+                        line.to_string(),
+                        Range {
+                            start: 0,
+                            end: line.len(),
+                        },
+                        "Add more detail about the change and why it was made".to_string(),
+                    ));
+                } else if line.trim().is_empty() {
+                    // Do not show an error message for lines that are empty, because they don't
+                    // count towards the message body count.
+                    context.push(Context::message_line(human_line_number, line.to_string()));
+                } else {
+                    // Do not show an error message on lines that are not the last line to avoid
+                    // repeating the same error message for every line in the message body.
+                    context.push(Context::message_line_error(
+                        human_line_number,
+                        line.to_string(),
+                        Range {
+                            start: 0,
+                            end: line.len(),
+                        },
+                        "".to_string(),
+                    ));
+                }
             }
+            let line_number_of_start_of_issue = if commit.message.starts_with('\n') {
+                3
+            } else {
+                // The first line is not empty like it should be.
+                // This is also handled by the MessageEmptyFirstLine rule, but line number two
+                // needs to be pointed at as the start of the issue in this rule because of it.
+                2
+            };
             return Some(vec![Issue::error(
                 Rule::MessagePresence,
                 "The message body is too short".to_string(),
                 Position::MessageLine {
-                    line: line_number,
+                    line: line_number_of_start_of_issue,
                     column: 1,
                 },
                 context,
@@ -141,14 +176,19 @@ mod tests {
 
     #[test]
     fn with_very_short_multi_line_message() {
-        let very_short = commit("Subject".to_string(), ".\n.\nShort.\n".to_string());
+        let very_short = commit("Subject".to_string(), "\n.\n.\n\nShort.\n".to_string());
         let issues = validate(&very_short);
         let issue = first_issue(issues);
         assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(4, 1));
+        assert_eq!(issue.position, message_position(3, 1));
         assert_contains_issue_output(
             &issue,
-            "4 | Short.\n\
+            "3 | .\n\
+               | ^\n\
+             4 | .\n\
+               | ^\n\
+             5 | \n\
+             6 | Short.\n\
                | ^^^^^^ Add more detail about the change and why it was made",
         );
     }
