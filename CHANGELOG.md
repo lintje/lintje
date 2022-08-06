@@ -26,6 +26,8 @@
   about message bodies that are too short. Since they are so short Lintje can
   print it in full. Previously it only showed the last line which did not
   provide enough context in some cases.
+- Don't count references to issues and ticket numbers towards the minimum
+  message body length in the MessagePresence rule, like "Closes #123".
 
 ## 0.8.0
 

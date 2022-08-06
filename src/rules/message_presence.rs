@@ -28,7 +28,7 @@ impl RuleValidator<Commit> for MessagePresence {
             .filter(|l| !l.is_empty())
             .collect::<Vec<&str>>()
             .join("");
-        let width = display_width(message_without_line_breaks);
+        let mut width = display_width(message_without_line_breaks);
         if width == 0 {
             let context = vec![
                 Context::subject(commit.subject.to_string()),
@@ -54,6 +54,9 @@ impl RuleValidator<Commit> for MessagePresence {
         if issues.is_some() {
             return issues;
         }
+
+        // Do not count ticket references towards message body length/width
+        width -= ticket_number_reference_length(&commit.message);
 
         if width < 10 {
             let mut context = vec![];
@@ -189,6 +192,24 @@ fn scan_for_ticket_number(message: &str) -> Option<regex::Match> {
         }
     }
     None
+}
+
+// Return the length of all ticket number references from the message body.
+fn ticket_number_reference_length(message: &str) -> usize {
+    let mut length = 0;
+    let lines = message.lines();
+    for line in lines {
+        let trimmed_line = line.trim();
+        if trimmed_line.is_empty() {
+            continue;
+        }
+
+        if let Some(capture) = scan_for_ticket_number(line) {
+            let capture_len = capture.as_str().len();
+            length += capture_len;
+        }
+    }
+    length
 }
 
 #[cfg(test)]
@@ -355,5 +376,26 @@ mod tests {
         );
         let issues = validate(&commit);
         assert_eq!(issues, None);
+    }
+
+    #[test]
+    fn with_ticket_number_and_short_message() {
+        // Ignore the ticket number reference as a count towards the body and only count the
+        // remaining text, which is 9 characters, which is too short.
+        let message = commit(
+            "Subject".to_string(),
+            // Message is 9 characters, not including the ticket references
+            "\nFixes #1234\nShortmsg closes #123\n".to_string(),
+        );
+        let issue = first_issue(validate(&message));
+        assert_eq!(issue.message, "The message body is too short");
+        assert_eq!(issue.position, message_position(3, 1));
+        assert_contains_issue_output(
+            &issue,
+            "3 | Fixes #1234\n\
+               | ^^^^^^^^^^^\n\
+             4 | Shortmsg closes #123\n\
+               | ^^^^^^^^^^^^^^^^^^^^ Add more detail about the change and why it was made",
+        );
     }
 }
