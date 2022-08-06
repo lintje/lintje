@@ -130,6 +130,20 @@ impl Context {
         }
     }
 
+    pub fn message_line_error_without_message(
+        line: usize,
+        content: String,
+        range: Range<usize>,
+    ) -> Self {
+        Self {
+            r#type: ContextType::Error,
+            line: Some(line),
+            content,
+            range: Some(range),
+            message: None,
+        }
+    }
+
     pub fn message_line_addition(
         line: usize,
         content: String,

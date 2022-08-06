@@ -223,52 +223,50 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         let formatted_content = content.replace("\t", "    ");
         writeln!(out, "{}", formatted_content)?;
 
-        // Add a message if any
-        match (&context.message, &context.range) {
-            (Some(message), Some(range)) => {
-                let range_start = range.start;
-                let leading = match content.get(0..range_start) {
-                    Some(v) => display_width(v),
-                    None => range_start,
-                };
-                let range_end = range.end;
-                let rest = match content.get(range_start..range_end) {
-                    Some(v) => display_width(v),
-                    None => range.len(),
-                };
-                let (message_color, underline_char) = match context.r#type {
-                    ContextType::Plain | ContextType::Gap => {
-                        error!(
-                            "Unknown scenario occured with '{:?}' formatting",
-                            context.r#type
-                        );
-                        (None, "x")
-                    }
-                    ContextType::Error => (Some(bright_red_color()), "^"),
-                    ContextType::Addition => (Some(cyan_color()), "+"),
-                };
+        // Add underline to the content if any
+        if let Some(range) = &context.range {
+            let range_start = range.start;
+            let leading = match content.get(0..range_start) {
+                Some(v) => display_width(v),
+                None => range_start,
+            };
+            let range_end = range.end;
+            let rest = match content.get(range_start..range_end) {
+                Some(v) => display_width(v),
+                None => range.len(),
+            };
+            let (message_color, underline_char) = match context.r#type {
+                ContextType::Plain | ContextType::Gap => {
+                    error!(
+                        "Unknown scenario occured with '{:?}' formatting",
+                        context.r#type
+                    );
+                    (None, "x")
+                }
+                ContextType::Error => (Some(bright_red_color()), "^"),
+                ContextType::Addition => (Some(cyan_color()), "+"),
+            };
 
-                let leading_spaces = " ".repeat(leading);
-                let underline = underline_char.repeat(rest);
-                context_line(
-                    out,
-                    &ContextLine {
-                        prefix: Prefix::Pipe,
-                        width: line_number_width,
-                        line_number: None,
-                    },
-                )?;
-                if let Some(color) = message_color {
-                    out.set_color(&color)?;
-                }
-                write!(out, "{}{}", leading_spaces, underline)?;
-                if !message.is_empty() {
-                    write!(out, " {}", message)?;
-                }
-                out.reset()?;
-                writeln!(out)?;
+            let leading_spaces = " ".repeat(leading);
+            let underline = underline_char.repeat(rest);
+            context_line(
+                out,
+                &ContextLine {
+                    prefix: Prefix::Pipe,
+                    width: line_number_width,
+                    line_number: None,
+                },
+            )?;
+            if let Some(color) = message_color {
+                out.set_color(&color)?;
             }
-            (_, _) => (),
+            write!(out, "{}{}", leading_spaces, underline)?;
+            // Add hint message if any
+            if let Some(message) = &context.message {
+                write!(out, " {}", message)?;
+            }
+            out.reset()?;
+            writeln!(out)?;
         }
         first_line = false;
         last_line_number = context.line;
@@ -559,6 +557,40 @@ pub mod tests {
             \x20\x2011 | Message line\n\
             \x20\x2012 | Message line with hint\n\
             \x20\x20   |    ^^^^^^^ My hint\n\
+            \x20\x20   | \n\
+            \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
+        );
+    }
+
+    #[test]
+    fn test_formatted_commit_issue_message_line_error_without_message() {
+        let commit = commit(Some("1234567".to_string()), "Subject", "Message");
+        let context = vec![
+            Context::message_line(11, "Message line".to_string()),
+            Context::message_line_error_without_message(
+                12,
+                "Message line without hint".to_string(),
+                Range { start: 3, end: 10 },
+            ),
+        ];
+        let issue = Issue::error(
+            Rule::MessageLineLength,
+            "The error message".to_string(),
+            Position::MessageLine {
+                line: 11,
+                column: 50,
+            },
+            context,
+        );
+        let output = commit_issue(&commit, &issue);
+        assert_eq!(
+            output,
+            "Error[MessageLineLength]: The error message\n\
+            \x20\x201234567:11:50: Subject\n\
+            \x20\x20   | \n\
+            \x20\x2011 | Message line\n\
+            \x20\x2012 | Message line without hint\n\
+            \x20\x20   |    ^^^^^^^\n\
             \x20\x20   | \n\
             \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );

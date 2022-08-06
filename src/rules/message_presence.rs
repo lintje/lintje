@@ -76,14 +76,13 @@ impl RuleValidator<Commit> for MessagePresence {
                 } else {
                     // Do not show an error message on lines that are not the last line to avoid
                     // repeating the same error message for every line in the message body.
-                    context.push(Context::message_line_error(
+                    context.push(Context::message_line_error_without_message(
                         human_line_number,
                         line.to_string(),
                         Range {
                             start: 0,
                             end: line.len(),
                         },
-                        "".to_string(),
                     ));
                 }
             }
