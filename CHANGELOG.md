@@ -13,6 +13,7 @@
   not a Git repository it will now print a more to the point message with less
   detail. The detailed error message including which command was run with which
   arguments is available behind the `--debug` flag.
+- Improve MessagePresence rule error message to more concise.
 
 ## 0.8.0
 

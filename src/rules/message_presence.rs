@@ -30,8 +30,7 @@ impl RuleValidator<Commit> for MessagePresence {
                     3,
                     "".to_string(),
                     Range { start: 0, end: 1 },
-                    "Add a message body with context about the change and why it was made"
-                        .to_string(),
+                    "Add a message that describes the change and why it was made".to_string(),
                 ),
             ];
             return Some(vec![Issue::error(
@@ -52,8 +51,7 @@ impl RuleValidator<Commit> for MessagePresence {
                         start: 0,
                         end: line.len(),
                     },
-                    "Add a longer message with context about the change and why it was made"
-                        .to_string(),
+                    "Add more detail about the change and why it was made".to_string(),
                 ));
             }
             return Some(vec![Issue::error(
@@ -97,7 +95,7 @@ mod tests {
             "1 | Subject\n\
              2 | \n\
              3 | \n\
-               | ^ Add a message body with context about the change and why it was made",
+               | ^ Add a message that describes the change and why it was made",
         );
     }
 
@@ -110,20 +108,20 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "3 | Short.\n\
-               | ^^^^^^ Add a longer message with context about the change and why it was made",
+               | ^^^^^^ Add more detail about the change and why it was made",
         );
     }
 
     #[test]
     fn with_very_short_message() {
-        let very_short = commit("Subject".to_string(), "...".to_string());
+        let very_short = commit("Subject".to_string(), "WIP".to_string());
         let issue = first_issue(validate(&very_short));
         assert_eq!(issue.message, "The message body is too short");
         assert_eq!(issue.position, message_position(2, 1));
         assert_contains_issue_output(
             &issue,
-            "2 | ...\n\
-               | ^^^ Add a longer message with context about the change and why it was made",
+            "2 | WIP\n\
+               | ^^^ Add more detail about the change and why it was made",
         );
     }
 
@@ -137,7 +135,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "4 | Short.\n\
-               | ^^^^^^ Add a longer message with context about the change and why it was made",
+               | ^^^^^^ Add more detail about the change and why it was made",
         );
     }
 }
