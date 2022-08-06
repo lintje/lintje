@@ -4,6 +4,7 @@ use regex::{Regex, RegexBuilder};
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use crate::utils::character_count_for_bytes_index;
 
 lazy_static! {
@@ -22,8 +23,10 @@ impl SubjectBuildTag {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for SubjectBuildTag {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject.to_string();
         if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {
             match captures.get(1) {

@@ -4,6 +4,7 @@ use regex::{Regex, RegexBuilder};
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 
 lazy_static! {
     static ref SUBJECT_WITH_CLICHE: Regex = {
@@ -22,8 +23,10 @@ impl SubjectCliche {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for SubjectCliche {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject.to_lowercase();
         let wip_commit = subject.starts_with("wip ") || subject == &"wip".to_string();
         if wip_commit || SUBJECT_WITH_CLICHE.is_match(subject) {

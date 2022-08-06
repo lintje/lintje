@@ -4,6 +4,7 @@ use regex::Regex;
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use crate::utils::character_count_for_bytes_index;
 
 use crate::rules::CONTAINS_FIX_TICKET;
@@ -21,8 +22,10 @@ impl SubjectTicketNumber {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for SubjectTicketNumber {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let mut issues = vec![];
         let subject = &commit.subject.to_string();
         if let Some(captures) = SUBJECT_WITH_TICKET.captures(subject) {

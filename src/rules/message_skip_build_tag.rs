@@ -4,6 +4,7 @@ use regex::{Regex, RegexBuilder};
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 
 lazy_static! {
     static ref TEXT_FILES: Regex = {
@@ -22,8 +23,10 @@ impl MessageSkipBuildTag {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for MessageSkipBuildTag {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if !commit.has_changes() {
             return None;
         }

@@ -3,6 +3,7 @@ use core::ops::Range;
 use crate::branch::Branch;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
@@ -22,8 +23,10 @@ impl BranchNameCliche {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
+impl RuleValidator<Branch> for BranchNameCliche {
+    fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let name = &branch.name.to_lowercase();
         if BRANCH_WITH_CLICHE.is_match(name) {
             let context = vec![Context::branch_error(

@@ -3,6 +3,7 @@ use core::ops::Range;
 use crate::branch::Branch;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use crate::utils::{character_count_for_bytes_index, is_punctuation};
 
 pub struct BranchNamePunctuation {}
@@ -11,8 +12,10 @@ impl BranchNamePunctuation {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
+impl RuleValidator<Branch> for BranchNamePunctuation {
+    fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let mut issues = vec![];
         match &branch.name.chars().next() {
             Some(character) => {

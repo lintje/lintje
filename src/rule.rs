@@ -63,35 +63,36 @@ impl fmt::Display for Rule {
 
 impl Rule {
     pub fn validate_commit(&self, commit: &Commit) -> Option<Vec<Issue>> {
-        match self {
-            Rule::MergeCommit => MergeCommit::new().validate(commit),
-            Rule::RebaseCommit => RebaseCommit::new().validate(commit),
-            Rule::SubjectLength => SubjectLength::new().validate(commit),
-            Rule::SubjectMood => SubjectMood::new().validate(commit),
-            Rule::SubjectWhitespace => SubjectWhitespace::new().validate(commit),
-            Rule::SubjectCapitalization => SubjectCapitalization::new().validate(commit),
-            Rule::SubjectPunctuation => SubjectPunctuation::new().validate(commit),
-            Rule::SubjectTicketNumber => SubjectTicketNumber::new().validate(commit),
-            Rule::SubjectPrefix => SubjectPrefix::new().validate(commit),
-            Rule::SubjectBuildTag => SubjectBuildTag::new().validate(commit),
-            Rule::SubjectCliche => SubjectCliche::new().validate(commit),
-            Rule::MessagePresence => MessagePresence::new().validate(commit),
-            Rule::MessageEmptyFirstLine => MessageEmptyFirstLine::new().validate(commit),
-            Rule::MessageLineLength => MessageLineLength::new().validate(commit),
-            Rule::MessageSkipBuildTag => MessageSkipBuildTag::new().validate(commit),
-            Rule::MessageTicketNumber => MessageTicketNumber::new().validate(commit),
-            Rule::DiffPresence => DiffPresence::new().validate(commit),
+        let rule_validator: Box<dyn RuleValidator<Commit>> = match self {
+            Rule::MergeCommit => Box::new(MergeCommit::new()),
+            Rule::RebaseCommit => Box::new(RebaseCommit::new()),
+            Rule::SubjectLength => Box::new(SubjectLength::new()),
+            Rule::SubjectMood => Box::new(SubjectMood::new()),
+            Rule::SubjectWhitespace => Box::new(SubjectWhitespace::new()),
+            Rule::SubjectCapitalization => Box::new(SubjectCapitalization::new()),
+            Rule::SubjectPunctuation => Box::new(SubjectPunctuation::new()),
+            Rule::SubjectTicketNumber => Box::new(SubjectTicketNumber::new()),
+            Rule::SubjectPrefix => Box::new(SubjectPrefix::new()),
+            Rule::SubjectBuildTag => Box::new(SubjectBuildTag::new()),
+            Rule::SubjectCliche => Box::new(SubjectCliche::new()),
+            Rule::MessagePresence => Box::new(MessagePresence::new()),
+            Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
+            Rule::MessageLineLength => Box::new(MessageLineLength::new()),
+            Rule::MessageSkipBuildTag => Box::new(MessageSkipBuildTag::new()),
+            Rule::MessageTicketNumber => Box::new(MessageTicketNumber::new()),
+            Rule::DiffPresence => Box::new(DiffPresence::new()),
             Rule::BranchNameTicketNumber
             | Rule::BranchNameLength
             | Rule::BranchNamePunctuation
             | Rule::BranchNameCliche => {
                 panic!("Unknown rule for commit validation: {}", self)
             }
-        }
+        };
+        rule_validator.validate(commit)
     }
 
     pub fn validate_branch(&self, branch: &Branch) -> Option<Vec<Issue>> {
-        match self {
+        let rule_validator: Box<dyn RuleValidator<Branch>> = match self {
             Rule::MergeCommit
             | Rule::RebaseCommit
             | Rule::SubjectLength
@@ -109,11 +110,12 @@ impl Rule {
             | Rule::MessageSkipBuildTag
             | Rule::MessageTicketNumber
             | Rule::DiffPresence => panic!("Unknown rule for branch validation: {}", self),
-            Rule::BranchNameLength => BranchNameLength::new().validate(branch),
-            Rule::BranchNameTicketNumber => BranchNameTicketNumber::new().validate(branch),
-            Rule::BranchNamePunctuation => BranchNamePunctuation::new().validate(branch),
-            Rule::BranchNameCliche => BranchNameCliche::new().validate(branch),
-        }
+            Rule::BranchNameLength => Box::new(BranchNameLength::new()),
+            Rule::BranchNameTicketNumber => Box::new(BranchNameTicketNumber::new()),
+            Rule::BranchNamePunctuation => Box::new(BranchNamePunctuation::new()),
+            Rule::BranchNameCliche => Box::new(BranchNameCliche::new()),
+        };
+        rule_validator.validate(branch)
     }
 
     pub fn link(&self) -> String {
@@ -142,6 +144,10 @@ impl Rule {
         };
         format!("{}rules/{}", BASE_URL, path)
     }
+}
+
+pub trait RuleValidator<T> {
+    fn validate(&self, commit: &T) -> Option<Vec<Issue>>;
 }
 
 pub fn rule_by_name(name: &str) -> Option<Rule> {

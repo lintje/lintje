@@ -4,6 +4,7 @@ use regex::Regex;
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use crate::utils::line_length_stats;
 
 lazy_static! {
@@ -25,8 +26,10 @@ impl MessageLineLength {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for MessageLineLength {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let mut code_block_style = CodeBlockStyle::None;
         let mut previous_line_was_empty_line = false;
         let mut issues = vec![];

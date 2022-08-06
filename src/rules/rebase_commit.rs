@@ -3,6 +3,7 @@ use core::ops::Range;
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 
 pub struct RebaseCommit {}
 
@@ -10,8 +11,10 @@ impl RebaseCommit {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for RebaseCommit {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject;
         let fixup_check = validate_prefix("fixup", subject);
         if fixup_check.is_some() {

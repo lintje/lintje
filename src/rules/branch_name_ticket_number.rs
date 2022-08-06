@@ -3,6 +3,7 @@ use core::ops::Range;
 use crate::branch::Branch;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use regex::{Regex, RegexBuilder};
 
 lazy_static! {
@@ -20,8 +21,10 @@ impl BranchNameTicketNumber {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
+impl RuleValidator<Branch> for BranchNameTicketNumber {
+    fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let name = &branch.name;
         if let Some(captures) = BRANCH_WITH_TICKET_NUMBER.captures(name) {
             let valid = match (captures.get(1), captures.get(2), captures.get(3)) {

@@ -4,6 +4,7 @@ use regex::{Regex, RegexBuilder};
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 
 use crate::rules::CONTAINS_FIX_TICKET;
 
@@ -23,8 +24,10 @@ impl MessageTicketNumber {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for MessageTicketNumber {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let message = &commit.message.to_string();
         if CONTAINS_FIX_TICKET.captures(message).is_none()
             && LINK_TO_TICKET.captures(message).is_none()

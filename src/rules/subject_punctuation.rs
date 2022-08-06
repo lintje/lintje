@@ -4,6 +4,7 @@ use regex::Regex;
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use crate::utils::{character_count_for_bytes_index, is_punctuation};
 
 lazy_static! {
@@ -22,8 +23,10 @@ impl SubjectPunctuation {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for SubjectPunctuation {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.subject.chars().count() == 0 && commit.has_issue(&Rule::SubjectLength) {
             return None;
         }

@@ -3,6 +3,7 @@ use core::ops::Range;
 use crate::branch::Branch;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 use crate::utils::display_width;
 
 pub struct BranchNameLength {}
@@ -11,8 +12,10 @@ impl BranchNameLength {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
+impl RuleValidator<Branch> for BranchNameLength {
+    fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let name = &branch.name;
         let width = display_width(name);
         if width < 4 {

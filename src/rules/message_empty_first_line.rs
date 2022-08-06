@@ -3,6 +3,7 @@ use core::ops::Range;
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
+use crate::rule::RuleValidator;
 
 pub struct MessageEmptyFirstLine {}
 
@@ -10,8 +11,10 @@ impl MessageEmptyFirstLine {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    pub fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+impl RuleValidator<Commit> for MessageEmptyFirstLine {
+    fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if let Some(line) = commit.message.lines().next() {
             if !line.is_empty() {
                 let context = vec![
