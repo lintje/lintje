@@ -119,6 +119,19 @@ mod tests {
     }
 
     #[test]
+    fn without_changeset_with_skip_tag() {
+        let commit = Commit::new(
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
+            Some("test@example.com".to_string()),
+            "Subject",
+            "Some message\n[skip changeset]".to_string(),
+            vec!["README.md".to_string(), "src/main.rs".to_string()],
+        );
+        let issues = validate(&commit);
+        assert_eq!(issues, None);
+    }
+
+    #[test]
     fn with_changesets_in_root_directory() {
         let issues = validate(&commit_with_files(vec![
             "src/main.rs".to_string(),
