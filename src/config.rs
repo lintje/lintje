@@ -115,6 +115,11 @@ impl Lint {
     }
 }
 
+#[derive(Debug)]
+pub struct ValidationContext {
+    pub changesets: bool,
+}
+
 pub fn fetch_options() -> Lint {
     let cli_opts = cli_options();
     match file_options(env::var("LINTJE_OPTIONS_PATH")) {

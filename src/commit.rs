@@ -1,3 +1,4 @@
+use crate::config::ValidationContext;
 use crate::issue::Issue;
 use crate::rule::{rule_by_name, Rule};
 
@@ -73,7 +74,7 @@ impl Commit {
         self.issues.is_empty()
     }
 
-    pub fn validate(&mut self) {
+    pub fn validate(&mut self, context: &ValidationContext) {
         self.validate_rule(Rule::MergeCommit);
         self.validate_rule(Rule::RebaseCommit);
 
@@ -95,7 +96,9 @@ impl Commit {
             self.validate_rule(Rule::MessagePresence);
             self.validate_rule(Rule::MessageLineLength);
             self.validate_rule(Rule::MessageSkipBuildTag);
-            self.validate_rule(Rule::DiffChangeset);
+            if context.changesets {
+                self.validate_rule(Rule::DiffChangeset);
+            }
         }
         self.validate_rule(Rule::DiffPresence);
     }
@@ -125,8 +128,13 @@ impl Commit {
 
 #[cfg(test)]
 mod tests {
+    use crate::config::ValidationContext;
     use crate::rule::Rule;
     use crate::test::*;
+
+    fn default_context() -> ValidationContext {
+        ValidationContext { changesets: false }
+    }
 
     #[test]
     fn test_create_short_sha() {
@@ -149,8 +157,22 @@ mod tests {
     fn is_valid() {
         let mut commit = commit("".to_string(), "Intentionally invalid commit".to_string());
         assert!(commit.is_valid());
-        commit.validate();
+        commit.validate(&default_context());
         assert!(!commit.is_valid());
+    }
+
+    #[test]
+    fn does_not_validate_changeset_rule_when_changeset_mode_is_false() {
+        let mut commit = commit("".to_string(), "Intentionally invalid commit".to_string());
+        commit.validate(&ValidationContext { changesets: false });
+        assert!(!commit.checked_rules.contains(&Rule::DiffChangeset));
+    }
+
+    #[test]
+    fn validate_changeset_rule_when_changeset_mode_is_true() {
+        let mut commit = commit("".to_string(), "Intentionally invalid commit".to_string());
+        commit.validate(&ValidationContext { changesets: true });
+        assert!(commit.checked_rules.contains(&Rule::DiffChangeset));
     }
 
     #[test]
@@ -167,7 +189,7 @@ mod tests {
             vec![Rule::SubjectLength, Rule::MessageEmptyFirstLine]
         );
 
-        ignored_rule.validate();
+        ignored_rule.validate(&default_context());
         assert!(!ignored_rule.has_issue(&Rule::SubjectLength));
         assert!(!ignored_rule.has_issue(&Rule::MessageEmptyFirstLine));
     }

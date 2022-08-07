@@ -19,6 +19,8 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
 
+use termcolor::{ColorChoice, StandardStream, WriteColor};
+
 mod branch;
 mod command;
 mod commit;
@@ -36,14 +38,14 @@ mod utils;
 use branch::Branch;
 use command::run_command;
 use commit::Commit;
-use config::{fetch_options, Lint};
+use config::{fetch_options, Lint, ValidationContext};
 use formatter::{formatted_branch_issue, formatted_commit_issue};
 use git::{
     fetch_and_parse_branch, fetch_and_parse_commits, is_commit_ignored, parse_commit_hook_format,
+    repo_has_changesets,
 };
 use issue::IssueType;
 use logger::Logger;
-use termcolor::{ColorChoice, StandardStream, WriteColor};
 use utils::pluralize;
 
 fn main() {
@@ -60,6 +62,11 @@ fn main() {
 }
 
 fn handle_command(options: &Lint) -> Result<(), String> {
+    let validate_changesets = repo_has_changesets();
+    let context = ValidationContext {
+        changesets: validate_changesets,
+    };
+    debug!("Validating with context: {context:?}");
     let commits = match &options.hook_message_file {
         Some(hook_message_file) => lint_commit_hook(hook_message_file)?,
         None => lint_commit(&options.selection)?,
@@ -69,7 +76,7 @@ fn handle_command(options: &Lint) -> Result<(), String> {
     } else {
         None
     };
-    match print_lint_result(commits, branch, options) {
+    match print_lint_result(commits, branch, options, &context) {
         Ok(_) => Ok(()),
         Err(error) => Err(format!(
             "Error encountered while printing output: {}",
@@ -138,6 +145,7 @@ fn print_lint_result(
     mut commits: Vec<Commit>,
     branch: Option<Branch>,
     options: &Lint,
+    context: &ValidationContext,
 ) -> io::Result<()> {
     let mut out = buffer_writer(options.color());
     let mut error_count = 0;
@@ -151,7 +159,7 @@ fn print_lint_result(
             ignored_commit_count += 1;
             continue;
         }
-        commit.validate();
+        commit.validate(context);
         commit_count += 1;
         if !commit.is_valid() {
             for issue in &commit.issues {
@@ -541,7 +549,7 @@ mod tests {
                 "Hint[MessageTicketNumber]: The message body does not contain a ticket or issue number",
             ))
             .stdout(predicate::str::contains(
-                "1 commit and branch inspected, 0 errors detected, 2 hints\n",
+                "1 commit and branch inspected, 0 errors detected, 1 hint\n",
             ));
     }
 
@@ -926,6 +934,42 @@ mod tests {
         assert.stderr(predicate::str::contains(
             "Lintje encountered an error: Unable to open commit message file: commit_message_file",
         ));
+    }
+
+    #[test]
+    fn does_not_validate_changesets_in_repo_without_changesets() {
+        compile_bin();
+        let dir = test_dir("no_changesets");
+        create_test_repo(&dir);
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.args(["--no-color"]).current_dir(dir).assert().success();
+        assert.stdout(predicate::str::contains("Hint[DiffChangeset]").not());
+    }
+
+    #[test]
+    fn validate_changesets_in_repo_with_changesets() {
+        compile_bin();
+        let dir = test_dir("with_changesets");
+        create_test_repo(&dir);
+
+        // Add commit with changeset
+        let changeset_dir = dir.join(".changesets");
+        std::fs::create_dir_all(&changeset_dir).expect("Could not create changeset dir");
+        create_dummy_file(&changeset_dir.join("some-changeset.md"));
+        stage_files(&changeset_dir);
+        create_commit(
+            &changeset_dir,
+            "Add changeset for changelog",
+            "Add a changeset file",
+        );
+
+        // Create new commit to be validated without changeset
+        create_commit_with_file(&dir, "Test commit", "I am a test commit", "file");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.args(["--no-color"]).current_dir(dir).assert().success();
+        assert.stdout(predicate::str::contains("Hint[DiffChangeset]"));
     }
 
     #[test]

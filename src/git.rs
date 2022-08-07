@@ -348,6 +348,33 @@ pub fn comment_char() -> String {
     }
 }
 
+pub fn repo_has_changesets() -> bool {
+    // Find all changesets directories in the repo
+    match run_command(
+        "git",
+        &[
+            "ls-files",
+            "--cached",  // Only committed files
+            "--ignored", // List all --exclude matches
+            "--exclude=.changesets/",
+            "--exclude=**/*/.changesets/", // Match sub directories
+            "--exclude=.changeset/",
+            "--exclude=**/*/.changeset/", // Match sub directories
+        ],
+    ) {
+        Ok(stdout) => {
+            // If no output is printed no changeset directory was found
+            !stdout.is_empty()
+        }
+        Err(e) => {
+            // Other error that we do not expect so print the error
+            let message = format!("Unable to read files from Git repository.\nError: {:?}", e);
+            error!("{}", message);
+            false
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Commit;
@@ -355,10 +382,15 @@ mod tests {
         is_commit_ignored, parse_commit, parse_commit_hook_format, CleanupMode,
         COMMIT_BODY_DELIMITER,
     };
+    use crate::config::ValidationContext;
     use crate::issue::{Issue, IssueType};
 
+    fn default_context() -> ValidationContext {
+        ValidationContext { changesets: false }
+    }
+
     fn assert_commit_is_invalid(commit: &mut Commit) {
-        commit.validate();
+        commit.validate(&default_context());
         assert!(!commit.issues.is_empty());
     }
 
