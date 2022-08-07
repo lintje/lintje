@@ -15,10 +15,6 @@ impl SubjectLength {
 }
 
 impl RuleValidator<Commit> for SubjectLength {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        Some(vec![Rule::SubjectCliche])
-    }
-
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if commit.has_issue(&Rule::SubjectCliche) {
             return None;

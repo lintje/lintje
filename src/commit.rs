@@ -162,6 +162,62 @@ mod tests {
     }
 
     #[test]
+    fn check_validated_rules_default() {
+        let mut commit = commit("".to_string(), "Intentionally invalid commit".to_string());
+        commit.validate(&ValidationContext { changesets: false });
+        // Test specific order of rules because they may depend on one another
+        assert_eq!(
+            commit.checked_rules,
+            vec![
+                Rule::MergeCommit,
+                Rule::RebaseCommit,
+                Rule::SubjectCliche,
+                Rule::SubjectLength,
+                Rule::SubjectMood,
+                Rule::SubjectWhitespace,
+                Rule::SubjectPrefix,
+                Rule::SubjectCapitalization,
+                Rule::SubjectBuildTag,
+                Rule::SubjectPunctuation,
+                Rule::SubjectTicketNumber,
+                Rule::MessageTicketNumber,
+                Rule::MessageEmptyFirstLine,
+                Rule::MessagePresence,
+                Rule::MessageLineLength,
+                Rule::MessageSkipBuildTag,
+                Rule::DiffPresence
+            ]
+        );
+    }
+
+    #[test]
+    fn check_validated_rules_merge_commit() {
+        let mut commit = commit(
+            "Merge branch 'develop' of github.com/org/repo into develop".to_string(),
+            "".to_string(),
+        );
+        commit.validate(&ValidationContext { changesets: false });
+        // Test specific order of rules because they may depend on one another.
+        // A lot of rules are skipped for these types of commits because they do not apply.
+        assert_eq!(
+            commit.checked_rules,
+            vec![Rule::MergeCommit, Rule::RebaseCommit, Rule::DiffPresence]
+        );
+    }
+
+    #[test]
+    fn check_validated_rules_fixup_commit() {
+        let mut commit = commit("fixup! Some commit".to_string(), "".to_string());
+        commit.validate(&ValidationContext { changesets: false });
+        // Test specific order of rules because they may depend on one another.
+        // A lot of rules are skipped for these types of commits because they do not apply.
+        assert_eq!(
+            commit.checked_rules,
+            vec![Rule::MergeCommit, Rule::RebaseCommit, Rule::DiffPresence]
+        );
+    }
+
+    #[test]
     fn does_not_validate_changeset_rule_when_changeset_mode_is_false() {
         let mut commit = commit("".to_string(), "Intentionally invalid commit".to_string());
         commit.validate(&ValidationContext { changesets: false });

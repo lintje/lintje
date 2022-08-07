@@ -26,10 +26,6 @@ impl SubjectBuildTag {
 }
 
 impl RuleValidator<Commit> for SubjectBuildTag {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        None
-    }
-
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject.to_string();
         if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {

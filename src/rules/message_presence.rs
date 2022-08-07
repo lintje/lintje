@@ -16,10 +16,6 @@ impl MessagePresence {
 }
 
 impl RuleValidator<Commit> for MessagePresence {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        None
-    }
-
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let message_without_line_breaks = &commit
             .message

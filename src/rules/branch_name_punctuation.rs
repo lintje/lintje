@@ -15,10 +15,6 @@ impl BranchNamePunctuation {
 }
 
 impl RuleValidator<Branch> for BranchNamePunctuation {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        None
-    }
-
     fn validate(&self, branch: &Branch) -> Option<Vec<Issue>> {
         let mut issues = vec![];
         match &branch.name.chars().next() {

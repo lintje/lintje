@@ -27,10 +27,6 @@ impl MessageTicketNumber {
 }
 
 impl RuleValidator<Commit> for MessageTicketNumber {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        None
-    }
-
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let message = &commit.message.to_string();
         if CONTAINS_FIX_TICKET.captures(message).is_none()

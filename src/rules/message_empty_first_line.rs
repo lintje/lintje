@@ -14,10 +14,6 @@ impl MessageEmptyFirstLine {
 }
 
 impl RuleValidator<Commit> for MessageEmptyFirstLine {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        None
-    }
-
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if let Some(line) = commit.message.lines().next() {
             if !line.is_empty() {

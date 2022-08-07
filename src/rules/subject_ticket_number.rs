@@ -25,10 +25,6 @@ impl SubjectTicketNumber {
 }
 
 impl RuleValidator<Commit> for SubjectTicketNumber {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        None
-    }
-
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let mut issues = vec![];
         let subject = &commit.subject.to_string();

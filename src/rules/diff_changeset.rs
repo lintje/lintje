@@ -21,10 +21,6 @@ impl DiffChangeset {
 }
 
 impl RuleValidator<Commit> for DiffChangeset {
-    fn dependent_rules(&self) -> Option<Vec<Rule>> {
-        None
-    }
-
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         if !commit.has_changes() {
             return None;
