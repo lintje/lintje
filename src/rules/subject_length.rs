@@ -114,10 +114,15 @@ mod tests {
     #[test]
     fn with_cliche_subject() {
         let mut wip_commit = commit("wip", "");
-        wip_commit.validate();
+        wip_commit.issues.push(Issue::error(
+            Rule::SubjectCliche,
+            "some message".to_string(),
+            Position::Subject { line: 1, column: 1 },
+            vec![],
+        ));
+        let issues = validate(&wip_commit);
         // Already a SubjectCliche issue, so it's skipped.
-        assert!(wip_commit.has_issue(&Rule::SubjectCliche));
-        assert!(!wip_commit.has_issue(&Rule::SubjectLength));
+        assert_eq!(issues, None);
     }
 
     #[test]
