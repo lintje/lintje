@@ -148,7 +148,6 @@ fn print_lint_result(
 
     for commit in commits.iter_mut() {
         if is_commit_ignored(commit) {
-            commit.ignored = true;
             ignored_commit_count += 1;
             continue;
         }

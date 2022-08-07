@@ -10,7 +10,6 @@ pub struct Commit {
     pub message: String,
     pub file_changes: Vec<String>,
     pub issues: Vec<Issue>,
-    pub ignored: bool,
     pub ignored_rules: Vec<Rule>,
     pub checked_rules: Vec<Rule>,
 }
@@ -42,7 +41,6 @@ impl Commit {
             subject: subject.trim_end().to_string(),
             message,
             file_changes,
-            ignored: false,
             ignored_rules,
             issues: Vec::<Issue>::new(),
             checked_rules: Vec::<Rule>::new(),
