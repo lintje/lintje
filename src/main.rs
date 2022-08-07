@@ -38,7 +38,9 @@ use command::run_command;
 use commit::Commit;
 use config::{fetch_options, Lint};
 use formatter::{formatted_branch_issue, formatted_commit_issue};
-use git::{fetch_and_parse_branch, fetch_and_parse_commits, parse_commit_hook_format};
+use git::{
+    fetch_and_parse_branch, fetch_and_parse_commits, is_commit_ignored, parse_commit_hook_format,
+};
 use issue::IssueType;
 use logger::Logger;
 use termcolor::{ColorChoice, StandardStream, WriteColor};
@@ -133,7 +135,7 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
 }
 
 fn print_lint_result(
-    commits: Vec<Commit>,
+    mut commits: Vec<Commit>,
     branch: Option<Branch>,
     options: &Lint,
 ) -> io::Result<()> {
@@ -144,12 +146,13 @@ fn print_lint_result(
     let mut ignored_commit_count = 0;
     let mut branch_message = "";
 
-    debug!("Commits: {:?}", commits);
-    for commit in commits {
-        if commit.ignored {
+    for commit in commits.iter_mut() {
+        if is_commit_ignored(commit) {
+            commit.ignored = true;
             ignored_commit_count += 1;
             continue;
         }
+        commit.validate();
         commit_count += 1;
         if !commit.is_valid() {
             for issue in &commit.issues {
@@ -164,11 +167,13 @@ fn print_lint_result(
                     }
                 };
                 if show {
-                    formatted_commit_issue(&mut out, &commit, issue)?;
+                    formatted_commit_issue(&mut out, commit, issue)?;
                 }
             }
         }
     }
+    debug!("Commits: {:?}", commits);
+
     if let Some(branch) = branch {
         debug!("Branch: {:?}", branch);
         branch_message = " and branch";

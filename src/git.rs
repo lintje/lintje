@@ -226,16 +226,10 @@ fn commit_for(
     message: Vec<String>,
     file_changes: Vec<String>,
 ) -> Commit {
-    let mut commit = Commit::new(sha, email, subject, message.join("\n"), file_changes);
-    if ignored(&commit) {
-        commit.ignored = true;
-    } else {
-        commit.validate();
-    }
-    commit
+    Commit::new(sha, email, subject, message.join("\n"), file_changes)
 }
 
-fn ignored(commit: &Commit) -> bool {
+pub fn is_commit_ignored(commit: &Commit) -> bool {
     let subject = &commit.subject;
     let message = &commit.message;
     if let Some(email) = &commit.email {
@@ -357,23 +351,27 @@ pub fn comment_char() -> String {
 #[cfg(test)]
 mod tests {
     use super::Commit;
-    use super::{parse_commit, parse_commit_hook_format, CleanupMode, COMMIT_BODY_DELIMITER};
+    use super::{
+        is_commit_ignored, parse_commit, parse_commit_hook_format, CleanupMode,
+        COMMIT_BODY_DELIMITER,
+    };
     use crate::issue::{Issue, IssueType};
+
+    fn assert_commit_is_invalid(commit: &mut Commit) {
+        commit.validate();
+        assert!(!commit.issues.is_empty());
+    }
 
     fn assert_commit_is_ignored(result: &Option<Commit>) {
         match result {
-            Some(commit) => {
-                assert!(commit.ignored);
-            }
+            Some(commit) => assert!(is_commit_ignored(commit)),
             None => panic!("Result is not a commit!"),
         }
     }
 
     fn assert_commit_is_not_ignored(result: &Option<Commit>) {
         match result {
-            Some(commit) => {
-                assert!(!commit.ignored);
-            }
+            Some(commit) => assert!(!is_commit_ignored(commit)),
             None => panic!("Result is not a commit!"),
         }
     }
@@ -426,12 +424,12 @@ mod tests {
     fn test_parse_commit_with_errors() {
         let result = parse_commit(&commit_with_file_changes(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        test@example.com\n\
-        This is a subject",
+            test@example.com\n\
+            This is a subject",
         ));
 
         assert_commit_is_not_ignored(&result);
-        let commit = result.unwrap();
+        let mut commit = result.unwrap();
         assert_eq!(
             commit.long_sha,
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
@@ -441,7 +439,7 @@ mod tests {
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "");
         assert!(commit.has_changes());
-        assert!(!commit.issues.is_empty());
+        assert_commit_is_invalid(&mut commit);
     }
 
     #[test]
@@ -449,7 +447,7 @@ mod tests {
         let result = parse_commit("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n");
 
         assert_commit_is_not_ignored(&result);
-        let commit = result.unwrap();
+        let mut commit = result.unwrap();
         assert_eq!(
             commit.long_sha,
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
@@ -459,7 +457,7 @@ mod tests {
         assert_eq!(commit.subject, "");
         assert_eq!(commit.message, "");
         assert!(!commit.has_changes());
-        assert!(!commit.issues.is_empty());
+        assert_commit_is_invalid(&mut commit);
     }
 
     #[test]
@@ -473,7 +471,7 @@ mod tests {
         ));
 
         assert_commit_is_not_ignored(&result);
-        let commit = result.unwrap();
+        let mut commit = result.unwrap();
         assert_eq!(
             commit.long_sha,
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
@@ -484,15 +482,15 @@ mod tests {
         assert_eq!(commit.message, "\nThis is a message.");
         assert_eq!(commit.file_changes, Vec::<String>::new());
         assert!(!commit.has_changes());
-        assert!(!commit.issues.is_empty());
+        assert_commit_is_invalid(&mut commit);
     }
 
     #[test]
     fn test_parse_commit_ignore_bot_commit() {
         let result = parse_commit(&commit_with_file_changes(
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
-        12345678+bot-name[bot]@users.noreply.github.com\n\
-        Commit by bot without description",
+            12345678+bot-name[bot]@users.noreply.github.com\n\
+            Commit by bot without description",
         ));
 
         assert_commit_is_ignored(&result);
