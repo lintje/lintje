@@ -201,8 +201,8 @@ fn ticket_number_reference_length(message: &str) -> usize {
         }
 
         if let Some(capture) = scan_for_ticket_number(line) {
-            let capture_len = capture.as_str().len();
-            length += capture_len;
+            let capture_width = display_width(capture.as_str());
+            length += capture_width;
         }
     }
     length
