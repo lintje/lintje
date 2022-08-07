@@ -32,6 +32,9 @@
   provide enough context in some cases.
 - Don't count references to issues and ticket numbers towards the minimum
   message body length in the MessagePresence rule, like "Closes #123".
+- Don't count co-authored-by lines towards the minimum
+  message body length in the MessagePresence rule, like
+  "Co-authored-by: name <email@domain.com>".
 
 ## 0.8.0
 
