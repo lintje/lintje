@@ -179,6 +179,16 @@ impl Context {
         }
     }
 
+    pub fn diff_addition(content: String, range: Range<usize>, message: String) -> Self {
+        Self {
+            r#type: ContextType::Addition,
+            line: None,
+            content,
+            range: Some(range),
+            message: Some(message),
+        }
+    }
+
     pub fn branch_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
             r#type: ContextType::Error,

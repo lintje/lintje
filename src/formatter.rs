@@ -659,6 +659,33 @@ pub mod tests {
     }
 
     #[test]
+    fn test_formatted_commit_issue_diff_addition() {
+        let commit = commit(Some("1234567".to_string()), "Subject", "Message");
+        let context = vec![Context::diff_addition(
+            "Diff line".to_string(),
+            Range { start: 5, end: 9 },
+            "My addition".to_string(),
+        )];
+        let issue = Issue::error(
+            Rule::DiffChangeset,
+            "The error message".to_string(),
+            Position::Diff,
+            context,
+        );
+        let output = commit_issue(&commit, &issue);
+        assert_eq!(
+            output,
+            "Error[DiffChangeset]: The error message\n\
+            \x20\x201234567: Subject\n\
+            \x20\x20| \n\
+            \x20\x20| Diff line\n\
+            \x20\x20|      ++++ My addition\n\
+            \x20\x20| \n\
+            \x20\x20= help: https://lintje.dev/docs/rules/commit-type/#diffchangeset\n\n"
+        );
+    }
+
+    #[test]
     fn test_formatted_branch_issue_branch_error() {
         let branch = Branch::new("branch-name".to_string());
         let context = vec![Context::branch_error(

@@ -49,7 +49,7 @@ impl RuleValidator<Commit> for DiffChangeset {
         let tag = "[skip changeset]".to_string();
         let tag_len = tag.len();
         let context = vec![
-            Context::diff_error(
+            Context::diff_addition(
                 diff_line,
                 Range {
                     start: 0,
@@ -115,7 +115,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "  | .changesets/subject-of-commit-with-_-chars-foo-test.md\n\
-               | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add a changeset file for changelog generation\n\
+               | ++++++++++++++++++++++++++++++++++++++++++++++++++++++ Add a changeset file for changelog generation\n\
               ~~~\n\
              3 | [skip changeset]\n\
                | ++++++++++++++++ Or add the skip changeset tag to the commit message",
