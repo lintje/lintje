@@ -201,7 +201,9 @@ namespace :release do
     system "cargo publish"
 
     puts "Release of version #{version} done!"
-    puts "Please update the Homebrew tap next: https://github.com/lintje/homebrew-lintje"
+    puts "Please update the following:"
+    puts "- Homebrew tap next: https://github.com/lintje/homebrew-lintje"
+    puts "- GitHub Action: https://github.com/lintje/action"
   end
 
   task :docker_image do
