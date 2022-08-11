@@ -279,6 +279,13 @@ pub fn is_commit_ignored(commit: &Commit) -> bool {
         );
         return true;
     }
+    if subject.starts_with("Revert \"")
+        && subject.ends_with("\"")
+        && message.contains("This reverts commit ")
+    {
+        debug!("Ignoring commit because it's a revert commit: {}", subject);
+        return true;
+    }
 
     false
 }
@@ -628,6 +635,19 @@ mod tests {
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
         test@example.com\n\
         Merge branch 'branch'",
+        ));
+
+        assert_commit_is_ignored(&result);
+    }
+
+    #[test]
+    fn test_parse_commit_ignore_revert_commit() {
+        let result = parse_commit(&commit_with_file_changes(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+            test@example.com\n\
+            Revert \"Some commit\"\n\
+            \n\
+            This reverts commit 0d02b90cbf0c79acf9c0b56de00d52389272ec6f",
         ));
 
         assert_commit_is_ignored(&result);

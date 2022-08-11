@@ -1,5 +1,13 @@
 # Lintje changelog
 
+## Next version
+
+### Added
+
+- Ignore Git revert commits made by `git revert`. These commits will no longer
+  be validated by Lintje as they are usually generated and their messages not
+  updated.
+
 ## 0.9.0
 
 ### Added
