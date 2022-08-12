@@ -131,11 +131,11 @@ fn parse_commit(message: &str) -> Option<Commit> {
                 debug!("Commit subject not present in message: {:?}", message);
                 ""
             });
-            Some(commit_for(
+            Some(Commit::new(
                 Some(long_sha.to_string()),
                 email,
                 used_subject,
-                message_lines,
+                message_lines.join("\n"),
                 file_changes,
             ))
         }
@@ -202,7 +202,13 @@ pub fn parse_commit_hook_format(
         "".to_string()
     });
 
-    commit_for(None, None, &used_subject, message_lines, file_changes)
+    Commit::new(
+        None,
+        None,
+        &used_subject,
+        message_lines.join("\n"),
+        file_changes,
+    )
 }
 
 fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> Option<String> {
@@ -216,17 +222,6 @@ fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> O
         CleanupMode::Whitespace | CleanupMode::Scissors => Some(line.trim_end().to_string()),
         CleanupMode::Verbatim => Some(line.to_string()),
     }
-}
-
-#[allow(clippy::needless_pass_by_value)]
-fn commit_for(
-    sha: Option<String>,
-    email: Option<String>,
-    subject: &str,
-    message: Vec<String>,
-    file_changes: Vec<String>,
-) -> Commit {
-    Commit::new(sha, email, subject, message.join("\n"), file_changes)
 }
 
 pub fn is_commit_ignored(commit: &Commit) -> bool {
