@@ -11,6 +11,9 @@
   of the message body and do not count towards message length and other rules.
   Trailers are things like "Co-authored-by" and "Signed-off-by" lines at the
   end of the message body.
+- Add MessageCoAuthoredBy rule. This new rule checks if all "Co-authored-by"
+  lines are at the end of the message body. If they are not, GitHub and other
+  tools will not recognize the line and will not credit to the co-author.
 
 ## Changed
 

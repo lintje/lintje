@@ -188,6 +188,21 @@ impl Context {
         }
     }
 
+    pub fn message_line_removal_suggestion(
+        line: usize,
+        content: String,
+        range: Range<usize>,
+        message: String,
+    ) -> Self {
+        Self {
+            r#type: ContextType::Removal,
+            line: Some(line),
+            content,
+            range: Some(range),
+            message: Some(message),
+        }
+    }
+
     pub fn diff_line(content: String) -> Self {
         Self {
             r#type: ContextType::Plain,

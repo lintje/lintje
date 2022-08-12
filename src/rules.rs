@@ -7,6 +7,7 @@ pub mod branch_name_ticket_number;
 pub mod diff_changeset;
 pub mod diff_presence;
 pub mod merge_commit;
+pub mod message_co_authored_by;
 pub mod message_empty_first_line;
 pub mod message_line_length;
 pub mod message_presence;
@@ -30,6 +31,7 @@ pub use branch_name_ticket_number::BranchNameTicketNumber;
 pub use diff_changeset::DiffChangeset;
 pub use diff_presence::DiffPresence;
 pub use merge_commit::MergeCommit;
+pub use message_co_authored_by::MessageCoAuthoredBy;
 pub use message_empty_first_line::MessageEmptyFirstLine;
 pub use message_line_length::MessageLineLength;
 pub use message_presence::MessagePresence;
@@ -64,4 +66,7 @@ lazy_static! {
         regex.multi_line(false);
         regex.build().unwrap()
     };
+
+    pub static ref CO_AUTHOR_REFERENCE: Regex =
+        Regex::new(r"(?im)^co-authored-by: [\w\s\-]+\s+<[^\s]+[@]+[^\s]+>").unwrap();
 }

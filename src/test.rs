@@ -67,6 +67,17 @@ pub fn commit<S: AsRef<str>>(subject: S, message: S) -> Commit {
     )
 }
 
+pub fn commit_with_trailers<S: AsRef<str>>(subject: S, message: S, trailers: S) -> Commit {
+    Commit::new(
+        Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
+        Some("test@example.com".to_string()),
+        subject.as_ref(),
+        message.as_ref().to_string(),
+        trailers.as_ref().to_string(),
+        vec!["src/main.rs".to_string()],
+    )
+}
+
 pub fn branch(name: &str) -> Branch {
     Branch::new(name.to_string())
 }

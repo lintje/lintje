@@ -25,6 +25,7 @@ pub enum Rule {
     MessageLineLength,
     MessageSkipBuildTag,
     MessageTicketNumber,
+    MessageCoAuthoredBy,
     DiffChangeset,
     DiffPresence,
     BranchNameTicketNumber,
@@ -47,6 +48,7 @@ impl fmt::Display for Rule {
             Rule::SubjectPrefix => "SubjectPrefix",
             Rule::SubjectBuildTag => "SubjectBuildTag",
             Rule::SubjectCliche => "SubjectCliche",
+            Rule::MessageCoAuthoredBy => "MessageCoAuthoredBy",
             Rule::MessageEmptyFirstLine => "MessageEmptyFirstLine",
             Rule::MessagePresence => "MessagePresence",
             Rule::MessageLineLength => "MessageLineLength",
@@ -78,6 +80,7 @@ impl Rule {
             Rule::SubjectBuildTag => Box::new(SubjectBuildTag::new()),
             Rule::SubjectCliche => Box::new(SubjectCliche::new()),
             Rule::MessagePresence => Box::new(MessagePresence::new()),
+            Rule::MessageCoAuthoredBy => Box::new(MessageCoAuthoredBy::new()),
             Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
             Rule::MessageLineLength => Box::new(MessageLineLength::new()),
             Rule::MessageSkipBuildTag => Box::new(MessageSkipBuildTag::new()),
@@ -108,6 +111,7 @@ impl Rule {
             | Rule::SubjectBuildTag
             | Rule::SubjectCliche
             | Rule::MessagePresence
+            | Rule::MessageCoAuthoredBy
             | Rule::MessageEmptyFirstLine
             | Rule::MessageLineLength
             | Rule::MessageSkipBuildTag
@@ -135,6 +139,7 @@ impl Rule {
             Rule::SubjectPrefix => "commit-subject/#subjectprefix",
             Rule::SubjectBuildTag => "commit-subject/#subjectbuildtag",
             Rule::SubjectCliche => "commit-subject/#subjectcliche",
+            Rule::MessageCoAuthoredBy => "commit-message/#messagecoauthoredby",
             Rule::MessageEmptyFirstLine => "commit-message/#messageemptyfirstline",
             Rule::MessagePresence => "commit-message/#messagepresence",
             Rule::MessageLineLength => "commit-message/#messagelinelength",
@@ -168,6 +173,7 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "SubjectBuildTag" => Some(Rule::SubjectBuildTag),
         "SubjectPrefix" => Some(Rule::SubjectPrefix),
         "SubjectCliche" => Some(Rule::SubjectCliche),
+        "MessageCoAuthoredBy" => Some(Rule::MessageCoAuthoredBy),
         "MessageEmptyFirstLine" => Some(Rule::MessageEmptyFirstLine),
         "MessagePresence" => Some(Rule::MessagePresence),
         "MessageLineLength" => Some(Rule::MessageLineLength),
