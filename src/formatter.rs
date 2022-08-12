@@ -165,7 +165,6 @@ fn context_line(out: &mut impl WriteColor, detail: &ContextLine) -> io::Result<(
 
 pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result<()> {
     let mut first_line = true;
-    let mut last_line_number = None;
     let line_number_width = line_number_width(&issue.context);
 
     for context in &issue.context {
@@ -180,26 +179,6 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                 },
             )?;
             writeln!(out)?;
-        }
-
-        // Print a context break separator
-        // Whenever two context line number differ by more than 1, add an empty line with the "~~~"
-        // context separator.
-        match (context.line, last_line_number) {
-            (Some(line_number), Some(previous_line_number)) => {
-                if line_number != previous_line_number + 1 {
-                    context_line(
-                        out,
-                        &ContextLine {
-                            prefix: Prefix::Scissors,
-                            width: line_number_width,
-                            line_number: None,
-                        },
-                    )?;
-                    writeln!(out)?;
-                }
-            }
-            (_, _) => {}
         }
 
         let prefix = match context.r#type {
@@ -273,7 +252,6 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
             writeln!(out)?;
         }
         first_line = false;
-        last_line_number = context.line;
     }
 
     // Add empty line to give some space between issues and help lines
@@ -865,36 +843,6 @@ pub mod tests {
              |  ^^ A message\n\
              | \n\
              = help: https://lintje.dev/docs/rules/commit-type/#diffpresence\n"
-        );
-    }
-
-    #[test]
-    fn formatted_context_line_seperator() {
-        let commit = commit(Some("1234567".to_string()), "Subject", "Message");
-        let context = vec![
-            Context::message_line(3, "Message line 3".to_string()),
-            Context::message_line(10, "Message line 10".to_string()),
-        ];
-        let issue = Issue::hint(
-            Rule::MessageLineLength,
-            "The hint message".to_string(),
-            Position::MessageLine {
-                line: 11,
-                column: 50,
-            },
-            context,
-        );
-        let output = commit_issue(&commit, &issue);
-        assert_eq!(
-            output,
-            "Hint[MessageLineLength]: The hint message\n\
-            \x20\x201234567:11:50: Subject\n\
-            \x20\x20   | \n\
-            \x20\x20 3 | Message line 3\n\
-            \x20\x20  ~~~\n\
-            \x20\x2010 | Message line 10\n\
-            \x20\x20   | \n\
-            \x20\x20   = help: https://lintje.dev/docs/rules/commit-message/#messagelinelength\n\n"
         );
     }
 

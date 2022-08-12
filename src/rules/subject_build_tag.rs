@@ -39,6 +39,7 @@ impl RuleValidator<Commit> for SubjectBuildTag {
                             tag.range(),
                             "Remove the build tag from the subject".to_string(),
                         ),
+                        Context::gap(),
                         Context::message_line_addition(
                             base_line_count,
                             tag.as_str().to_string(),

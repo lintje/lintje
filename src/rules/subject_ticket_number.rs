@@ -65,6 +65,7 @@ fn add_subject_ticket_number_error(commit: &Commit, capture: regex::Match) -> Is
             capture.range(),
             "Remove the ticket number from the subject".to_string(),
         ),
+        Context::gap(),
         Context::message_line(base_line_count, "".to_string()),
         Context::message_line_addition(
             base_line_count + 1,
