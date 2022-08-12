@@ -8,6 +8,10 @@
   be validated by Lintje as they are usually generated and their messages not
   updated.
 
+### Fixed
+
+- Remove unintended debug output on "Co-authored-by" line detection.
+
 ## 0.9.0
 
 ### Added

@@ -220,7 +220,6 @@ fn ticket_number_reference_length(message: &str) -> usize {
 fn co_author_references_length(message: &str) -> usize {
     let mut length = 0;
     for capture in CO_AUTHOR_REFERENCE.find_iter(message) {
-        println!("! {:?}", capture);
         let capture_width = display_width(capture.as_str());
         length += capture_width;
     }
