@@ -33,25 +33,18 @@ impl RuleValidator<Commit> for SubjectPunctuation {
 
         let mut issues = vec![];
 
-        if let Some(captures) = SUBJECT_STARTS_WITH_EMOJI.captures(&commit.subject) {
-            match captures.get(0) {
-                Some(emoji) => {
-                    let context = vec![Context::subject_removal_suggestion(
-                        commit.subject.to_string(),
-                        emoji.range(),
-                        "Remove emoji from the start of the subject".to_string(),
-                    )];
-                    issues.push(Issue::error(
-                        Rule::SubjectPunctuation,
-                        "The subject starts with an emoji".to_string(),
-                        Position::Subject { line: 1, column: 1 },
-                        context,
-                    ));
-                }
-                None => {
-                    error!("SubjectPunctuation: Unable to fetch ticket number match from subject.");
-                }
-            }
+        if let Some(emoji) = SUBJECT_STARTS_WITH_EMOJI.find(&commit.subject) {
+            let context = vec![Context::subject_removal_suggestion(
+                commit.subject.to_string(),
+                emoji.range(),
+                "Remove emoji from the start of the subject".to_string(),
+            )];
+            issues.push(Issue::error(
+                Rule::SubjectPunctuation,
+                "The subject starts with an emoji".to_string(),
+                Position::Subject { line: 1, column: 1 },
+                context,
+            ));
         }
 
         match commit.subject.chars().next() {

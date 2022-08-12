@@ -28,43 +28,35 @@ impl SubjectBuildTag {
 impl RuleValidator<Commit> for SubjectBuildTag {
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let subject = &commit.subject.to_string();
-        if let Some(captures) = SUBJECT_WITH_BUILD_TAGS.captures(subject) {
-            match captures.get(1) {
-                Some(tag) => {
-                    let line_count = commit.message.lines().count();
-                    let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
-                    let context = vec![
-                        Context::subject_removal_suggestion(
-                            subject.to_string(),
-                            tag.range(),
-                            "Remove the build tag from the subject".to_string(),
-                        ),
-                        Context::gap(),
-                        Context::message_line_addition(
-                            base_line_count,
-                            tag.as_str().to_string(),
-                            Range {
-                                start: 0,
-                                end: tag.range().len(),
-                            },
-                            "Move build tag to message body".to_string(),
-                        ),
-                    ];
-                    Some(vec![Issue::error(
-                        Rule::SubjectBuildTag,
-                        format!("The `{}` build tag was found in the subject", tag.as_str()),
-                        Position::Subject {
-                            line: 1,
-                            column: character_count_for_bytes_index(&commit.subject, tag.start()),
-                        },
-                        context,
-                    )])
-                }
-                None => {
-                    error!("SubjectBuildTag: Unable to fetch build tag from subject.");
-                    None
-                }
-            }
+        if let Some(tag) = SUBJECT_WITH_BUILD_TAGS.find(subject) {
+            let line_count = commit.message.lines().count();
+            let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
+            let context = vec![
+                Context::subject_removal_suggestion(
+                    subject.to_string(),
+                    tag.range(),
+                    "Remove the build tag from the subject".to_string(),
+                ),
+                Context::gap(),
+                Context::message_line_addition(
+                    base_line_count,
+                    tag.as_str().to_string(),
+                    Range {
+                        start: 0,
+                        end: tag.range().len(),
+                    },
+                    "Move build tag to message body".to_string(),
+                ),
+            ];
+            Some(vec![Issue::error(
+                Rule::SubjectBuildTag,
+                format!("The `{}` build tag was found in the subject", tag.as_str()),
+                Position::Subject {
+                    line: 1,
+                    column: character_count_for_bytes_index(&commit.subject, tag.start()),
+                },
+                context,
+            )])
         } else {
             None
         }
