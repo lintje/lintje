@@ -1008,7 +1008,7 @@ mod tests {
                 \x20\x20Branch:1: fix-123\n\
                 \x20\x20| \n\
                 \x20\x20| fix-123\n\
-                \x20\x20| ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details\n"
+                \x20\x20| ------- Remove the ticket number from the branch name or expand the branch name with more details\n"
             ))
             .stdout(predicate::str::contains(
                 "Error[BranchNameCliche]: The branch name does not explain the change in much detail\n\

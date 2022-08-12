@@ -12,6 +12,10 @@
 
 - Color addition suggestions as green, previously cyan. The green color better
   communicates the suggestion is about an addition that should be made.
+- Mark removal suggestions more clearly to differentiate them from errors.
+  Instead of underlining with the caret symbol `^`, which errors also use, it
+  will now underline with the dash symbol `-` and use the color yellow to
+  highlight these changes.
 
 ### Fixed
 

@@ -22,7 +22,7 @@ impl RuleValidator<Commit> for SubjectWhitespace {
         match commit.subject.chars().next() {
             Some(character) => {
                 if character.is_whitespace() {
-                    let context = vec![Context::subject_error(
+                    let context = vec![Context::subject_removal_suggestion(
                         commit.subject.to_string(),
                         Range {
                             start: 0,
@@ -95,7 +95,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 |  Fix test\n\
-               | ^ Remove the leading whitespace from the subject",
+               | - Remove the leading whitespace from the subject",
         );
     }
 
@@ -110,7 +110,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | \x20Fix test\n\
-               | ^ Remove the leading whitespace from the subject",
+               | - Remove the leading whitespace from the subject",
         );
     }
 
@@ -125,7 +125,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 |     Fix test\n\
-               | ^^^^ Remove the leading whitespace from the subject",
+               | ---- Remove the leading whitespace from the subject",
         );
     }
 }

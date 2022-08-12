@@ -36,7 +36,7 @@ impl RuleValidator<Commit> for SubjectPunctuation {
         if let Some(captures) = SUBJECT_STARTS_WITH_EMOJI.captures(&commit.subject) {
             match captures.get(0) {
                 Some(emoji) => {
-                    let context = vec![Context::subject_error(
+                    let context = vec![Context::subject_removal_suggestion(
                         commit.subject.to_string(),
                         emoji.range(),
                         "Remove emoji from the start of the subject".to_string(),
@@ -57,7 +57,7 @@ impl RuleValidator<Commit> for SubjectPunctuation {
         match commit.subject.chars().next() {
             Some(character) => {
                 if is_punctuation(character) {
-                    let context = vec![Context::subject_error(
+                    let context = vec![Context::subject_removal_suggestion(
                         commit.subject.to_string(),
                         Range {
                             start: 0,
@@ -87,7 +87,7 @@ impl RuleValidator<Commit> for SubjectPunctuation {
             Some(character) => {
                 if is_punctuation(character) {
                     let subject_length = commit.subject.len();
-                    let context = Context::subject_error(
+                    let context = Context::subject_removal_suggestion(
                         commit.subject.to_string(),
                         Range {
                             start: subject_length - character.len_utf8(),
@@ -211,7 +211,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | .Fix test\n\
-               | ^ Remove punctuation from the start of the subject",
+               | - Remove punctuation from the start of the subject",
         );
     }
 
@@ -226,7 +226,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Fix test…\n\
-               |         ^ Remove punctuation from the end of the subject",
+               |         - Remove punctuation from the end of the subject",
         );
     }
 
@@ -238,7 +238,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | 👍 Fix test\n\
-               | ^^ Remove emoji from the start of the subject",
+               | -- Remove emoji from the start of the subject",
         );
     }
 

@@ -60,7 +60,7 @@ fn add_subject_ticket_number_error(commit: &Commit, capture: regex::Match) -> Is
     let line_count = commit.message.lines().count();
     let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
     let context = vec![
-        Context::subject_error(
+        Context::subject_removal_suggestion(
             subject,
             capture.range(),
             "Remove the ticket number from the subject".to_string(),
@@ -211,7 +211,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Fix JIRA-123 about email validation\n\
-               |     ^^^^^^^^ Remove the ticket number from the subject\n\
+               |     -------- Remove the ticket number from the subject\n\
               ~~~\n\
              3 | \n\
              4 | JIRA-123\n\
@@ -229,7 +229,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Fix ❤️ JIRA-123 about email validation\n\
-               |       ^^^^^^^^ Remove the ticket number from the subject\n\
+               |       -------- Remove the ticket number from the subject\n\
               ~~~\n\
              3 | \n\
              4 | JIRA-123\n\
@@ -248,7 +248,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Email validation: Fixes #123 for good\n\
-               |                   ^^^^^^^^^^ Remove the ticket number from the subject\n\
+               |                   ---------- Remove the ticket number from the subject\n\
               ~~~\n\
              3 | \n\
              4 | Fixes #123\n\
@@ -273,7 +273,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Email validation: Closed org/repo#123 for good\n\
-               |                   ^^^^^^^^^^^^^^^^^^^ Remove the ticket number from the subject\n\
+               |                   ------------------- Remove the ticket number from the subject\n\
               ~~~\n\
              3 | \n\
              4 | Closed org/repo#123\n\
@@ -292,7 +292,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Email validation: Closes https://website.com:80/org/repo/issues/123 for good\n\
-               |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Remove the ticket number from the subject\n\
+               |                   ------------------------------------------------- Remove the ticket number from the subject\n\
               ~~~\n\
              3 | \n\
              4 | Closes https://website.com:80/org/repo/issues/123\n\

@@ -35,7 +35,7 @@ impl RuleValidator<Branch> for BranchNameTicketNumber {
                 (Some(_prefix), Some(_suffix), _) => true,
             };
             if !valid {
-                let context = vec![Context::branch_error(
+                let context = vec![Context::branch_removal_suggestion(
                     name.to_string(),
                     Range {
                         start: 0,
@@ -130,7 +130,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "| fix-123\n\
-             | ^^^^^^^ Remove the ticket number from the branch name or expand the branch name with more details"
+             | ------- Remove the ticket number from the branch name or expand the branch name with more details"
         );
     }
 }

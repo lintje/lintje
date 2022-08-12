@@ -43,6 +43,12 @@ pub fn bright_red_color() -> ColorSpec {
     cs
 }
 
+pub fn yellow_color() -> ColorSpec {
+    let mut cs = ColorSpec::new();
+    cs.set_fg(Some(Color::Yellow));
+    cs
+}
+
 pub fn green_color() -> ColorSpec {
     let mut cs = ColorSpec::new();
     cs.set_fg(Some(Color::Green));
@@ -198,7 +204,10 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
 
         let prefix = match context.r#type {
             ContextType::Gap => Prefix::Scissors,
-            ContextType::Plain | ContextType::Error | ContextType::Addition => Prefix::Pipe,
+            ContextType::Plain
+            | ContextType::Error
+            | ContextType::Addition
+            | ContextType::Removal => Prefix::Pipe,
         };
 
         context_line(
@@ -239,6 +248,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                 }
                 ContextType::Error => (Some(bright_red_color()), "^"),
                 ContextType::Addition => (Some(green_color()), "+"),
+                ContextType::Removal => (Some(yellow_color()), "-"),
             };
 
             let leading_spaces = " ".repeat(leading);
@@ -807,6 +817,29 @@ pub mod tests {
             "| \n\
              | branch-name\n\
              |  ^^ A message\n\
+             | \n\
+             = help: https://lintje.dev/docs/rules/branch/#branchnamelength\n"
+        );
+    }
+
+    #[test]
+    fn formatted_context_branch_removal_suggestion() {
+        let context = vec![Context::branch_removal_suggestion(
+            "branch-name".to_string(),
+            Range { start: 1, end: 3 },
+            "A message".to_string(),
+        )];
+        let issue = Issue::error(
+            Rule::BranchNameLength,
+            "Dummy message".to_string(),
+            Position::Branch { column: 0 },
+            context,
+        );
+        assert_eq!(
+            formatted_context(&issue),
+            "| \n\
+             | branch-name\n\
+             |  -- A message\n\
              | \n\
              = help: https://lintje.dev/docs/rules/branch/#branchnamelength\n"
         );

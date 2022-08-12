@@ -34,7 +34,7 @@ impl RuleValidator<Commit> for SubjectBuildTag {
                     let line_count = commit.message.lines().count();
                     let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
                     let context = vec![
-                        Context::subject_error(
+                        Context::subject_removal_suggestion(
                             subject.to_string(),
                             tag.range(),
                             "Remove the build tag from the subject".to_string(),
@@ -142,7 +142,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Edit CHANGELOG [skip ci]\n\
-               |                ^^^^^^^^^ Remove the build tag from the subject\n\
+               |                --------- Remove the build tag from the subject\n\
               ~~~\n\
              3 | [skip ci]\n\
                | +++++++++ Move build tag to message body",

@@ -63,6 +63,7 @@ pub enum ContextType {
     Gap,
     Error,
     Addition,
+    Removal,
 }
 
 #[derive(Debug, PartialEq)]
@@ -98,6 +99,20 @@ impl Context {
     pub fn subject_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
             r#type: ContextType::Error,
+            line: Some(1),
+            content,
+            range: Some(range),
+            message: Some(message),
+        }
+    }
+
+    pub fn subject_removal_suggestion(
+        content: String,
+        range: Range<usize>,
+        message: String,
+    ) -> Self {
+        Self {
+            r#type: ContextType::Removal,
             line: Some(1),
             content,
             range: Some(range),
@@ -192,6 +207,20 @@ impl Context {
     pub fn branch_error(content: String, range: Range<usize>, message: String) -> Self {
         Self {
             r#type: ContextType::Error,
+            line: None,
+            content,
+            range: Some(range),
+            message: Some(message),
+        }
+    }
+
+    pub fn branch_removal_suggestion(
+        content: String,
+        range: Range<usize>,
+        message: String,
+    ) -> Self {
+        Self {
+            r#type: ContextType::Removal,
             line: None,
             content,
             range: Some(range),

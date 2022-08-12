@@ -21,7 +21,7 @@ impl RuleValidator<Branch> for BranchNamePunctuation {
             Some(character) => {
                 if is_punctuation(*character) {
                     let branch = &branch.name;
-                    let context = vec![Context::branch_error(
+                    let context = vec![Context::branch_removal_suggestion(
                         branch.to_string(),
                         Range {
                             start: 0,
@@ -49,7 +49,7 @@ impl RuleValidator<Branch> for BranchNamePunctuation {
                 if is_punctuation(*character) {
                     let branch_length = branch.name.len();
                     let branch = &branch.name;
-                    let context = vec![Context::branch_error(
+                    let context = vec![Context::branch_removal_suggestion(
                         branch.to_string(),
                         Range {
                             start: branch_length - character.len_utf8(),
@@ -160,7 +160,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "| !fix\n\
-             | ^ Remove punctuation from the start of the branch name",
+             | - Remove punctuation from the start of the branch name",
         );
     }
 
@@ -175,7 +175,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "| fix!\n\
-             |    ^ Remove punctuation from the end of the branch name",
+             |    - Remove punctuation from the end of the branch name",
         );
     }
 
