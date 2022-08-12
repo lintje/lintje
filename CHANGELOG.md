@@ -20,6 +20,8 @@
   green. Additions previously used the caret symbol `^` and bright red color,
   also used by errors. It is now more clear the issue is suggesting adding
   something to the commit message.
+- Show a suggestion in the SubjectCapitalization output to
+  capitalize the first letter of the subject using the actual subject content.
 
 ### Fixed
 

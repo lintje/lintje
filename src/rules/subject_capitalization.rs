@@ -30,14 +30,35 @@ impl RuleValidator<Commit> for SubjectCapitalization {
         match commit.subject.chars().next() {
             Some(character) => {
                 if character.is_lowercase() {
-                    let context = vec![Context::subject_error(
-                        commit.subject.to_string(),
-                        Range {
-                            start: 0,
-                            end: character.len_utf8(),
-                        },
-                        "Start the subject with a capital letter".to_string(),
-                    )];
+                    let mut subject = commit.subject.clone();
+                    let first_char = subject.get_mut(0..character.len_utf8());
+                    match first_char {
+                        Some(s) => s.make_ascii_uppercase(),
+                        None => {
+                            error!("SubjectCapitalization validation failure: Unable to fetch first character in subject.");
+                            return None;
+                        }
+                    }
+
+                    let char_len = character.len_utf8();
+                    let context = vec![
+                        Context::subject_removal_suggestion(
+                            commit.subject.to_string(),
+                            Range {
+                                start: 0,
+                                end: char_len,
+                            },
+                            "".to_string(),
+                        ),
+                        Context::subject_addition_suggestion(
+                            subject,
+                            Range {
+                                start: 0,
+                                end: char_len,
+                            },
+                            "Start the subject with a capital letter".to_string(),
+                        ),
+                    ];
                     Some(vec![Issue::error(
                         Rule::SubjectCapitalization,
                         "The subject does not start with a capital letter".to_string(),
@@ -85,7 +106,9 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | fix test\n\
-               | ^ Start the subject with a capital letter",
+               | -\n\
+             1 | Fix test\n\
+               | + Start the subject with a capital letter",
         );
     }
 
