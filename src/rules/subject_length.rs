@@ -24,9 +24,9 @@ impl RuleValidator<Commit> for SubjectLength {
 
         match width {
             0 => {
-                let context = Context::subject_error(
+                let context = Context::subject_addition_suggestion(
                     commit.subject.to_string(),
-                    Range { start: 0, end: 1 },
+                    Range { start: 0, end: 3 },
                     "Add a subject to describe the change".to_string(),
                 );
                 Some(vec![Issue::error(
@@ -129,7 +129,7 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | \n\
-               | ^ Add a subject to describe the change",
+               | +++ Add a subject to describe the change",
         );
     }
 

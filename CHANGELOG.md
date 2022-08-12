@@ -16,6 +16,10 @@
   Instead of underlining with the caret symbol `^`, which errors also use, it
   will now underline with the dash symbol `-` and use the color yellow to
   highlight these changes.
+- Mark addition suggestions more clearly with the plus symbol `+`, and in
+  green. Additions previously used the caret symbol `^` and bright red color,
+  also used by errors. It is now more clear the issue is suggesting adding
+  something to the commit message.
 
 ### Fixed
 

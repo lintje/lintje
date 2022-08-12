@@ -35,10 +35,10 @@ impl RuleValidator<Commit> for MessagePresence {
             let context = vec![
                 Context::subject(commit.subject.to_string()),
                 Context::message_line(2, "".to_string()),
-                Context::message_line_error(
+                Context::message_line_addition(
                     3,
                     "".to_string(),
-                    Range { start: 0, end: 1 },
+                    Range { start: 0, end: 3 },
                     "Add a message that describes the change and why it was made".to_string(),
                 ),
             ];
@@ -252,7 +252,7 @@ mod tests {
             "1 | Subject\n\
              2 | \n\
              3 | \n\
-               | ^ Add a message that describes the change and why it was made",
+               | +++ Add a message that describes the change and why it was made",
         );
     }
 

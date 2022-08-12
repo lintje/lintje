@@ -106,6 +106,20 @@ impl Context {
         }
     }
 
+    pub fn subject_addition_suggestion(
+        content: String,
+        range: Range<usize>,
+        message: String,
+    ) -> Self {
+        Self {
+            r#type: ContextType::Addition,
+            line: Some(1),
+            content,
+            range: Some(range),
+            message: Some(message),
+        }
+    }
+
     pub fn subject_removal_suggestion(
         content: String,
         range: Range<usize>,

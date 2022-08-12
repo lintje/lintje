@@ -608,7 +608,7 @@ mod tests {
             \x20\x201 | Fixing tests\n\
             \x20\x202 | \n\
             \x20\x203 | \n\
-            \x20\x20  | ^ Add a message that describes the change and why it was made\n\
+            \x20\x20  | +++ Add a message that describes the change and why it was made\n\
             \x20\x20  | \n\
             \x20\x20  = help: https://lintje.dev/docs/rules/commit-message/#messagepresence\n\
             \n\
@@ -656,7 +656,7 @@ mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mFixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m^ Add a message that describes the change and why it was made\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[32m+++ Add a message that describes the change and why it was made\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-message/#messagepresence\n\
             \n\

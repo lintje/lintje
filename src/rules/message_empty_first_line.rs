@@ -19,15 +19,13 @@ impl RuleValidator<Commit> for MessageEmptyFirstLine {
             if !line.is_empty() {
                 let context = vec![
                     Context::subject(commit.subject.to_string()),
-                    Context::message_line_error(
+                    Context::message_line_addition(
                         2,
-                        line.to_string(),
-                        Range {
-                            start: 0,
-                            end: line.len(),
-                        },
+                        "".to_string(),
+                        Range { start: 0, end: 3 },
                         "Add an empty line below the subject line".to_string(),
                     ),
+                    Context::message_line(3, line.to_string()),
                 ];
                 return Some(vec![Issue::error(
                     Rule::MessageEmptyFirstLine,
@@ -69,8 +67,9 @@ mod tests {
         assert_contains_issue_output(
             &issue,
             "1 | Subject\n\
-             2 | No empty line after subject\n\
-               | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add an empty line below the subject line",
+             2 |\n\
+               | +++ Add an empty line below the subject line\n\
+             3 | No empty line after subject\n",
         );
     }
 }
