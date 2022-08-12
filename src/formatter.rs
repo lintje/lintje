@@ -55,12 +55,6 @@ pub fn blue_color() -> ColorSpec {
     cs
 }
 
-pub fn cyan_color() -> ColorSpec {
-    let mut cs = ColorSpec::new();
-    cs.set_fg(Some(Color::Cyan));
-    cs
-}
-
 fn muted_color() -> ColorSpec {
     let mut cs = ColorSpec::new();
     cs.set_fg(Some(Color::Blue));
@@ -244,7 +238,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
                     (None, "x")
                 }
                 ContextType::Error => (Some(bright_red_color()), "^"),
-                ContextType::Addition => (Some(cyan_color()), "+"),
+                ContextType::Addition => (Some(green_color()), "+"),
             };
 
             let leading_spaces = " ".repeat(leading);
@@ -425,7 +419,7 @@ pub mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mSubject\n\
             \u{1b}[0m\u{1b}[38;5;12m  2 | \u{1b}[0mMessage body\n\
             \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0mMessage body line\n\
-            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[36m ++ The hint\u{1b}[0m\n\
+            \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[32m ++ The hint\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-subject/#subjectlength\n\n"
         );

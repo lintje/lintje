@@ -8,6 +8,11 @@
   be validated by Lintje as they are usually generated and their messages not
   updated.
 
+## Changed
+
+- Color addition suggestions as green, previously cyan. The green color better
+  communicates the suggestion is about an addition that should be made.
+
 ### Fixed
 
 - Remove unintended debug output on "Co-authored-by" line detection.
