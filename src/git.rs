@@ -280,7 +280,7 @@ pub fn is_commit_ignored(commit: &Commit) -> bool {
         return true;
     }
     if subject.starts_with("Revert \"")
-        && subject.ends_with("\"")
+        && subject.ends_with('"')
         && message.contains("This reverts commit ")
     {
         debug!("Ignoring commit because it's a revert commit: {}", subject);
