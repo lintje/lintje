@@ -49,9 +49,37 @@ pub struct FailedCommand {
 }
 
 impl FailedCommand {
+    fn from_error<S: AsRef<OsStr> + std::fmt::Display>(
+        cmd: &str,
+        args: &[S],
+        error: &std::io::Error,
+    ) -> Self {
+        Self {
+            command: cmd.to_string(),
+            arguments: args_to_vec(args),
+            error: ExitError::from_error(error),
+        }
+    }
+
+    fn from_output<S: AsRef<OsStr> + std::fmt::Display>(
+        cmd: &str,
+        args: &[S],
+        output: Output,
+    ) -> Self {
+        Self {
+            command: cmd.to_string(),
+            arguments: args_to_vec(args),
+            error: ExitError::from_output(output),
+        }
+    }
+
     pub fn message(&self) -> String {
         self.error.message()
     }
+}
+
+fn args_to_vec<S: AsRef<OsStr> + std::fmt::Display>(args: &[S]) -> Vec<String> {
+    args.iter().map(|s| s.to_string()).collect::<Vec<String>>()
 }
 
 impl std::fmt::Display for FailedCommand {
@@ -94,19 +122,11 @@ pub fn run_command<S: AsRef<OsStr> + std::fmt::Display>(
                 //
                 // Processes that fail in containers because the executable could not be found are
                 // also reported this away instead of an Err.
-                Err(FailedCommand {
-                    command: cmd.to_string(),
-                    arguments: args.iter().map(|s| s.to_string()).collect::<Vec<String>>(),
-                    error: ExitError::from_output(output),
-                })
+                Err(FailedCommand::from_output(cmd, args, output))
             }
         }
         // Errors about scenarios like: the executable could not be found
-        Err(error) => Err(FailedCommand {
-            command: cmd.to_string(),
-            arguments: args.iter().map(|s| s.to_string()).collect::<Vec<String>>(),
-            error: ExitError::from_error(&error),
-        }),
+        Err(error) => Err(FailedCommand::from_error(cmd, args, &error)),
     }
 }
 
