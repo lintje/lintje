@@ -108,6 +108,8 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
                 }
             };
 
+            let (subject, message) =
+                parse_commit_hook_format(&contents, &git::cleanup_mode(), &git::comment_char());
             // Run the diff command to fetch the current staged changes and determine if the commit is
             // empty or not. The contents of the commit message file is too unreliable as it depends on
             // user config and how the user called the `git commit` command.
@@ -122,12 +124,7 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
                     vec![]
                 }
             };
-            let commit = parse_commit_hook_format(
-                &contents,
-                &git::cleanup_mode(),
-                &git::comment_char(),
-                file_changes,
-            );
+            let commit = Commit::new(None, None, &subject, message, file_changes);
             vec![commit]
         }
         Err(e) => {

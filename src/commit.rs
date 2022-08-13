@@ -154,6 +154,12 @@ mod tests {
     }
 
     #[test]
+    fn trims_subject_end() {
+        let commit = commit("This is a subject  ".to_string(), "Message".to_string());
+        assert_eq!(commit.subject, "This is a subject");
+    }
+
+    #[test]
     fn is_valid() {
         let mut commit = commit("".to_string(), "Intentionally invalid commit".to_string());
         assert!(commit.is_valid());

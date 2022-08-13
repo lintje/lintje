@@ -147,17 +147,16 @@ fn parse_commit(message: &str) -> Option<Commit> {
 }
 
 pub fn parse_commit_hook_format(
-    message: &str,
+    file_contents: &str,
     cleanup_mode: &CleanupMode,
     comment_char: &str,
-    file_changes: Vec<String>,
-) -> Commit {
+) -> (String, String) {
     let mut subject = None;
     let mut message_lines = vec![];
     let scissor_line = format!("{} {}", comment_char, SCISSORS);
     debug!("Using clean up mode: {:?}", cleanup_mode);
     debug!("Using config core.commentChar: {:?}", comment_char);
-    for line in message.lines() {
+    for line in file_contents.lines() {
         // A scissor line has been detected.
         //
         // A couple reasons why this could happen:
@@ -198,17 +197,11 @@ pub fn parse_commit_hook_format(
         }
     }
     let used_subject = subject.unwrap_or_else(|| {
-        debug!("Commit subject not present in message: {:?}", message);
+        debug!("Commit subject not present in message: {:?}", file_contents);
         "".to_string()
     });
 
-    Commit::new(
-        None,
-        None,
-        &used_subject,
-        message_lines.join("\n"),
-        file_changes,
-    )
+    (used_subject, message_lines.join("\n"))
 }
 
 fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> Option<String> {
@@ -661,40 +654,29 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "This is a subject\n\nThis is a message.",
             &CleanupMode::Default,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(commit.message, "\nThis is a message.");
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "\nThis is a message.");
     }
 
     #[test]
     fn test_parse_commit_hook_format_without_message() {
-        let commit = parse_commit_hook_format(
-            "This is a subject",
-            &CleanupMode::Default,
-            "#",
-            vec!["main.rs".to_string()],
-        );
+        let (subject, message) =
+            parse_commit_hook_format("This is a subject", &CleanupMode::Default, "#");
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(commit.message, "");
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "");
     }
 
     // Same as Default
     #[test]
     fn test_parse_commit_hook_format_with_strip() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "This is a subject  \n\
             \n\
             This is the message body.  \n\
@@ -706,22 +688,15 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(
-            commit.message,
-            "\nThis is the message body.\n\nAnother line.\n"
-        );
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "\nThis is the message body.\n\nAnother line.\n");
     }
 
     #[test]
     fn test_parse_commit_hook_format_with_leading_empty_lines() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "  \n\
             This is a subject  \n\
             \n\
@@ -734,22 +709,15 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(
-            commit.message,
-            "\nThis is the message body.\n\nAnother line.\n"
-        );
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "\nThis is the message body.\n\nAnother line.\n");
     }
 
     #[test]
     fn test_parse_commit_hook_format_with_leading_comment_lines() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "# This is a comment\n\
             This is a subject  \n\
             \n\
@@ -762,22 +730,15 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(
-            commit.message,
-            "\nThis is the message body.\n\nAnother line.\n"
-        );
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "\nThis is the message body.\n\nAnother line.\n");
     }
 
     #[test]
     fn test_parse_commit_hook_format_with_strip_custom_comment_char() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "This is a subject  \n\
             \n\
             This is the message body.  \n\
@@ -789,22 +750,15 @@ mod tests {
             ",
             &CleanupMode::Strip,
             "-",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(
-            commit.message,
-            "\nThis is the message body.\n\nAnother line.\n"
-        );
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "\nThis is the message body.\n\nAnother line.\n");
     }
 
     #[test]
     fn test_parse_commit_hook_format_with_scissors() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "This is a subject  \n\
             \n\
             This is the message body.  \n\
@@ -815,40 +769,29 @@ mod tests {
             ",
             &CleanupMode::Scissors,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(
-            commit.message,
-            "\nThis is the message body.\n\nThis is line 2."
-        );
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "\nThis is the message body.\n\nThis is line 2.");
     }
 
     #[test]
     fn test_parse_commit_hook_format_with_scissors_empty_message() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "# ------------------------ >8 ------------------------\n\
             Other things that are not part of the message.\n\
             ",
             &CleanupMode::Scissors,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "");
-        assert_eq!(commit.message, "");
+        assert_eq!(subject, "");
+        assert_eq!(message, "");
     }
 
     #[test]
     fn test_parse_commit_hook_format_with_verbatim() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "This is a subject  \n\
             \n\
             This is the message body.\n\
@@ -858,15 +801,11 @@ mod tests {
             ",
             &CleanupMode::Verbatim,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(subject, "This is a subject  ");
         assert_eq!(
-            commit.message,
+            message,
             "\nThis is the message body.\n\
             # This is a comment\n\
             # Other things that are not part of the message.\n\
@@ -877,7 +816,7 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_with_verbatim_leading_empty_lines() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "  \n\
             This is the message body.\n\
             # This is a comment\n\
@@ -886,15 +825,11 @@ mod tests {
             ",
             &CleanupMode::Verbatim,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "");
+        assert_eq!(subject, "  ");
         assert_eq!(
-            commit.message,
+            message,
             "This is the message body.\n\
             # This is a comment\n\
             # Other things that are not part of the message.\n\
@@ -905,7 +840,7 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_with_whitespace() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "This is a subject  \n\
             \n\
             This is the message body.  \n\
@@ -917,15 +852,11 @@ mod tests {
             ",
             &CleanupMode::Whitespace,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(subject, "This is a subject");
         assert_eq!(
-            commit.message,
+            message,
             "\nThis is the message body.\n\
             \n\
             This is line 2.\n\
@@ -938,31 +869,24 @@ mod tests {
 
     #[test]
     fn test_parse_commit_hook_format_with_whitespace_leading_comment_lines() {
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "# This is a comment\n\
             This is a subject  \n\
             \n\
             This is the message body.",
             &CleanupMode::Whitespace,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "# This is a comment");
-        assert_eq!(
-            commit.message,
-            "This is a subject\n\nThis is the message body."
-        );
+        assert_eq!(subject, "# This is a comment");
+        assert_eq!(message, "This is a subject\n\nThis is the message body.");
     }
 
     #[test]
     fn test_parse_commit_hook_format_with_strip_and_scissor_line() {
         // Even in default mode the scissor line is seen as the end of the message.
         // This can happen when `git commit` is called with the `--verbose` flag.
-        let commit = parse_commit_hook_format(
+        let (subject, message) = parse_commit_hook_format(
             "This is a subject  \n\
             \n\
             This is the message body.  \n\
@@ -972,13 +896,9 @@ mod tests {
             List of file changes",
             &CleanupMode::Strip,
             "#",
-            vec!["main.rs".to_string()],
         );
 
-        assert_eq!(commit.long_sha, None);
-        assert_eq!(commit.short_sha, None);
-        assert_eq!(commit.email, None);
-        assert_eq!(commit.subject, "This is a subject");
-        assert_eq!(commit.message, "\nThis is the message body.");
+        assert_eq!(subject, "This is a subject");
+        assert_eq!(message, "\nThis is the message body.");
     }
 }
