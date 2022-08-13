@@ -40,8 +40,8 @@ use commit::Commit;
 use config::{fetch_options, Lint, ValidationContext};
 use formatter::{formatted_branch_issue, formatted_commit_issue};
 use git::{
-    current_file_changes, fetch_and_parse_branch, fetch_and_parse_commits, is_commit_ignored,
-    parse_commit_hook_format, repo_has_changesets,
+    fetch_and_parse_branch, fetch_and_parse_commits, is_commit_ignored, parse_commit_file,
+    repo_has_changesets,
 };
 use issue::IssueType;
 use logger::Logger;
@@ -107,13 +107,7 @@ fn lint_commit_hook(filename: &Path) -> Result<Vec<Commit>, String> {
                 }
             };
 
-            let (subject, message) =
-                parse_commit_hook_format(&contents, &git::cleanup_mode(), &git::comment_char());
-            // Run the diff command to fetch the current staged changes and determine if the commit is
-            // empty or not. The contents of the commit message file is too unreliable as it depends on
-            // user config and how the user called the `git commit` command.
-            let file_changes = current_file_changes();
-            let commit = Commit::new(None, None, &subject, message, file_changes);
+            let commit = parse_commit_file(&contents);
             vec![commit]
         }
         Err(e) => {

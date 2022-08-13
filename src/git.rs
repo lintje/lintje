@@ -17,7 +17,7 @@ lazy_static! {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum CleanupMode {
+enum CleanupMode {
     Strip,
     Whitespace,
     Verbatim,
@@ -146,7 +146,16 @@ fn parse_commit(message: &str) -> Option<Commit> {
     }
 }
 
-pub fn parse_commit_hook_format(
+pub fn parse_commit_file(contents: &str) -> Commit {
+    let (subject, message) = parse_commit_hook_format(contents, &cleanup_mode(), &comment_char());
+    // Run the diff command to fetch the current staged changes and determine if the commit is
+    // empty or not. The contents of the commit message file is too unreliable as it depends on
+    // user config and how the user called the `git commit` command.
+    let file_changes = current_file_changes();
+    Commit::new(None, None, &subject, message, file_changes)
+}
+
+fn parse_commit_hook_format(
     file_contents: &str,
     cleanup_mode: &CleanupMode,
     comment_char: &str,
@@ -278,7 +287,7 @@ pub fn is_commit_ignored(commit: &Commit) -> bool {
     false
 }
 
-pub fn cleanup_mode() -> CleanupMode {
+fn cleanup_mode() -> CleanupMode {
     match run_command("git", &["config", "commit.cleanup"]) {
         Ok(stdout) => match stdout.trim() {
             "default" | "" => CleanupMode::Default,
@@ -313,7 +322,7 @@ pub fn cleanup_mode() -> CleanupMode {
     }
 }
 
-pub fn comment_char() -> String {
+fn comment_char() -> String {
     match run_command("git", &["config", "core.commentChar"]) {
         Ok(stdout) => {
             let character = stdout.trim().to_string();
@@ -343,7 +352,7 @@ pub fn comment_char() -> String {
     }
 }
 
-pub fn current_file_changes() -> Vec<String> {
+fn current_file_changes() -> Vec<String> {
     match run_command("git", &["diff", "--cached", "--name-only"]) {
         Ok(stdout) => stdout
             .trim()
