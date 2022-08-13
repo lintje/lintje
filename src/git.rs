@@ -1,7 +1,7 @@
 use regex::Regex;
 
 use crate::branch::Branch;
-use crate::command::run_command;
+use crate::command::{run_command, run_command_with_stdin};
 use crate::commit::Commit;
 
 const SCISSORS: &str = "------------------------ >8 ------------------------";
@@ -170,11 +170,13 @@ fn parse_commit(message: &str) -> Option<Commit> {
 
 pub fn parse_commit_file(contents: &str) -> Commit {
     let (subject, message) = parse_commit_hook_format(contents, &cleanup_mode(), &comment_char());
+    let trailers = parse_trailers_from_message([subject.to_owned(), message.to_owned()].join("\n"));
+    let message = strip_trailers_from_message(&message, &trailers);
     // Run the diff command to fetch the current staged changes and determine if the commit is
     // empty or not. The contents of the commit message file is too unreliable as it depends on
     // user config and how the user called the `git commit` command.
     let file_changes = current_file_changes();
-    Commit::new(None, None, &subject, message, "".to_string(), file_changes)
+    Commit::new(None, None, &subject, message, trailers, file_changes)
 }
 
 fn parse_commit_hook_format(
@@ -233,6 +235,19 @@ fn parse_commit_hook_format(
     });
 
     (used_subject, message_lines.join("\n"))
+}
+
+fn parse_trailers_from_message(message: String) -> String {
+    match run_command_with_stdin("git", &["interpret-trailers", "--only-trailers"], message) {
+        Ok(stdout) => stdout.trim().to_string(),
+        Err(e) => {
+            error!(
+                "Unable to determine commit message trailers.\nError: {:?}",
+                e
+            );
+            "".to_string()
+        }
+    }
 }
 
 fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> Option<String> {

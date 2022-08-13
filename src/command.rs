@@ -1,5 +1,6 @@
 use std::ffi::OsStr;
-use std::process::{Command, Output};
+use std::io::Write;
+use std::process::{Command, Output, Stdio};
 
 #[derive(Debug)]
 pub enum ExitError {
@@ -130,14 +131,56 @@ pub fn run_command<S: AsRef<OsStr> + std::fmt::Display>(
     }
 }
 
+pub fn run_command_with_stdin<S: AsRef<OsStr> + std::fmt::Display>(
+    cmd: &str,
+    args: &[S],
+    stdin: String,
+) -> Result<String, FailedCommand> {
+    let command = Command::new(cmd)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn();
+    let mut child = match command {
+        Ok(handler) => handler,
+        Err(error) => {
+            return Err(FailedCommand::from_error(cmd, args, &error));
+        }
+    };
+    let mut child_stdin = child.stdin.take().expect("Lintje failed to open stdin");
+    std::thread::spawn(move || {
+        child_stdin
+            .write_all(stdin.as_bytes())
+            .expect("Lintje failed to write to stdin");
+    });
+    match child.wait_with_output() {
+        Ok(output) => {
+            let status = output.status;
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if status.success() {
+                Ok(stdout.to_string())
+            } else {
+                // The program was run, but exited with a failure.
+                //
+                // Processes that fail in containers because the executable could not be found are
+                // also reported this away instead of an Err.
+                Err(FailedCommand::from_output(cmd, args, output))
+            }
+        }
+        // Errors about scenarios like: the executable could not be found
+        Err(error) => Err(FailedCommand::from_error(cmd, args, &error)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::run_command;
+    use super::{run_command, run_command_with_stdin};
     use std::os::unix::process::ExitStatusExt;
     use std::process::{ExitStatus, Output};
 
     #[test]
-    fn command_success() {
+    fn run_success() {
         match run_command("echo", &["-n", "123", "456"]) {
             Ok(result) => assert_eq!(result, "123 456"),
             Err(e) => panic!("Unexpected failure: {:?}", e),
@@ -145,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn command_exit_failure() {
+    fn run_exit_failure() {
         match run_command("support/test/failure_script", &["5", "hello"]) {
             Ok(result) => panic!("Unexpected success: {:?}", result),
             Err(e) => {
@@ -161,7 +204,7 @@ mod tests {
     }
 
     #[test]
-    fn command_run_does_not_exist() {
+    fn run_does_not_exist() {
         match run_command("support/test/failure_script", &["127", "hello"]) {
             Ok(result) => panic!("Unexpected success: {:?}", result),
             Err(e) => {
@@ -177,8 +220,81 @@ mod tests {
     }
 
     #[test]
-    fn command_run_failure() {
+    fn run_failure() {
         match run_command("lintje-does-not-exist", &["123", "hello"]) {
+            Ok(result) => panic!("Unexpected success: {:?}", result),
+            Err(e) => {
+                let message = "Failed to run command.\n\
+                    Command: lintje-does-not-exist\n\
+                    Arguments: [\"123\", \"hello\"]\n\
+                    Exit code: None\n\
+                    Output:\nNo such file or directory (os error 2)";
+                assert_eq!(format!("{e:?}"), message);
+                // No exit code because the executable could not be found
+                assert!(!e.error.is_exit_code(0));
+                assert!(!e.error.is_exit_code(1));
+                assert!(!e.error.is_exit_code(2));
+                assert!(!e.error.is_exit_code(123));
+                assert!(!e.error.is_exit_code(127));
+            }
+        }
+    }
+
+    #[test]
+    fn run_with_stdin_success() {
+        match run_command_with_stdin("cat", &["-u"], "Hello stdin".to_string()) {
+            Ok(result) => assert_eq!(result, "Hello stdin"),
+            Err(e) => panic!("Unexpected failure: {:?}", e),
+        }
+    }
+
+    #[test]
+    fn run_with_stdin_exit_failure() {
+        match run_command_with_stdin(
+            "support/test/failure_script",
+            &["5", "hello"],
+            "Hello stdin".to_string(),
+        ) {
+            Ok(result) => panic!("Unexpected success: {:?}", result),
+            Err(e) => {
+                let message = "Failed to run command.\n\
+                    Command: support/test/failure_script\n\
+                    Arguments: [\"5\", \"hello\"]\n\
+                    Exit code: Some(5)\n\
+                    Output:\nSTDERR message\nSTDOUT message\n";
+                assert_eq!(format!("{e:?}"), message);
+                assert!(e.error.is_exit_code(5));
+            }
+        }
+    }
+
+    #[test]
+    fn run_with_stdin_does_not_exist() {
+        match run_command_with_stdin(
+            "support/test/failure_script",
+            &["127", "hello"],
+            "Hello stdin".to_string(),
+        ) {
+            Ok(result) => panic!("Unexpected success: {:?}", result),
+            Err(e) => {
+                let message = "Failed to run command.\n\
+                    Command: support/test/failure_script\n\
+                    Arguments: [\"127\", \"hello\"]\n\
+                    Exit code: Some(127)\n\
+                    Output:\nSTDERR message\nSTDOUT message\n";
+                assert_eq!(format!("{e:?}"), message);
+                assert!(e.error.is_exit_code(127));
+            }
+        }
+    }
+
+    #[test]
+    fn run_with_stdin_failure() {
+        match run_command_with_stdin(
+            "lintje-does-not-exist",
+            &["123", "hello"],
+            "Hello stdin".to_string(),
+        ) {
             Ok(result) => panic!("Unexpected success: {:?}", result),
             Err(e) => {
                 let message = "Failed to run command.\n\
