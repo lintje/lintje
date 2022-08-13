@@ -343,6 +343,20 @@ pub fn comment_char() -> String {
     }
 }
 
+pub fn current_file_changes() -> Vec<String> {
+    match run_command("git", &["diff", "--cached", "--name-only"]) {
+        Ok(stdout) => stdout
+            .trim()
+            .lines()
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<String>>(),
+        Err(e) => {
+            error!("Unable to determine commit changes.\nError: {:?}", e);
+            vec![]
+        }
+    }
+}
+
 pub fn repo_has_changesets() -> bool {
     // Find all changesets directories in the repo
     match run_command(
