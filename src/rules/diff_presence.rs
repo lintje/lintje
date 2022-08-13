@@ -53,6 +53,7 @@ mod tests {
             Some("test@example.com".to_string()),
             "Some subject",
             message,
+            "".to_string(),
             vec![],
         )
     }

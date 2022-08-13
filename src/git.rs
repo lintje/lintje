@@ -7,6 +7,8 @@ use crate::commit::Commit;
 const SCISSORS: &str = "------------------------ >8 ------------------------";
 const COMMIT_DELIMITER: &str = "------------------------ COMMIT >! ------------------------";
 const COMMIT_BODY_DELIMITER: &str = "------------------------ BODY >! ------------------------";
+const COMMIT_TRAILERS_DELIMITER: &str =
+    "------------------------ TRAILERS >! ------------------------";
 
 lazy_static! {
     pub static ref SUBJECT_WITH_MERGE_REMOTE_BRANCH: Regex =
@@ -41,17 +43,26 @@ pub fn fetch_and_parse_branch() -> Result<Branch, String> {
 
 pub fn fetch_and_parse_commits(selector: &Option<String>) -> Result<Vec<Commit>, String> {
     let mut commits = Vec::<Commit>::new();
-    // Format definition per commit
-    // Line 1: Commit SHA in long form
-    // Line 2: Commit author email address
-    // Line 3 to second to last: Commit subject and message
-    // Line last: Delimiter to tell commits apart
-    let format = "%n%H%n%ae%n%B%n";
+    // Format definition per commit:
+    // COMMIT_DELIMITER: Tell commits apart, split the string on this later
+    // Format:
+    //   - Line 1: Commit SHA in long form
+    //   - Line 2: Commit author email address
+    //   - Line 3 to end of body: Commit subject and message, including trailers
+    // COMMIT_TRAILERS_DELIMITER: Separator for commit message body and trailers
+    // %(trailers): Trailers, based on https://git-scm.com/docs/git-interpret-trailers/
+    // COMMIT_BODY_DELIMITER: Separator for end of the message body and trailers
+    // `--name-only`: Prints filenames of files changed
+    let commit_format = "%H%n%ae%n%B";
     let mut args = vec![
         "log".to_string(),
         format!(
-            "--pretty={}{}{}",
-            COMMIT_DELIMITER, format, COMMIT_BODY_DELIMITER
+            "--pretty=\
+             {COMMIT_DELIMITER}%n\
+             {commit_format}%n\
+             {COMMIT_TRAILERS_DELIMITER}%n\
+             %(trailers)%n\
+             {COMMIT_BODY_DELIMITER}"
         ),
         "--name-only".to_string(),
     ];
@@ -95,7 +106,7 @@ fn parse_commit(message: &str) -> Option<Commit> {
     let mut email = None;
     let mut subject = None;
     let mut message_lines = vec![];
-    let mut message_parts = message.split(COMMIT_BODY_DELIMITER);
+    let mut message_parts = message.split(COMMIT_TRAILERS_DELIMITER);
     match message_parts.next() {
         Some(body) => {
             for (index, line) in body.lines().enumerate() {
@@ -110,7 +121,12 @@ fn parse_commit(message: &str) -> Option<Commit> {
         None => error!("No commit body found!"),
     }
 
-    let file_changes_str = message_parts.next().unwrap_or("").trim();
+    let mut extras_str = message_parts
+        .next()
+        .unwrap_or("")
+        .split(COMMIT_BODY_DELIMITER);
+    let trailers = extras_str.next().unwrap_or("").trim().to_string();
+    let file_changes_str = extras_str.next().unwrap_or("").trim();
     let file_changes = file_changes_str
         .lines()
         .map(std::string::ToString::to_string)
@@ -125,6 +141,11 @@ fn parse_commit(message: &str) -> Option<Commit> {
         );
     }
 
+    // Trailers are included twice, once for the body and once for the trailers. Replace the
+    // trailers in the body, we already have them in the trailers string.
+    let message_body_str = message_lines.join("\n");
+    let message_body = strip_trailers_from_message(&message_body_str, &trailers);
+
     match (long_sha, subject) {
         (Some(long_sha), subject) => {
             let used_subject = subject.unwrap_or_else(|| {
@@ -135,7 +156,8 @@ fn parse_commit(message: &str) -> Option<Commit> {
                 Some(long_sha.to_string()),
                 email,
                 used_subject,
-                message_lines.join("\n"),
+                message_body,
+                trailers,
                 file_changes,
             ))
         }
@@ -152,7 +174,7 @@ pub fn parse_commit_file(contents: &str) -> Commit {
     // empty or not. The contents of the commit message file is too unreliable as it depends on
     // user config and how the user called the `git commit` command.
     let file_changes = current_file_changes();
-    Commit::new(None, None, &subject, message, file_changes)
+    Commit::new(None, None, &subject, message, "".to_string(), file_changes)
 }
 
 fn parse_commit_hook_format(
@@ -393,12 +415,19 @@ pub fn repo_has_changesets() -> bool {
     }
 }
 
+pub fn strip_trailers_from_message(message: &str, trailers: &str) -> String {
+    let (body, _removed_trailers) = message
+        .rsplit_once(&trailers) // Split from the back so only the last occurrence of the trailers is removed
+        .unwrap_or(("", ""));
+    body.trim_end().to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::Commit;
     use super::{
-        is_commit_ignored, parse_commit, parse_commit_hook_format, CleanupMode,
-        COMMIT_BODY_DELIMITER,
+        is_commit_ignored, parse_commit, parse_commit_hook_format, strip_trailers_from_message,
+        CleanupMode, COMMIT_BODY_DELIMITER, COMMIT_TRAILERS_DELIMITER,
     };
     use crate::config::ValidationContext;
     use crate::issue::{Issue, IssueType};
@@ -428,13 +457,29 @@ mod tests {
 
     fn commit_with_file_changes(message: &str) -> String {
         format!(
-            "{}\n{}\n{}",
-            message, COMMIT_BODY_DELIMITER, "\nsrc/main.rs\nsrc/utils.rs\n"
+            "{}\n{COMMIT_TRAILERS_DELIMITER}\n{COMMIT_BODY_DELIMITER}\n{}",
+            message, "\nsrc/main.rs\nsrc/utils.rs\n"
         )
     }
 
     fn commit_without_file_changes(message: &str) -> String {
-        format!("{}\n{}\n{}", message, COMMIT_BODY_DELIMITER, "\n")
+        format!(
+            "{}\n{COMMIT_TRAILERS_DELIMITER}\n{COMMIT_BODY_DELIMITER}\n{}",
+            message, ""
+        )
+    }
+
+    fn commit_with_trailers(message: &str, trailers: &str) -> String {
+        format!(
+            "{message}\n\
+             \n\
+             {trailers}
+             {COMMIT_TRAILERS_DELIMITER}\n\
+             {trailers}\n\
+             {COMMIT_BODY_DELIMITER}\n\
+             src/main.rs\n\
+             README.md\n",
+        )
     }
 
     #[test]
@@ -458,6 +503,7 @@ mod tests {
         assert_eq!(commit.email, Some("test@example.com".to_string()));
         assert_eq!(commit.subject, "This is a subject");
         assert_eq!(commit.message, "\nThis is my multi line message.\nLine 2.");
+        assert_eq!(commit.trailers, "");
         assert_eq!(
             commit.file_changes,
             vec!["src/main.rs".to_string(), "src/utils.rs".to_string()]
@@ -468,6 +514,36 @@ mod tests {
             .filter(|i| i.r#type == IssueType::Error)
             .collect::<Vec<Issue>>()
             .is_empty());
+    }
+
+    #[test]
+    fn test_parse_commit_with_trailers() {
+        let result = parse_commit(&commit_with_trailers(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+            test@example.com\n\
+            This is a subject\n\
+            \n\
+            This is a message\n",
+            "Co-authored-by: Person A <name@domain.com>\n\
+             Co-authored-by: Person B <name@domain.com>\n",
+        ));
+
+        assert_commit_is_not_ignored(&result);
+        let commit = result.unwrap();
+        assert_eq!(
+            commit.long_sha,
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
+        );
+        assert_eq!(commit.short_sha, Some("aaaaaaa".to_string()));
+        assert_eq!(commit.email, Some("test@example.com".to_string()));
+        assert_eq!(commit.subject, "This is a subject");
+        assert_eq!(commit.message, "\nThis is a message");
+        assert_eq!(
+            commit.trailers,
+            "Co-authored-by: Person A <name@domain.com>\n\
+             Co-authored-by: Person B <name@domain.com>"
+        );
+        assert!(commit.has_changes());
     }
 
     #[test]
@@ -923,5 +999,65 @@ mod tests {
 
         assert_eq!(subject, "This is a subject");
         assert_eq!(message, "\nThis is the message body.");
+    }
+
+    #[test]
+    fn strip_trailers_from_message_without_trailers() {
+        let result = strip_trailers_from_message("Subject\n\nMy message body\n", "");
+        assert_eq!(result, "Subject\n\nMy message body");
+    }
+
+    #[test]
+    fn strip_trailers_from_message_with_trailers() {
+        let result = strip_trailers_from_message(
+            "Subject\n\
+            \n\
+            My message body\n
+            \n\
+            Co-authored-by: Person A\n",
+            "Co-authored-by: Person A",
+        );
+        assert_eq!(result, "Subject\n\nMy message body");
+    }
+
+    #[test]
+    fn strip_trailers_from_message_with_multiple_trailers() {
+        let result = strip_trailers_from_message(
+            "Subject\n\
+            \n\
+            My message body\n
+            \n\
+            Co-authored-by: Person A\n\
+            Signed-off-by: Person B\n\
+            Fix: #123\n",
+            "Co-authored-by: Person A\n\
+            Signed-off-by: Person B\n\
+            Fix: #123",
+        );
+        assert_eq!(result, "Subject\n\nMy message body");
+    }
+
+    #[test]
+    fn strip_trailers_from_message_with_duplicate_trailers() {
+        let result = strip_trailers_from_message(
+            "Subject\n\
+            \n\
+            Co-authored-by: Person A\n\
+            Signed-off-by: Person B\n
+            My message body\n
+            \n\
+            Co-authored-by: Person A\n\
+            Signed-off-by: Person B\n",
+            "Co-authored-by: Person A\n\
+            Signed-off-by: Person B",
+        );
+        assert_eq!(
+            result,
+            "Subject\n\
+            \n\
+            Co-authored-by: Person A\n\
+            Signed-off-by: Person B\n
+            My message body"
+        );
     }
 }

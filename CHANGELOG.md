@@ -7,6 +7,10 @@
 - Ignore Git revert commits made by `git revert`. These commits will no longer
   be validated by Lintje as they are usually generated and their messages not
   updated.
+- Added commit message trailer support. Trailers are no longer considered part
+  of the message body and do not count towards message length and other rules.
+  Trailers are things like "Co-authored-by" and "Signed-off-by" lines at the
+  end of the message body.
 
 ## Changed
 

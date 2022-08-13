@@ -54,6 +54,7 @@ pub fn commit_with_sha<S: AsRef<str>>(sha: Option<String>, subject: S, message: 
         Some("test@example.com".to_string()),
         subject.as_ref(),
         message.as_ref().to_string(),
+        "".to_string(), // Trailers, commonly empty
         vec!["src/main.rs".to_string()],
     )
 }

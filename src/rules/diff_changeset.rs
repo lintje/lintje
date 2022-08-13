@@ -96,6 +96,7 @@ mod tests {
             Some("test@example.com".to_string()),
             "Subject: of commit with /&_|[](){}\\'\"`@!=+*.,#$%^;: chars -- foo.test",
             "Some message".to_string(),
+            "".to_string(),
             files,
         )
     }
@@ -125,6 +126,7 @@ mod tests {
             Some("test@example.com".to_string()),
             "Subject",
             "Some message\n[skip changeset]".to_string(),
+            "".to_string(),
             vec!["README.md".to_string(), "src/main.rs".to_string()],
         );
         let issues = validate(&commit);

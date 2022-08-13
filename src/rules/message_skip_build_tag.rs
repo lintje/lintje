@@ -101,6 +101,7 @@ mod tests {
             Some("test@example.com".to_string()),
             "Some subject",
             "Some message".to_string(),
+            "".to_string(),
             files,
         )
     }

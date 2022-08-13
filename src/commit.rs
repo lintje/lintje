@@ -9,6 +9,7 @@ pub struct Commit {
     pub email: Option<String>,
     pub subject: String,
     pub message: String,
+    pub trailers: String,
     pub file_changes: Vec<String>,
     pub issues: Vec<Issue>,
     pub ignored_rules: Vec<Rule>,
@@ -21,6 +22,7 @@ impl Commit {
         email: Option<String>,
         subject: &str,
         message: String,
+        trailers: String,
         file_changes: Vec<String>,
     ) -> Self {
         // Get first 7 characters of the commit SHA to get the short SHA.
@@ -41,6 +43,7 @@ impl Commit {
             email,
             subject: subject.trim_end().to_string(),
             message,
+            trailers,
             file_changes,
             ignored_rules,
             issues: Vec::<Issue>::new(),
