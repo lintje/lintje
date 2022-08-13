@@ -1,5 +1,4 @@
 use core::ops::Range;
-use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
@@ -7,11 +6,6 @@ use crate::rule::Rule;
 use crate::rule::RuleValidator;
 use crate::rules::CONTAINS_FIX_TICKET;
 use crate::utils::display_width;
-
-lazy_static! {
-    static ref CO_AUTHOR_REFERENCE: Regex =
-        Regex::new(r"(?im)^co-authored-by: [\w\s\-]+\s+<[^\s]+[@]+[^\s]+>").unwrap();
-}
 
 pub struct MessagePresence {}
 
@@ -59,8 +53,6 @@ impl RuleValidator<Commit> for MessagePresence {
 
         // Do not count ticket references towards message body length/width
         width -= ticket_number_reference_length(&commit.message);
-        // Do not count co-authored-by references towards message body length/width
-        width -= co_author_references_length(&commit.message);
 
         if width < 10 {
             let mut context = vec![];
@@ -212,16 +204,6 @@ fn ticket_number_reference_length(message: &str) -> usize {
             let capture_width = display_width(capture.as_str());
             length += capture_width;
         }
-    }
-    length
-}
-
-// Return the length of all co author lines from the message body.
-fn co_author_references_length(message: &str) -> usize {
-    let mut length = 0;
-    for capture in CO_AUTHOR_REFERENCE.find_iter(message) {
-        let capture_width = display_width(capture.as_str());
-        length += capture_width;
     }
     length
 }
@@ -410,29 +392,6 @@ mod tests {
                | ^^^^^^^^^^^\n\
              4 | Shortmsg closes #123\n\
                | ^^^^^^^^^^^^^^^^^^^^ Add more detail about the change and why it was made",
-        );
-    }
-
-    #[test]
-    fn with_co_author_and_short_message() {
-        // Ignore the co author line as a count towards the body and only count the remaining text,
-        // which is 9 characters, which is too short.
-        let message = commit(
-            "Subject".to_string(),
-            // Message is 9 characters, not including the co author line
-            "\nShort msg\nCo-authored-by: Tom de Bruijn <email@domain.com>\nCo-authored-by: Some-other Namé <email@domain.com>\n".to_string(),
-        );
-        let issue = first_issue(validate(&message));
-        assert_eq!(issue.message, "The message body is too short");
-        assert_eq!(issue.position, message_position(3, 1));
-        assert_contains_issue_output(
-            &issue,
-            "3 | Short msg\n\
-               | ^^^^^^^^^\n\
-             4 | Co-authored-by: Tom de Bruijn <email@domain.com>\n\
-               | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\
-             5 | Co-authored-by: Some-other Namé <email@domain.com>\n\
-               | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Add more detail about the change and why it was made",
         );
     }
 }
