@@ -40,3 +40,45 @@ impl Branch {
         self.checked_rules.push(rule);
     }
 }
+
+impl std::fmt::Display for Branch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Branch: {}\n\
+            Checked rules: {}\n\
+            Issues: {}\n",
+            self.name,
+            self.checked_rules
+                .iter()
+                .map(|r| format!("{}", r))
+                .collect::<Vec<String>>()
+                .join(", "),
+            self.issues
+                .iter()
+                .map(|i| format!("{}", i.rule))
+                .collect::<Vec<String>>()
+                .join(", "),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Branch;
+
+    #[test]
+    fn display() {
+        let mut branch = Branch::new("branch-name!".to_string());
+        branch.validate();
+        let display_branch = format!("{}", branch);
+        assert_eq!(
+            display_branch,
+            "Branch: branch-name!\n\
+            Checked rules: BranchNameLength, BranchNameTicketNumber, BranchNamePunctuation, BranchNameCliche\n\
+            Issues: BranchNamePunctuation\n",
+            "{}",
+            display_branch
+        );
+    }
+}

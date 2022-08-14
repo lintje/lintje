@@ -145,11 +145,20 @@ fn print_lint_result(
     let mut branch_message = "";
 
     for commit in commits.iter_mut() {
-        if is_commit_ignored(commit) {
+        let ignored_commit = is_commit_ignored(commit);
+        if !ignored_commit {
+            commit.validate(context);
+        }
+        if options.verbose {
+            println!("{}", commit);
+        }
+        if ignored_commit {
             ignored_commit_count += 1;
+            if options.verbose {
+                println!("No issues: Commit ignored.");
+            }
             continue;
         }
-        commit.validate(context);
         commit_count += 1;
         if !commit.is_valid() {
             for issue in &commit.issues {
@@ -169,10 +178,11 @@ fn print_lint_result(
             }
         }
     }
-    debug!("Commits: {:?}", commits);
 
     if let Some(branch) = branch {
-        debug!("Branch: {:?}", branch);
+        if options.verbose {
+            println!("{}", branch);
+        }
         branch_message = " and branch";
         if !branch.is_valid() {
             for issue in &branch.issues {
@@ -1158,5 +1168,43 @@ mod tests {
 
         let contents = std::fs::read_to_string(hook_file).expect("Can't read hook file");
         assert_eq!(contents, "Other content\n\nlintje");
+    }
+
+    #[test]
+    fn verbose_output() {
+        compile_bin();
+        let dir = test_dir("verbose_output");
+        create_test_repo(&dir);
+        create_commit_with_file(
+            &dir,
+            "Test commit!",
+            "\nI am a test commit\n\nlintje:disable RebaseCommit",
+            "file",
+        );
+        checkout_branch(&dir, "fix-some-bug!");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .args(["--no-color", "--verbose"])
+            .current_dir(dir)
+            .assert()
+            .failure();
+        assert
+            // Commit output
+            .stdout(predicate::str::contains("SHA: "))
+            .stdout(predicate::str::contains("Author: "))
+            .stdout(predicate::str::contains("Subject: Test commit!\n"))
+            .stdout(predicate::str::contains("Message: \nI am a test commit\n"))
+            .stdout(predicate::str::contains(
+                "Trailers:\nlintje:disable RebaseCommit\n",
+            ))
+            .stdout(predicate::str::contains("File changes:\nfile\n"))
+            .stdout(predicate::str::contains("Checked rules: MergeCommit"))
+            .stdout(predicate::str::contains("Ignored rules: RebaseCommit\n"))
+            .stdout(predicate::str::contains("Issues: SubjectPunctuation"))
+            // Branch output
+            .stdout(predicate::str::contains("Branch: fix-some-bug!"))
+            .stdout(predicate::str::contains("Checked rules: BranchName"))
+            .stdout(predicate::str::contains("Issues: BranchNamePunctuation"));
     }
 }

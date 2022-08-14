@@ -14,6 +14,10 @@
   # Amend the commit to update it and fix the issues
   lintje --install-hook post-commit
   ```
+- Add `--verbose` CLI option. Print the parsed commit and branch before any
+  issues that were found in it. This replaces the commit and branch output that
+  printed the internal representation of these objects, when `--debug` was
+  set.
 
 ### Fixed
 

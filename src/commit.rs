@@ -137,8 +137,60 @@ impl Commit {
     }
 }
 
+impl std::fmt::Display for Commit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let trailers = if self.trailers.is_empty() {
+            "".to_string()
+        } else {
+            self.trailers.to_string() + "\n"
+        };
+        write!(
+            f,
+            "SHA: {}\n\
+            Author: {}\n\
+            Subject: {}\n\
+            Message: {}\n\
+            \n\
+            ---\n\
+            Trailers:\n\
+            {}\
+            \n\
+            ---\n\
+            File changes:\n\
+            {}\n\
+            \n\
+            ---\n\
+            Checked rules: {}\n\
+            Ignored rules: {}\n\
+            Issues: {}\n",
+            self.long_sha.as_ref().unwrap_or(&"".to_string()),
+            self.email.as_ref().unwrap_or(&"".to_string()),
+            self.subject,
+            self.message,
+            trailers,
+            self.file_changes.join("\n"),
+            self.checked_rules
+                .iter()
+                .map(|r| format!("{}", r))
+                .collect::<Vec<String>>()
+                .join(", "),
+            self.ignored_rules
+                .iter()
+                .map(|r| format!("{}", r))
+                .collect::<Vec<String>>()
+                .join(", "),
+            self.issues
+                .iter()
+                .map(|i| format!("{}", i.rule))
+                .collect::<Vec<String>>()
+                .join(", "),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::Commit;
     use crate::config::ValidationContext;
     use crate::rule::Rule;
     use crate::test::*;
@@ -274,5 +326,84 @@ mod tests {
         ignored_rule.validate(&default_context());
         assert!(!ignored_rule.has_issue(&Rule::SubjectLength));
         assert!(!ignored_rule.has_issue(&Rule::MessageEmptyFirstLine));
+    }
+
+    #[test]
+    fn display() {
+        let mut commit = Commit::new(
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
+            Some("email@domain.com".to_string()),
+            "Subject line",
+            "\n\
+            Message line 1.\n\
+            Message line 2.\n\
+            \n\
+            Message line 4\n\
+            \n\
+            lintje:disable RebaseCommit"
+                .to_string(),
+            "Co-authored-by: Person A <email@domain.com>\nSigned-off-by: Person A <email@domain.com>".to_string(),
+            vec!["src/main.rs".to_string(), "README.md".to_string()]
+        );
+        commit.validate(&ValidationContext { changesets: true });
+        let display_commit = format!("{}", commit);
+        assert_eq!(
+            display_commit,
+            "SHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+            Author: email@domain.com\n\
+            Subject: Subject line\n\
+            Message: \n\
+            Message line 1.\n\
+            Message line 2.\n\
+            \n\
+            Message line 4\n\
+            \n\
+            lintje:disable RebaseCommit\n\
+            \n\
+            ---\n\
+            Trailers:\n\
+            Co-authored-by: Person A <email@domain.com>\n\
+            Signed-off-by: Person A <email@domain.com>\n\
+            \n\
+            ---\n\
+            File changes:\n\
+            src/main.rs\n\
+            README.md\n\
+            \n\
+            ---\n\
+            Checked rules: MergeCommit, RebaseCommit, SubjectCliche, SubjectLength, SubjectMood, SubjectWhitespace, SubjectPrefix, SubjectCapitalization, SubjectBuildTag, SubjectPunctuation, SubjectTicketNumber, MessageTicketNumber, MessageEmptyFirstLine, MessagePresence, MessageLineLength, MessageTrailerLine, MessageSkipBuildTag, DiffChangeset, DiffPresence\n\
+            Ignored rules: RebaseCommit\n\
+            Issues: MessageTicketNumber, DiffChangeset\n",
+            "{}",
+            display_commit
+        );
+    }
+
+    #[test]
+    fn display_without_trailers() {
+        let commit = Commit::new(
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
+            Some("email@domain.com".to_string()),
+            "Subject line",
+            "\n\
+            Message line 1.\n\
+            Message line 2.\n\
+            \n\
+            Message line 4"
+                .to_string(),
+            "".to_string(),
+            vec!["src/main.rs".to_string(), "README.md".to_string()],
+        );
+        let display_commit = format!("{}", commit);
+        assert!(
+            display_commit.contains(
+                "---\n\
+                Trailers:\n\
+                \n\
+                ---\n"
+            ),
+            "{}",
+            display_commit
+        );
     }
 }

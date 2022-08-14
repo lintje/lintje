@@ -46,6 +46,9 @@ Lint Git commits and branch name.
     lintje --color
       Enable color output.
 
+    lintje --verbose
+      Print the validated commit and branch above the detected issues.
+
 ## Options file
 
     Use an options file to add defaults every Lintje call. Configure the
@@ -112,6 +115,10 @@ pub struct Lint {
     /// Prints debug information
     #[clap(long, help_heading = "OUTPUT")]
     pub debug: bool,
+
+    /// Prints the parsed commit and branch above the detected issues
+    #[clap(long)]
+    pub verbose: bool,
 
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.
