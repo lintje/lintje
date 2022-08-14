@@ -98,7 +98,7 @@ impl Commit {
             self.validate_rule(Rule::MessageEmptyFirstLine);
             self.validate_rule(Rule::MessagePresence);
             self.validate_rule(Rule::MessageLineLength);
-            self.validate_rule(Rule::MessageCoAuthoredBy);
+            self.validate_rule(Rule::MessageTrailerLine);
             self.validate_rule(Rule::MessageSkipBuildTag);
             if context.changesets {
                 self.validate_rule(Rule::DiffChangeset);
@@ -194,7 +194,7 @@ mod tests {
                 Rule::MessageEmptyFirstLine,
                 Rule::MessagePresence,
                 Rule::MessageLineLength,
-                Rule::MessageCoAuthoredBy,
+                Rule::MessageTrailerLine,
                 Rule::MessageSkipBuildTag,
                 Rule::DiffPresence
             ]

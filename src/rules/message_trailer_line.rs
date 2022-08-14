@@ -7,19 +7,21 @@ use crate::rule::Rule;
 use crate::rule::RuleValidator;
 
 lazy_static! {
-    static ref CO_AUTHOR_REFERENCE: Regex =
-        Regex::new(r"(?im)^co-authored-by: [\w\s\-]+\s+<[^\s]+[@]+[^\s]+>").unwrap();
+    static ref TRAILER_LINE: Regex = Regex::new(
+        r"(?i)^(co-authored-by|signed-off-by|helped-by):\s+([\w\s\-]+\s+<[^\s]+[@]+[^\s]+>)"
+    )
+    .unwrap();
 }
 
-pub struct MessageCoAuthoredBy {}
+pub struct MessageTrailerLine {}
 
-impl MessageCoAuthoredBy {
+impl MessageTrailerLine {
     pub fn new() -> Self {
         Self {}
     }
 }
 
-impl RuleValidator<Commit> for MessageCoAuthoredBy {
+impl RuleValidator<Commit> for MessageTrailerLine {
     // Test if the "Co-authored-by" line is always at the end of the message body
     // https://docs.github.com/en/pull-requests/committing-changes-to-your-project/creating-and-editing-commits/creating-a-commit-with-multiple-authors
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
@@ -33,7 +35,19 @@ impl RuleValidator<Commit> for MessageCoAuthoredBy {
         let mut last_issue_occurrence = None;
 
         for (line_index, line) in message.lines().enumerate() {
-            if let Some(capture) = CO_AUTHOR_REFERENCE.find(line) {
+            if let Some(captures) = TRAILER_LINE.captures(line) {
+                let full_capture = if let Some(capture) = captures.get(0) {
+                    capture
+                } else {
+                    error!("MessageTrailerLine: Unable to fetch capture 0");
+                    return None;
+                };
+                let type_capture = if let Some(capture) = captures.get(1) {
+                    capture
+                } else {
+                    error!("MessageTrailerLine: Unable to fetch capture 1");
+                    return None;
+                };
                 // +1 for subject line
                 // +1 for zero index
                 let line_number = line_index + 2;
@@ -50,11 +64,18 @@ impl RuleValidator<Commit> for MessageCoAuthoredBy {
                 context.push(Context::message_line_removal_suggestion(
                     line_number,
                     line.to_string(),
-                    capture.range(),
-                    "Remove the co-author reference in the message body".to_string(),
+                    full_capture.range(),
+                    format!(
+                        "Remove the {} reference in the message body",
+                        type_capture.as_str().to_lowercase()
+                    ),
                 ));
                 // Store for later, when we can calculate the new line count more easily.
-                context_additions.push((line.to_string(), capture.range()));
+                context_additions.push((
+                    line.to_string(),
+                    type_capture.as_str().to_lowercase(),
+                    full_capture.range(),
+                ));
                 last_issue_occurrence = Some(line_index);
             }
         }
@@ -75,7 +96,7 @@ impl RuleValidator<Commit> for MessageCoAuthoredBy {
                 new_last_line,
                 "".to_string(),
                 Range { start: 0, end: 3 },
-                "Add a new empty trailer line at the end of the message".to_string(),
+                "Add a new empty trailer line at the end of the message body".to_string(),
             ));
         } else {
             // +1 for the existing empty trailer separator line
@@ -84,19 +105,22 @@ impl RuleValidator<Commit> for MessageCoAuthoredBy {
 
         // Add additions to the context, based on the line count and co-authored-by lines that
         // were found.
-        for (line, range) in context_additions.drain(..) {
+        for (line, trailer_type, range) in context_additions.drain(..) {
             new_last_line += 1;
             context.push(Context::message_line_addition(
                 new_last_line,
                 line.to_string(),
                 range,
-                "Move co-author reference to the end of the message".to_string(),
+                format!(
+                    "Move {} reference to the end of the message body",
+                    trailer_type
+                ),
             ));
         }
 
         Some(vec![Issue::error(
-            Rule::MessageCoAuthoredBy,
-            "Co-authored-by reference is not at the end of the message".to_string(),
+            Rule::MessageTrailerLine,
+            "Trailer line is not at the end of the message body".to_string(),
             Position::MessageLine {
                 line: first_line_issue_occurrence.unwrap(),
                 column: 1,
@@ -112,7 +136,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        MessageCoAuthoredBy::new().validate(&commit)
+        MessageTrailerLine::new().validate(&commit)
     }
 
     #[test]
@@ -139,18 +163,18 @@ mod tests {
         let issue = first_issue(validate(&commit));
         assert_eq!(
             issue.message,
-            "Co-authored-by reference is not at the end of the message"
+            "Trailer line is not at the end of the message body"
         );
         assert_eq!(issue.position, message_position(6, 1));
         assert_contains_issue_output(
             &issue,
             " 6 | Co-authored-by: Person A <other@example.com>\n\
-                | -------------------------------------------- Remove the co-author reference in the message body\n\
+                | -------------------------------------------- Remove the co-authored-by reference in the message body\n\
                ~~~\n\
               9 |\n\
                 | +++ Add a new empty trailer line at the end of the message\n\
              10 | Co-authored-by: Person A <other@example.com>\n\
-                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-author reference to the end of the message",
+                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-authored-by reference to the end of the message body",
         );
     }
 
@@ -170,16 +194,16 @@ mod tests {
         let issue = first_issue(validate(&commit));
         assert_eq!(
             issue.message,
-            "Co-authored-by reference is not at the end of the message"
+            "Trailer line is not at the end of the message body"
         );
         assert_eq!(issue.position, message_position(6, 1));
         assert_contains_issue_output(
             &issue,
             " 6 | Co-authored-by: Person A <other@example.com>\n\
-                | -------------------------------------------- Remove the co-author reference in the message body\n\
+                | -------------------------------------------- Remove the co-authored-by reference in the message body\n\
                ~~~\n\
              12 | Co-authored-by: Person A <other@example.com>\n\
-                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-author reference to the end of the message",
+                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-authored-by reference to the end of the message body",
         );
     }
 
@@ -201,27 +225,85 @@ mod tests {
         let issue = first_issue(validate(&commit));
         assert_eq!(
             issue.message,
-            "Co-authored-by reference is not at the end of the message"
+            "Trailer line is not at the end of the message body"
         );
         assert_eq!(issue.position, message_position(6, 1));
         assert_contains_issue_output(
             &issue,
             " 6 | Co-authored-by: Person A <other@example.com>\n\
-                | -------------------------------------------- Remove the co-author reference in the message body\n\
+                | -------------------------------------------- Remove the co-authored-by reference in the message body\n\
                 ~~~\n\
               8 | Co-authored-by: Person B <other@example.com>\n\
-                | -------------------------------------------- Remove the co-author reference in the message body\n\
+                | -------------------------------------------- Remove the co-authored-by reference in the message body\n\
               9 | Co-authored-by: Person C <other@example.com>\n\
-                | -------------------------------------------- Remove the co-author reference in the message body\n\
+                | -------------------------------------------- Remove the co-authored-by reference in the message body\n\
                ~~~\n\
              12 |\n\
                 | +++ Add a new empty trailer line at the end of the message\n\
              13 | Co-authored-by: Person A <other@example.com>\n\
-                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-author reference to the end of the message\n\
+                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-authored-by reference to the end of the message body\n\
              14 | Co-authored-by: Person B <other@example.com>\n\
-                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-author reference to the end of the message\n\
+                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-authored-by reference to the end of the message body\n\
              15 | Co-authored-by: Person C <other@example.com>\n\
-                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-author reference to the end of the message",
+                | ++++++++++++++++++++++++++++++++++++++++++++ Move co-authored-by reference to the end of the message body",
+        );
+    }
+
+    #[test]
+    fn with_signed_off_by() {
+        let commit = commit(
+            "Subject",
+            "\n\
+            Some message line.\n\
+            \n\
+            Signed-off-by: Person A <other@example.com>\n\
+            \n\
+            Some other line at the end.",
+        );
+        let issue = first_issue(validate(&commit));
+        assert_eq!(
+            issue.message,
+            "Trailer line is not at the end of the message body"
+        );
+        assert_eq!(issue.position, message_position(5, 1));
+        assert_contains_issue_output(
+            &issue,
+            "5 | Signed-off-by: Person A <other@example.com>\n\
+               | ------------------------------------------- Remove the signed-off-by reference in the message body\n\
+              ~~~\n\
+             8 |\n\
+               | +++ Add a new empty trailer line at the end of the message\n\
+             9 | Signed-off-by: Person A <other@example.com>\n\
+               | +++++++++++++++++++++++++++++++++++++++++++ Move signed-off-by reference to the end of the message body",
+        );
+    }
+
+    #[test]
+    fn with_helped_off_by() {
+        let commit = commit(
+            "Subject",
+            "\n\
+            Some message line.\n\
+            \n\
+            Helped-by: Person A <other@example.com>\n\
+            \n\
+            Some other line at the end.",
+        );
+        let issue = first_issue(validate(&commit));
+        assert_eq!(
+            issue.message,
+            "Trailer line is not at the end of the message body"
+        );
+        assert_eq!(issue.position, message_position(5, 1));
+        assert_contains_issue_output(
+            &issue,
+            "5 | Helped-by: Person A <other@example.com>\n\
+               | --------------------------------------- Remove the helped-by reference in the message body\n\
+              ~~~\n\
+             8 |\n\
+               | +++ Add a new empty trailer line at the end of the message\n\
+             9 | Helped-by: Person A <other@example.com>\n\
+               | +++++++++++++++++++++++++++++++++++++++ Move helped-by reference to the end of the message body",
         );
     }
 }

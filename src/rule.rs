@@ -25,7 +25,7 @@ pub enum Rule {
     MessageLineLength,
     MessageSkipBuildTag,
     MessageTicketNumber,
-    MessageCoAuthoredBy,
+    MessageTrailerLine,
     DiffChangeset,
     DiffPresence,
     BranchNameTicketNumber,
@@ -48,12 +48,12 @@ impl fmt::Display for Rule {
             Rule::SubjectPrefix => "SubjectPrefix",
             Rule::SubjectBuildTag => "SubjectBuildTag",
             Rule::SubjectCliche => "SubjectCliche",
-            Rule::MessageCoAuthoredBy => "MessageCoAuthoredBy",
             Rule::MessageEmptyFirstLine => "MessageEmptyFirstLine",
             Rule::MessagePresence => "MessagePresence",
             Rule::MessageLineLength => "MessageLineLength",
             Rule::MessageSkipBuildTag => "MessageSkipBuildTag",
             Rule::MessageTicketNumber => "MessageTicketNumber",
+            Rule::MessageTrailerLine => "MessageTrailerLine",
             Rule::DiffChangeset => "DiffChangeset",
             Rule::DiffPresence => "DiffPresence",
             Rule::BranchNameTicketNumber => "BranchNameTicketNumber",
@@ -80,11 +80,11 @@ impl Rule {
             Rule::SubjectBuildTag => Box::new(SubjectBuildTag::new()),
             Rule::SubjectCliche => Box::new(SubjectCliche::new()),
             Rule::MessagePresence => Box::new(MessagePresence::new()),
-            Rule::MessageCoAuthoredBy => Box::new(MessageCoAuthoredBy::new()),
             Rule::MessageEmptyFirstLine => Box::new(MessageEmptyFirstLine::new()),
             Rule::MessageLineLength => Box::new(MessageLineLength::new()),
             Rule::MessageSkipBuildTag => Box::new(MessageSkipBuildTag::new()),
             Rule::MessageTicketNumber => Box::new(MessageTicketNumber::new()),
+            Rule::MessageTrailerLine => Box::new(MessageTrailerLine::new()),
             Rule::DiffChangeset => Box::new(DiffChangeset::new()),
             Rule::DiffPresence => Box::new(DiffPresence::new()),
             Rule::BranchNameTicketNumber
@@ -111,11 +111,11 @@ impl Rule {
             | Rule::SubjectBuildTag
             | Rule::SubjectCliche
             | Rule::MessagePresence
-            | Rule::MessageCoAuthoredBy
             | Rule::MessageEmptyFirstLine
             | Rule::MessageLineLength
             | Rule::MessageSkipBuildTag
             | Rule::MessageTicketNumber
+            | Rule::MessageTrailerLine
             | Rule::DiffChangeset
             | Rule::DiffPresence => panic!("Unknown rule for branch validation: {}", self),
             Rule::BranchNameLength => Box::new(BranchNameLength::new()),
@@ -139,12 +139,12 @@ impl Rule {
             Rule::SubjectPrefix => "commit-subject/#subjectprefix",
             Rule::SubjectBuildTag => "commit-subject/#subjectbuildtag",
             Rule::SubjectCliche => "commit-subject/#subjectcliche",
-            Rule::MessageCoAuthoredBy => "commit-message/#messagecoauthoredby",
             Rule::MessageEmptyFirstLine => "commit-message/#messageemptyfirstline",
             Rule::MessagePresence => "commit-message/#messagepresence",
             Rule::MessageLineLength => "commit-message/#messagelinelength",
             Rule::MessageSkipBuildTag => "commit-messsage/#messageskipbuildtag",
             Rule::MessageTicketNumber => "commit-message/#messageticketnumber",
+            Rule::MessageTrailerLine => "commit-message/#messagetrailerline",
             Rule::DiffChangeset => "commit-type/#diffchangeset",
             Rule::DiffPresence => "commit-type/#diffpresence",
             Rule::BranchNameTicketNumber => "branch/#branchnameticketnumber",
@@ -173,12 +173,12 @@ pub fn rule_by_name(name: &str) -> Option<Rule> {
         "SubjectBuildTag" => Some(Rule::SubjectBuildTag),
         "SubjectPrefix" => Some(Rule::SubjectPrefix),
         "SubjectCliche" => Some(Rule::SubjectCliche),
-        "MessageCoAuthoredBy" => Some(Rule::MessageCoAuthoredBy),
         "MessageEmptyFirstLine" => Some(Rule::MessageEmptyFirstLine),
         "MessagePresence" => Some(Rule::MessagePresence),
         "MessageLineLength" => Some(Rule::MessageLineLength),
         "MessageSkipBuildTag" => Some(Rule::MessageSkipBuildTag),
         "MessageTicketNumber" => Some(Rule::MessageTicketNumber),
+        "MessageTrailerLine" => Some(Rule::MessageTrailerLine),
         "DiffChangeset" => Some(Rule::DiffChangeset),
         "DiffPresence" => Some(Rule::DiffPresence),
         _ => None,
