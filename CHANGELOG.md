@@ -16,7 +16,7 @@
   they are not, GitHub and other tools will not recognize the line and will not
   credit to the co-author or recognize the sign off.
 
-## Changed
+### Changed
 
 - Color addition suggestions as green, previously cyan. The green color better
   communicates the suggestion is about an addition that should be made.
