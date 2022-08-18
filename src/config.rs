@@ -86,7 +86,12 @@ pub struct Lint {
 
     /// Lint the contents the Git hook commit-msg commit message file.
     /// This will usually be `.git/COMMIT_EDITMSG`.
-    #[clap(long, name = "commit message file path", parse(from_os_str))]
+    #[clap(
+        long,
+        name = "commit message file path",
+        parse(from_os_str),
+        conflicts_with("commit (range)")
+    )]
     pub hook_message_file: Option<PathBuf>,
 
     /// Prints debug information

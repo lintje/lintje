@@ -36,6 +36,14 @@
 ### Fixed
 
 - Remove unintended debug output on "Co-authored-by" line detection.
+- Disallow the `--hook-message-file` to be used with a commit (range)
+  selection. It would silently only parse the file specified by
+  `--hook-message-file` and not lint the selected commits. These two things are
+  incompatible. It will exit with an error when this happens.
+  The following is no longer allowed:
+  ```
+  lintje --hook-message-file .git/COMMIT_EDITMSG main..develop
+  ```
 
 ## 0.9.0
 
