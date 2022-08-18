@@ -30,6 +30,8 @@
   something to the commit message.
 - Show a suggestion in the SubjectCapitalization output to
   capitalize the first letter of the subject using the actual subject content.
+- Improve help output for `--hook-message-file` option. It now has a more
+  descriptive option value label.
 
 ### Fixed
 

@@ -85,7 +85,8 @@ pub struct Lint {
     pub no_color: bool,
 
     /// Lint the contents the Git hook commit-msg commit message file.
-    #[clap(long, parse(from_os_str))]
+    /// This will usually be `.git/COMMIT_EDITMSG`.
+    #[clap(long, name = "commit message file path", parse(from_os_str))]
     pub hook_message_file: Option<PathBuf>,
 
     /// Prints debug information
