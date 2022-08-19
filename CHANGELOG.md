@@ -32,6 +32,8 @@
   capitalize the first letter of the subject using the actual subject content.
 - Improve help output for `--hook-message-file` option. It now has a more
   descriptive option value label.
+- Add headings to help output and group similar arguments, options and flags
+  together.
 
 ### Fixed
 

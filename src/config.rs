@@ -69,19 +69,19 @@ Lint Git commits and branch name.
 */
 pub struct Lint {
     /// Disable branch validation
-    #[clap(long = "no-branch", parse(from_flag = std::ops::Not::not))]
+    #[clap(long = "no-branch", help_heading = "RULES", parse(from_flag = std::ops::Not::not))]
     pub branch_validation: bool,
 
     /// Disable hints
-    #[clap(long = "no-hints", parse(from_flag = std::ops::Not::not))]
+    #[clap(long = "no-hints", help_heading = "RULES", parse(from_flag = std::ops::Not::not))]
     pub hints: bool,
 
     /// Enable color output
-    #[clap(long = "color")]
+    #[clap(long = "color", help_heading = "OUTPUT")]
     pub color: bool,
 
     /// Disable color output
-    #[clap(long = "no-color")]
+    #[clap(long = "no-color", help_heading = "OUTPUT")]
     pub no_color: bool,
 
     /// Lint the contents the Git hook commit-msg commit message file.
@@ -90,17 +90,18 @@ pub struct Lint {
         long,
         name = "commit message file path",
         parse(from_os_str),
-        conflicts_with("commit (range)")
+        conflicts_with("commit (range)"),
+        help_heading = "SELECTION"
     )]
     pub hook_message_file: Option<PathBuf>,
 
     /// Prints debug information
-    #[clap(long)]
+    #[clap(long, help_heading = "OUTPUT")]
     pub debug: bool,
 
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
     /// defaults to linting the latest commit.
-    #[clap(name = "commit (range)")]
+    #[clap(name = "commit (range)", help_heading = "SELECTION")]
     pub selection: Option<String>,
 }
 
