@@ -1,3 +1,5 @@
+pub mod hooks;
+
 use regex::Regex;
 
 use crate::branch::Branch;

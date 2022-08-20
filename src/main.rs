@@ -61,6 +61,16 @@ fn main() {
 }
 
 fn handle_command(options: &Lint) -> Result<(), String> {
+    if let Some(hook) = &options.install_hook {
+        return match git::hooks::install_hook(hook) {
+            Ok(file) => {
+                println!("Succesfully installed Lintje in hook: '{}'", file);
+                Ok(())
+            }
+            Err(e) => Err(e),
+        };
+    }
+
     let validate_changesets = repo_has_changesets();
     let context = ValidationContext {
         changesets: validate_changesets,
@@ -262,7 +272,9 @@ mod tests {
     use predicates::prelude::*;
     use regex::Regex;
     use std::fs::File;
+    use std::fs::OpenOptions;
     use std::io::Write;
+    use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
     use std::process::{Command, Stdio};
     use std::sync::Once;
@@ -1068,5 +1080,83 @@ mod tests {
         assert.stderr(predicate::str::contains(
             "ERROR: Configured LINTJE_OPTIONS_PATH does not exist or is not a file. Path: \'options.txt\'",
         ));
+    }
+
+    #[test]
+    fn git_hook_install_commit_msg() {
+        compile_bin();
+        let dir = test_dir("git_hook_install_commit_msg");
+        create_test_repo(&dir);
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .current_dir(&dir)
+            .arg("--install-hook=commit-msg")
+            .assert()
+            .success();
+
+        assert.stdout(predicate::str::contains(
+            "Succesfully installed Lintje in hook: '.git/hooks/commit-msg'",
+        ));
+
+        let hook_file = dir.join(".git/hooks/commit-msg");
+        let contents = std::fs::read_to_string(&hook_file).expect("Can't read hook file");
+        assert_eq!(contents, "\n\nlintje --hook-message-file=$1");
+
+        let permissions = hook_file.metadata().unwrap().permissions();
+        assert_eq!(format!("{:#o}", permissions.mode()), "0o100744");
+    }
+
+    #[test]
+    fn git_hook_install_post_commit() {
+        compile_bin();
+        let dir = test_dir("git_hook_install_post_commit");
+        create_test_repo(&dir);
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .current_dir(&dir)
+            .arg("--install-hook=post-commit")
+            .assert()
+            .success();
+
+        assert.stdout(predicate::str::contains(
+            "Succesfully installed Lintje in hook: '.git/hooks/post-commit'",
+        ));
+
+        let hook_file = dir.join(".git/hooks/post-commit");
+        let contents = std::fs::read_to_string(hook_file).expect("Can't read hook file");
+        assert_eq!(contents, "\n\nlintje");
+    }
+
+    #[test]
+    fn git_hook_install_with_file_exists() {
+        compile_bin();
+        let dir = test_dir("git_hook_install_with_file_exists");
+        create_test_repo(&dir);
+
+        // Write some content to the file beforehand
+        let hook_file = dir.join(".git/hooks/post-commit");
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&hook_file)
+            .expect("Could not open file");
+        file.write_all(b"Other content")
+            .expect("Could not write to file");
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd
+            .current_dir(&dir)
+            .arg("--install-hook=post-commit")
+            .assert()
+            .success();
+
+        assert.stdout(predicate::str::contains(
+            "Succesfully installed Lintje in hook: '.git/hooks/post-commit'",
+        ));
+
+        let contents = std::fs::read_to_string(hook_file).expect("Can't read hook file");
+        assert_eq!(contents, "Other content\n\nlintje");
     }
 }

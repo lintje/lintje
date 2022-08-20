@@ -3,6 +3,8 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::git::hooks::CommitHook;
+
 const IGNORED_CLAP_ERRORS: [clap::error::ErrorKind; 2] = [
     clap::error::ErrorKind::DisplayHelp,
     clap::error::ErrorKind::DisplayVersion,
@@ -84,13 +86,25 @@ pub struct Lint {
     #[clap(long = "no-color", help_heading = "OUTPUT")]
     pub no_color: bool,
 
+    /// Install Lintje hook in the given Git hook file.
+    /// Installs a different command based on the hook type selected.
+    /// For more information about Git hooks read: https://git-scm.com/docs/githooks
+    #[clap(
+        long,
+        arg_enum,
+        name = "hook file name",
+        help_heading = "INSTALLATION",
+        conflicts_with_all(&["commit (range)", "commit message file path"])
+    )]
+    pub install_hook: Option<CommitHook>,
+
     /// Lint the contents the Git hook commit-msg commit message file.
     /// This will usually be `.git/COMMIT_EDITMSG`.
     #[clap(
         long,
         name = "commit message file path",
         parse(from_os_str),
-        conflicts_with("commit (range)"),
+        conflicts_with_all(&["commit (range)", "hook file name"]),
         help_heading = "SELECTION"
     )]
     pub hook_message_file: Option<PathBuf>,
@@ -242,6 +256,7 @@ mod tests {
             "--color".to_string(),
             "--no-branch".to_string(),
         ]);
+        assert_eq!(opts.hints, true);
         opts.merge(vec![
             "lintje".to_string(),
             "--no-color".to_string(),

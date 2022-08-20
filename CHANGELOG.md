@@ -1,5 +1,20 @@
 # Lintje changelog
 
+## Next version
+
+### Added
+
+- Add `--install-hook` CLI option. Call Lintje with this option to install a
+  Lintje in the selected Git hook.
+  ```sh
+  # This hook prevents making the commit if any issues are found
+  lintje --install-hook commit-msg
+
+  # This hook makes the commit even if Lintje finds issues
+  # Amend the commit to update it and fix the issues
+  lintje --install-hook post-commit
+  ```
+
 ## 0.10.0
 
 ### Added
