@@ -1,16 +1,16 @@
 # Lintje changelog
 
-## Next version
+## 0.10.0
 
 ### Added
 
 - Ignore Git revert commits made by `git revert`. These commits will no longer
   be validated by Lintje as they are usually generated and their messages not
   updated.
-- Added commit message trailer support. Trailers are no longer considered part
+- Trailer support for commit messages. Trailers are no longer considered part
   of the message body and do not count towards message length and other rules.
-  Trailers are things like "Co-authored-by" and "Signed-off-by" lines at the
-  end of the message body.
+  Trailers are lines at the end of the message body, like "Co-authored-by" and
+  "Signed-off-by".
 - Add MessageTrailerLine rule. This new rule checks if all "Co-authored-by",
   "Signed-off-by" and "Helped-by" lines are at the end of the message body. If
   they are not, GitHub and other tools will not recognize the line and will not
@@ -20,15 +20,15 @@
 
 - Color addition suggestions as green, previously cyan. The green color better
   communicates the suggestion is about an addition that should be made.
-- Mark removal suggestions more clearly to differentiate them from errors.
-  Instead of underlining with the caret symbol `^`, which errors also use, it
-  will now underline with the dash symbol `-` and use the color yellow to
-  highlight these changes.
 - Mark addition suggestions more clearly with the plus symbol `+`, and in
   green. Additions previously used the caret symbol `^` and bright red color,
   also used by errors. It is now more clear the issue is suggesting adding
   something to the commit message.
-- Show a suggestion in the SubjectCapitalization output to
+- Mark removal suggestions more clearly to differentiate them from errors.
+  Instead of underlining with the caret symbol `^`, which errors also use, it
+  will now underline with the dash symbol `-` and uses the color yellow to
+  highlight these changes.
+- Show a suggestion in the SubjectCapitalization issue output to
   capitalize the first letter of the subject using the actual subject content.
 - Improve help output for `--hook-message-file` option. It now has a more
   descriptive option value label.
@@ -39,7 +39,7 @@
 
 - Remove unintended debug output on "Co-authored-by" line detection.
 - Disallow the `--hook-message-file` to be used with a commit (range)
-  selection. It would silently only parse the file specified by
+  selection argument. It would silently only parse the file specified by
   `--hook-message-file` and not lint the selected commits. These two things are
   incompatible. It will exit with an error when this happens.
   The following is no longer allowed:
