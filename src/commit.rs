@@ -36,7 +36,7 @@ impl Commit {
             },
             None => None,
         };
-        let ignored_rules = Self::find_ignored_rules(&message);
+        let ignored_rules = Self::find_ignored_rules(&message, &trailers);
         Self {
             long_sha,
             short_sha,
@@ -55,10 +55,17 @@ impl Commit {
         !self.file_changes.is_empty()
     }
 
-    fn find_ignored_rules(message: &str) -> Vec<Rule> {
+    fn find_ignored_rules(message: &str, trailers: &str) -> Vec<Rule> {
+        let mut ignored = vec![];
+        ignored.append(&mut Self::find_ignored_rules_for(message));
+        ignored.append(&mut Self::find_ignored_rules_for(trailers));
+        ignored
+    }
+
+    fn find_ignored_rules_for(string: &str) -> Vec<Rule> {
         let disable_prefix = "lintje:disable ";
         let mut ignored = vec![];
-        for line in message.lines() {
+        for line in string.lines() {
             if let Some(name) = line.strip_prefix(disable_prefix) {
                 match rule_by_name(name) {
                     Some(rule) => ignored.push(rule),
@@ -244,16 +251,24 @@ mod tests {
 
     #[test]
     fn ignored_rule() {
-        let mut ignored_rule = commit(
+        let mut ignored_rule = commit_with_trailers(
             "".to_string(),
             "...\n\
             lintje:disable SubjectLength\n\
             lintje:disable MessageEmptyFirstLine"
                 .to_string(),
+            "lintje:disable SubjectCliche\n\
+            lintje:disable MessagePresence"
+                .to_string(),
         );
         assert_eq!(
             ignored_rule.ignored_rules,
-            vec![Rule::SubjectLength, Rule::MessageEmptyFirstLine]
+            vec![
+                Rule::SubjectLength,
+                Rule::MessageEmptyFirstLine,
+                Rule::SubjectCliche,
+                Rule::MessagePresence
+            ]
         );
 
         ignored_rule.validate(&default_context());

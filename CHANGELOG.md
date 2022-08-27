@@ -15,6 +15,12 @@
   lintje --install-hook post-commit
   ```
 
+### Fixed
+
+- Fix detection of ignored Lintje rules in the commit's trailer lines section.
+  Lines starting with `lintje:disable RuleName` are no longer ignored and the
+  disabled rules will not trigger any validation.
+
 ## 0.10.0
 
 ### Added
