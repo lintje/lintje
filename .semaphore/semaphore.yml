@@ -38,9 +38,13 @@ blocks:
         commands:
           - git config --global user.email "test@test.com"
           - git config --global user.name "My Test user"
+
           - cache restore v2-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock)
+          - cache restore v1-build-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock)
           - cargo test
           - cache store v2-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock) $CARGO_HOME
+          - cache store v1-build-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock)-$SEMAPHORE_WORKFLOW_ID target
+
           - cache delete v1-build-atrifact-$SEMAPHORE_WORKFLOW_ID
           - cache store v1-build-atrifact-$SEMAPHORE_WORKFLOW_ID target/debug/lintje
   - name: Test run the project
