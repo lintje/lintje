@@ -14,6 +14,7 @@ const IGNORED_CLAP_ERRORS: [clap::error::ErrorKind; 2] = [
 #[clap(
     name = "lintje",
     version,
+    long_version = long_version_output(),
     verbatim_doc_comment,
     setting(AppSettings::DeriveDisplayOrder)
 )]
@@ -228,6 +229,15 @@ fn parse_file_options(path: &Path, options: &[String]) -> Lint {
             e.exit()
         }
     }
+}
+
+// Print the long version label including the target for which it was built
+fn long_version_output() -> &'static str {
+    concat!(
+        clap::crate_version!(),
+        "\n",
+        env!("LINTJE_BUILD_TARGET_TRIPLE")
+    )
 }
 
 #[cfg(test)]

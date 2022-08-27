@@ -18,6 +18,10 @@
   issues that were found in it. This replaces the commit and branch output that
   printed the internal representation of these objects, when `--debug` was
   set.
+- Print build target in `--version` CLI flag. When `lintje --version` is run it
+  will now print the target for which it was built. This helps with debugging
+  which release build was installed. The `lintje -V` shorthand will still only
+  print the version number.
 
 ### Fixed
 

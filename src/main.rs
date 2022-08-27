@@ -1207,4 +1207,19 @@ mod tests {
             .stdout(predicate::str::contains("Checked rules: BranchName"))
             .stdout(predicate::str::contains("Issues: BranchNamePunctuation"));
     }
+
+    #[test]
+    fn long_version_output() {
+        compile_bin();
+        let dir = test_dir("long_version_output");
+        create_test_repo(&dir);
+
+        let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
+        let assert = cmd.arg("--version").current_dir(dir).assert().success();
+        assert.stdout(format!(
+            "lintje {}\n{}\n",
+            clap::crate_version!(),
+            env!("LINTJE_BUILD_TARGET_TRIPLE")
+        ));
+    }
 }
