@@ -23,6 +23,12 @@
   which release build was installed. The `lintje -V` shorthand will still only
   print the version number.
 
+### Changed
+
+- The MessageTicketNumber rule will no longer add an issue if a
+  SubjectTicketNumber issue is already found. It will no longer hint about
+  adding a ticket number to the message body, if one is present in the subject.
+
 ### Fixed
 
 - Fix detection of ignored Lintje rules in the commit's trailer lines section.

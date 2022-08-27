@@ -28,6 +28,10 @@ impl MessageTicketNumber {
 
 impl RuleValidator<Commit> for MessageTicketNumber {
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
+        if commit.has_issue(&Rule::SubjectTicketNumber) {
+            return None;
+        }
+
         let message = &commit.message.to_string();
         if CONTAINS_FIX_TICKET.captures(message).is_none()
             && LINK_TO_TICKET.captures(message).is_none()
@@ -180,5 +184,18 @@ mod tests {
              7 | Fixes #123\n\
                | ++++++++++ Consider adding a reference to a ticket or issue",
         );
+    }
+
+    #[test]
+    fn commit_with_ticket_number_in_subject() {
+        let mut commit = commit("Subject", "\nBeginning of message.");
+        commit.issues.push(Issue::error(
+            Rule::SubjectTicketNumber,
+            "some message".to_string(),
+            Position::Subject { line: 1, column: 1 },
+            vec![],
+        ));
+        let issues = validate(&commit);
+        assert_eq!(issues, None);
     }
 }
