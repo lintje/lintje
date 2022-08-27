@@ -117,7 +117,7 @@ pub struct Lint {
     pub debug: bool,
 
     /// Prints the parsed commit and branch above the detected issues
-    #[clap(long)]
+    #[clap(long, help_heading = "OUTPUT")]
     pub verbose: bool,
 
     /// Lint commits by Git commit SHA or by a range of commits. When no <commit> is specified, it
