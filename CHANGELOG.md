@@ -26,8 +26,11 @@
 ### Changed
 
 - The MessageTicketNumber rule will no longer add an issue if a
-  SubjectTicketNumber issue is already found. It will no longer hint about
-  adding a ticket number to the message body, if one is present in the subject.
+  SubjectTicketNumber issue is already found. It will not hint about adding a
+  ticket number to the message body, if one is present in the subject.
+- The MessageSkipBuildTag rule will no longer add a hint if a
+  SubjectBuildTag issue is already found. It will not hint about adding a "skip
+  ci" build tag to the message body, if one is present in the subject.
 
 ### Fixed
 

@@ -30,6 +30,9 @@ impl RuleValidator<Commit> for MessageSkipBuildTag {
         if !commit.has_changes() {
             return None;
         }
+        if commit.has_issue(&Rule::SubjectBuildTag) {
+            return None;
+        }
 
         let is_text_files = commit
             .file_changes
@@ -159,6 +162,19 @@ mod tests {
     #[test]
     fn without_file_changes() {
         let issues = validate(&commit_with_files(vec![]));
+        assert_eq!(issues, None);
+    }
+
+    #[test]
+    fn with_build_tag_in_subject() {
+        let mut commit = commit_with_files(vec![]);
+        commit.issues.push(Issue::error(
+            Rule::SubjectBuildTag,
+            "some message".to_string(),
+            Position::Subject { line: 1, column: 1 },
+            vec![],
+        ));
+        let issues = validate(&commit);
         assert_eq!(issues, None);
     }
 }
