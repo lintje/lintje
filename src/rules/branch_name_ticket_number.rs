@@ -62,15 +62,15 @@ mod tests {
     use crate::test::*;
 
     fn validate(branch: &Branch) -> Option<Vec<Issue>> {
-        BranchNameTicketNumber::new().validate(&branch)
+        BranchNameTicketNumber::new().validate(branch)
     }
 
     fn assert_valid(name: &str) {
-        assert_eq!(validate(&branch(name)), None)
+        assert_eq!(validate(&branch(name)), None);
     }
 
     fn assert_invalid(name: &str) {
-        assert!(validate(&branch(name)).is_some())
+        assert!(validate(&branch(name)).is_some());
     }
 
     #[test]
@@ -92,7 +92,7 @@ mod tests {
             "fix-bug",
         ];
         for name in names {
-            assert_valid(&name);
+            assert_valid(name);
         }
     }
 

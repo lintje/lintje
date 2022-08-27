@@ -44,7 +44,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        DiffPresence::new().validate(&commit)
+        DiffPresence::new().validate(commit)
     }
 
     fn commit_without_file_changes(message: String) -> Commit {

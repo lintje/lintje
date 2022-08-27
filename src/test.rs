@@ -97,13 +97,13 @@ pub fn message_position(line: usize, column: usize) -> Position {
 }
 
 pub fn assert_contains_issue_output(issue: &Issue, expected_format: &str) {
-    let formatted_message = formatted_context(&issue);
+    let formatted_message = formatted_context(issue);
     let mut actual_lines = formatted_message.lines();
     actual_lines.next(); // Skip first line which is always empty
     let expected_lines = expected_format.lines();
     let mut asserted_line_number = 0;
     for expected_line in expected_lines {
-        asserted_line_number = asserted_line_number + 1;
+        asserted_line_number += 1;
         let actual_line = actual_lines.next().expect("No new line expected");
         assert!(
             actual_line.contains(expected_line),

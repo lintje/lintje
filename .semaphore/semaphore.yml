@@ -26,7 +26,7 @@ blocks:
           - cache restore v1-cargo-$(checksum rust-toolchain.toml)-$(checksum Cargo.lock)
           - rustup component add clippy
           - cargo fmt --all -- --check
-          - cargo clippy
+          - cargo clippy --tests
   - name: Build
     dependencies: []
     task:

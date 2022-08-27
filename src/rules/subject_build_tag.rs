@@ -69,7 +69,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        SubjectBuildTag::new().validate(&commit)
+        SubjectBuildTag::new().validate(commit)
     }
 
     fn assert_subject_as_valid(subject: &str) {

@@ -57,7 +57,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        SubjectWhitespace::new().validate(&commit)
+        SubjectWhitespace::new().validate(commit)
     }
 
     fn assert_subject_as_valid(subject: &str) {

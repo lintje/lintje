@@ -136,7 +136,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        MessageTrailerLine::new().validate(&commit)
+        MessageTrailerLine::new().validate(commit)
     }
 
     #[test]

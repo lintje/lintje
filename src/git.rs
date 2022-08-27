@@ -447,7 +447,7 @@ mod tests {
         CleanupMode, COMMIT_BODY_DELIMITER, COMMIT_TRAILERS_DELIMITER,
     };
     use crate::config::ValidationContext;
-    use crate::issue::{Issue, IssueType};
+    use crate::issue::IssueType;
 
     fn default_context() -> ValidationContext {
         ValidationContext { changesets: false }
@@ -525,12 +525,10 @@ mod tests {
             commit.file_changes,
             vec!["src/main.rs".to_string(), "src/utils.rs".to_string()]
         );
-        assert!(commit
+        assert!(!commit
             .issues
             .into_iter()
-            .filter(|i| i.r#type == IssueType::Error)
-            .collect::<Vec<Issue>>()
-            .is_empty());
+            .any(|i| i.r#type == IssueType::Error));
     }
 
     #[test]

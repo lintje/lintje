@@ -87,7 +87,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        DiffChangeset::new().validate(&commit)
+        DiffChangeset::new().validate(commit)
     }
 
     pub fn commit_with_files(files: Vec<String>) -> Commit {

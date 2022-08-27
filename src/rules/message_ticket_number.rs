@@ -71,7 +71,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        MessageTicketNumber::new().validate(&commit)
+        MessageTicketNumber::new().validate(commit)
     }
 
     fn assert_valid(message: &str) {

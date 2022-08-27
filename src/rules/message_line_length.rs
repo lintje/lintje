@@ -103,7 +103,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        MessageLineLength::new().validate(&commit)
+        MessageLineLength::new().validate(commit)
     }
 
     fn assert_valid(message: &str) {

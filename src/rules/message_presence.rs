@@ -214,7 +214,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        MessagePresence::new().validate(&commit)
+        MessagePresence::new().validate(commit)
     }
 
     #[test]

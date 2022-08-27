@@ -256,17 +256,17 @@ mod tests {
             "--color".to_string(),
             "--no-branch".to_string(),
         ]);
-        assert_eq!(opts.hints, true);
+        assert!(opts.hints);
         opts.merge(vec![
             "lintje".to_string(),
             "--no-color".to_string(),
             "--no-hints".to_string(),
         ]);
-        assert_eq!(opts.color, true);
-        assert_eq!(opts.no_color, true);
-        assert_eq!(opts.color(), false);
-        assert_eq!(opts.branch_validation, false);
-        assert_eq!(opts.hints, false);
+        assert!(opts.color);
+        assert!(opts.no_color);
+        assert!(!opts.color());
+        assert!(!opts.branch_validation);
+        assert!(!opts.hints);
     }
 
     #[test]

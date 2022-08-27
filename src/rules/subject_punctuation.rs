@@ -126,7 +126,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        SubjectPunctuation::new().validate(&commit)
+        SubjectPunctuation::new().validate(commit)
     }
 
     fn assert_subject_as_valid(subject: &str) {

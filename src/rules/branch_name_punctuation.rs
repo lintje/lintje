@@ -91,22 +91,22 @@ mod tests {
     use crate::test::*;
 
     fn validate(branch: &Branch) -> Option<Vec<Issue>> {
-        BranchNamePunctuation::new().validate(&branch)
+        BranchNamePunctuation::new().validate(branch)
     }
 
     fn assert_valid(name: &str) {
-        assert_eq!(validate(&branch(name)), None)
+        assert_eq!(validate(&branch(name)), None);
     }
 
     fn assert_invalid(name: &str) {
-        assert!(validate(&branch(name)).is_some())
+        assert!(validate(&branch(name)).is_some());
     }
 
     #[test]
     fn valid_names() {
         let names = vec!["fix-test", "fix-あ-test"];
         for name in names {
-            assert_valid(&name);
+            assert_valid(name);
         }
     }
 

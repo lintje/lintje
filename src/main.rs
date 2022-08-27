@@ -288,7 +288,7 @@ mod tests {
     }
 
     fn create_test_repo(dir: &Path) {
-        prepare_test_dir(&dir);
+        prepare_test_dir(dir);
         let output = Command::new("git")
             .args(&["init"])
             .current_dir(&dir)
@@ -343,7 +343,7 @@ mod tests {
         ];
         if !message.is_empty() {
             let message_arg = format!("-m {}", message);
-            args.push(message_arg)
+            args.push(message_arg);
         }
         let output = Command::new("git")
             .args(args.as_slice())
@@ -367,7 +367,7 @@ mod tests {
     fn create_commit_with_file(dir: &Path, subject: &str, message: &str, filename: &str) {
         create_dummy_file(&dir.join(&filename));
         stage_files(dir);
-        create_commit(dir, subject, message)
+        create_commit(dir, subject, message);
     }
 
     fn create_dummy_file(file_path: &Path) {
@@ -463,7 +463,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--version").current_dir(dir).assert().success();
-        assert.stdout(predicate::str::is_match(format!("lintje \\d+\\.\\d+\\.\\d+")).unwrap());
+        assert.stdout(predicate::str::is_match("lintje \\d+\\.\\d+\\.\\d+".to_string()).unwrap());
     }
 
     #[test]

@@ -46,7 +46,7 @@ mod tests {
     use crate::test::*;
 
     fn validate(commit: &Commit) -> Option<Vec<Issue>> {
-        MessageEmptyFirstLine::new().validate(&commit)
+        MessageEmptyFirstLine::new().validate(commit)
     }
 
     #[test]
