@@ -31,6 +31,9 @@
 - The MessageSkipBuildTag rule will no longer add a hint if a
   SubjectBuildTag issue is already found. It will not hint about adding a "skip
   ci" build tag to the message body, if one is present in the subject.
+- The MessageLineLength rule now detects more protocols as URLs like "ftp" and
+  "ssh". Lines with such URLs will no longer trigger an issue about the line
+  being too long.
 
 ### Fixed
 

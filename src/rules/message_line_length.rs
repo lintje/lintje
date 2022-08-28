@@ -8,7 +8,8 @@ use crate::rule::RuleValidator;
 use crate::utils::line_length_stats;
 
 lazy_static! {
-    static ref URL_REGEX: Regex = Regex::new(r"https?://\w+").unwrap();
+    static ref URL_REGEX: Regex =
+        Regex::new(r"[^:/?#\s]{2,}://[^/?#\s]{2,}([\w\./?#=%^]+)").unwrap();
     static ref CODE_BLOCK_LINE_WITH_LANGUAGE: Regex = Regex::new(r"^\s*```\s*([\w]+)?$").unwrap();
     static ref CODE_BLOCK_LINE_END: Regex = Regex::new(r"^\s*```$").unwrap();
 }
@@ -157,6 +158,17 @@ mod tests {
     }
 
     #[test]
+    fn valid_long_line_with_other_uri_scheme() {
+        let message = [
+            "This message is accepted.".to_string(),
+            "This a long line with a link xmlrpc.beep://tomdebruijn.com/posts?query=git%20is%20about%23#communication"
+                .to_string(),
+        ]
+        .join("\n");
+        assert_valid(&message);
+    }
+
+    #[test]
     fn long_line_with_url_schema_only() {
         let message =
             "This a too long line with only protocols http:// https://, not accepted!!".to_string();
@@ -294,5 +306,56 @@ mod tests {
         ]
         .join("\n");
         assert_invalid(&message);
+    }
+
+    fn assert_contain_url(string: &str) {
+        assert!(
+            super::URL_REGEX.is_match(string),
+            "String is not a URL: {}",
+            string
+        );
+    }
+
+    fn assert_not_url(string: &str) {
+        assert!(
+            !super::URL_REGEX.is_match(string),
+            "String is a URL: {}",
+            string
+        );
+    }
+
+    #[test]
+    fn url() {
+        let urls = [
+            "http://tomdebruijn.com",
+            "http://other-domain-with-dashes_and_underscores.com",
+            "https://tomdebruijn.com",
+            "https://tomdebruijn.com/path/!file.extension?key=value",
+            "https://tomdebruijn.com:80",
+            "https://tomdebruijn.com:80/path/other-path/_file.extension",
+            "https://tomdebruijn.com:80/path/!file.extension?key=value",
+            "ftp://tomdebruijn.com",
+            "ssh://10.0.0.2:22",
+            "z39.50s://tomdebruijn.com",
+            "ms-settings://tomdebruijn",
+            "dict://tom,pw@localhost:80",
+            "facetime://+19995551234",
+            "https://tom de bruijn.com", // First part until the space is an URL
+            "https://tom/de/bruijn.com",
+            "Start string https://tomdebruijn.com end string",
+        ];
+        for url in urls {
+            assert_contain_url(url);
+        }
+
+        let invalid_urls = [
+            "s://tomdebruijn.com",
+            "https://t",
+            "https ://tomdebruijn.com",
+            "https:// tomdebruijn.com",
+        ];
+        for string in invalid_urls {
+            assert_not_url(string);
+        }
     }
 }
