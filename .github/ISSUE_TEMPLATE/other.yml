@@ -1,0 +1,22 @@
+name: Other issue
+description: Any other issue for the Lintje project.
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: Explain the issue
+      description: Tell us what the issue is.
+    validations:
+      required: true
+  - type: checkboxes
+    id: code-of-conduct
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://lintje.dev/code-of-conduct/).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out this issue!
