@@ -10,6 +10,7 @@ const IGNORED_CLAP_ERRORS: [clap::error::ErrorKind; 2] = [
     clap::error::ErrorKind::DisplayVersion,
 ];
 
+#[allow(clippy::doc_markdown)]
 #[derive(Parser, Debug)]
 #[clap(
     name = "lintje",
@@ -20,6 +21,8 @@ const IGNORED_CLAP_ERRORS: [clap::error::ErrorKind; 2] = [
 )]
 /**
 Lint Git commits and branch name.
+
+Homepage: https://lintje.dev
 
 ## Usage examples
 
