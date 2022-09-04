@@ -594,7 +594,7 @@ mod tests {
             \x20\x201 | Fixing tests\n\
             \x20\x20  | ^^^^^^^^^^^^ Describe the change in more detail\n\
             \x20\x20  | \n\
-            \x20\x20  = help: https://lintje.dev/docs/rules/commit-subject/#subjectcliche\n\
+            \x20\x20  = help: https://r.lintje.dev/r/SubjectCliche\n\
             \n\
             Error[SubjectMood]: The subject does not use the imperative grammatical mood\n\
             \x20\x200000000:1:1: Fixing tests\n\
@@ -602,7 +602,7 @@ mod tests {
             \x20\x201 | Fixing tests\n\
             \x20\x20  | ^^^^^^ Use the imperative mood for the subject\n\
             \x20\x20  | \n\
-            \x20\x20  = help: https://lintje.dev/docs/rules/commit-subject/#subjectmood\n\
+            \x20\x20  = help: https://r.lintje.dev/r/SubjectMood\n\
             \n\
             Error[MessagePresence]: No message body was found\n\
             \x20\x200000000:3:1: Fixing tests\n\
@@ -612,7 +612,7 @@ mod tests {
             \x20\x203 | \n\
             \x20\x20  | +++ Add a message that describes the change and why it was made\n\
             \x20\x20  | \n\
-            \x20\x20  = help: https://lintje.dev/docs/rules/commit-message/#messagepresence\n\
+            \x20\x20  = help: https://r.lintje.dev/r/MessagePresence\n\
             \n\
             1 commit and branch inspected, 3 errors detected\n"
         );
@@ -642,7 +642,7 @@ mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mFixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m^^^^^^^^^^^^ Describe the change in more detail\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-subject/#subjectcliche\n\
+            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://r.lintje.dev/r/SubjectCliche\n\
             \n\
             \u{1b}[0m\u{1b}[31mError[SubjectMood]\u{1b}[0m: The subject does not use the imperative grammatical mood\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:1:1:\u{1b}[0m Fixing tests\n\
@@ -650,7 +650,7 @@ mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  1 | \u{1b}[0mFixing tests\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[38;5;9m^^^^^^ Use the imperative mood for the subject\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-subject/#subjectmood\n\
+            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://r.lintje.dev/r/SubjectMood\n\
             \n\
             \u{1b}[0m\u{1b}[31mError[MessagePresence]\u{1b}[0m: No message body was found\n\
             \x20\x20\u{1b}[0m\u{1b}[38;5;12m0000000:3:1:\u{1b}[0m Fixing tests\n\
@@ -660,7 +660,7 @@ mod tests {
             \u{1b}[0m\u{1b}[38;5;12m  3 | \u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\u{1b}[0m\u{1b}[32m+++ Add a message that describes the change and why it was made\u{1b}[0m\n\
             \u{1b}[0m\u{1b}[38;5;12m    | \u{1b}[0m\n\
-            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://lintje.dev/docs/rules/commit-message/#messagepresence\n\
+            \u{1b}[0m\u{1b}[38;5;12m    = \u{1b}[0mhelp: https://r.lintje.dev/r/MessagePresence\n\
             \n\
             1 commit and branch inspected, \u{1b}[0m\u{1b}[31m3 errors detected\u{1b}[0m\n"
         );

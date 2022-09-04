@@ -5,7 +5,7 @@ use crate::commit::Commit;
 use crate::issue::Issue;
 use crate::rules::*;
 
-const BASE_URL: &str = "https://lintje.dev/docs/";
+const REDIRECTOR_DOMAIN: &str = "https://r.lintje.dev/";
 
 #[derive(Debug, PartialEq)]
 pub enum Rule {
@@ -127,32 +127,7 @@ impl Rule {
     }
 
     pub fn link(&self) -> String {
-        let path = match self {
-            Rule::MergeCommit => "commit-type/#mergecommit",
-            Rule::RebaseCommit => "commit-type/#rebasecommit",
-            Rule::SubjectLength => "commit-subject/#subjectlength",
-            Rule::SubjectMood => "commit-subject/#subjectmood",
-            Rule::SubjectWhitespace => "commit-subject/#subjectwhitespace",
-            Rule::SubjectCapitalization => "commit-subject/#subjectcapitalization",
-            Rule::SubjectPunctuation => "commit-subject/#subjectpunctuation",
-            Rule::SubjectTicketNumber => "commit-subject/#subjectticketnumber",
-            Rule::SubjectPrefix => "commit-subject/#subjectprefix",
-            Rule::SubjectBuildTag => "commit-subject/#subjectbuildtag",
-            Rule::SubjectCliche => "commit-subject/#subjectcliche",
-            Rule::MessageEmptyFirstLine => "commit-message/#messageemptyfirstline",
-            Rule::MessagePresence => "commit-message/#messagepresence",
-            Rule::MessageLineLength => "commit-message/#messagelinelength",
-            Rule::MessageSkipBuildTag => "commit-messsage/#messageskipbuildtag",
-            Rule::MessageTicketNumber => "commit-message/#messageticketnumber",
-            Rule::MessageTrailerLine => "commit-message/#messagetrailerline",
-            Rule::DiffChangeset => "commit-type/#diffchangeset",
-            Rule::DiffPresence => "commit-type/#diffpresence",
-            Rule::BranchNameTicketNumber => "branch/#branchnameticketnumber",
-            Rule::BranchNameLength => "branch/#branchnamelength",
-            Rule::BranchNamePunctuation => "branch/#branchnamepunctuation",
-            Rule::BranchNameCliche => "branch/#branchnamecliche",
-        };
-        format!("{}rules/{}", BASE_URL, path)
+        format!("{}r/{}", REDIRECTOR_DOMAIN, self)
     }
 }
 
@@ -193,7 +168,7 @@ mod tests {
     fn link_to_docs() {
         assert_eq!(
             Rule::SubjectLength.link(),
-            "https://lintje.dev/docs/rules/commit-subject/#subjectlength"
+            "https://r.lintje.dev/r/SubjectLength"
         );
     }
 }

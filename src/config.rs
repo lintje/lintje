@@ -71,7 +71,7 @@ Lint Git commits and branch name.
          # Or all one one line
          --color --no-hints
 
-    http://lintje.dev/docs/configuration/#options-file
+    http://r.lintje.dev/d/options-file
 */
 pub struct Lint {
     /// Disable branch validation

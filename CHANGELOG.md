@@ -34,6 +34,10 @@
 - The MessageLineLength rule now detects more protocols as URLs like "ftp" and
   "ssh". Lines with such URLs will no longer trigger an issue about the line
   being too long.
+- Use short links to link to rule documentation from the Lintje output. Instead
+  of `https://lintje.dev/docs/rules/<type>/#<rule name anchor>` it will now
+  print something like: `https://r.lintje.dev/r/<RuleName>`. For example:
+  [https://r.lintje.dev/r/SubjectLength](https://r.lintje.dev/r/SubjectLength).
 
 ### Fixed
 
