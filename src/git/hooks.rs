@@ -69,6 +69,5 @@ fn set_file_permissions(path: &Path) -> std::io::Result<()> {
 
 #[cfg(not(target_family = "unix"))]
 fn set_file_permissions(file: &Path) -> std::io::Result<()> {
-    info!("Lintje can't set file permissions for the Git hook file on Windows. Please make the '{}' executable manually if the hook is not working.", file.display());
     Ok(())
 }
