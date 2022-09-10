@@ -1,5 +1,6 @@
 use std::fs::OpenOptions;
 use std::io::Write;
+#[cfg(target_family = "unix")]
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
@@ -37,15 +38,12 @@ pub fn install_hook(hook: &CommitHook) -> Result<String, String> {
         .open(hook_file)
     {
         Ok(mut file) => {
-            if let Err(e) =
-                std::fs::set_permissions(hook_file, std::fs::Permissions::from_mode(0o744))
-            {
+            if let Err(e) = set_file_permissions(hook_file) {
                 return Err(format!(
                     "Cannot set file permissions for: {:?}\n{:?}",
                     hook_file, e
                 ));
             }
-
             let hook_content = hook.command();
             match file.write_all(hook_content.as_bytes()) {
                 Ok(()) => Ok(hook_file.to_str().unwrap().to_string()),
@@ -62,4 +60,15 @@ pub fn install_hook(hook: &CommitHook) -> Result<String, String> {
             e
         )),
     }
+}
+
+#[cfg(target_family = "unix")]
+fn set_file_permissions(path: &Path) -> std::io::Result<()> {
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o744))
+}
+
+#[cfg(not(target_family = "unix"))]
+fn set_file_permissions(file: &Path) -> std::io::Result<()> {
+    info!("Lintje can't set file permissions for the Git hook file on Windows. Please make the '{}' executable manually if the hook is not working.", file.display());
+    Ok(())
 }
