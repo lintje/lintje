@@ -1,21 +1,22 @@
 use core::ops::Range;
-use regex::{Regex, RegexBuilder};
+use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
 use crate::rule::Rule;
 use crate::rule::RuleValidator;
 
-use crate::rules::CONTAINS_FIX_TICKET;
+use crate::rules::{CONTAINS_FIX_TICKET, ISSUE_NUMBER_REFERENCE};
 
 lazy_static! {
-    // Match "Part of #123"
-    static ref LINK_TO_TICKET: Regex = {
-        let mut tempregex = RegexBuilder::new(r"(part of|part of (issue|epic|project)|related):? ([^\s]*[\w\-_/]+)?[#!]{1}\d+");
-        tempregex.case_insensitive(true);
-        tempregex.multi_line(false);
-        tempregex.build().unwrap()
-    };
+    // Match "Part of #123" and friends
+    static ref LINK_TO_TICKET: Regex = Regex::new(&format!(r"(?xi)
+        (part\sof|part\sof\s(issue|epic|project)|related) # Keywords
+        :? # Optional colon
+        \s+ # Required space
+        {ISSUE_NUMBER_REFERENCE}
+    "
+    )).unwrap();
 }
 
 pub struct MessageTicketNumber {}
@@ -139,6 +140,9 @@ mod tests {
         assert_message_valid("part of #123");
         assert_message_valid("Part of #123");
         assert_message_valid("Part of: #123");
+        assert_message_valid("Part of https://website.om/org/repo/issues/123");
+        assert_message_valid("Part of org/repo#123");
+        assert_message_valid("Part of org/repo!123");
         assert_message_valid("related #123");
         assert_message_valid("Related #123");
         assert_message_valid("Related: #123");
@@ -150,8 +154,12 @@ mod tests {
         for reference_type in types {
             assert_message_valid(&format!("part of {}: #123", reference_type));
             assert_message_valid(&format!("Part of {}: #123", reference_type));
+            assert_message_valid(&format!("part of {}: !123", reference_type));
+            assert_message_valid(&format!("Part of {}: !123", reference_type));
             assert_message_valid(&format!("part of {} #123", reference_type));
             assert_message_valid(&format!("Part of {} #123", reference_type));
+            assert_message_valid(&format!("part of {} !123", reference_type));
+            assert_message_valid(&format!("Part of {} !123", reference_type));
         }
     }
 

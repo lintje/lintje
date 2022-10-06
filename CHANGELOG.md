@@ -1,5 +1,14 @@
 # Lintje changelog
 
+## Next version
+
+### Fixed
+
+- Detect issue references starting with "part of" for the MessageTicketNumber
+  rule. The following now is detected as a link to an issue.
+
+  > Part of https://website.om/org/repo/issues/123
+
 ## 0.11.0
 
 ### Added
