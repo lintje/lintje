@@ -18,6 +18,8 @@ lazy_static! {
     static ref SUBJECT_WITH_SQUASH_PR: Regex = Regex::new(r".+ \(#\d+\)$").unwrap();
     static ref MESSAGE_CONTAINS_MERGE_REQUEST_REFERENCE: Regex =
         Regex::new(r"^See merge request .+/.+!\d+$").unwrap();
+    static ref SUBJECT_WITH_MERGE_ONLY: Regex =
+        Regex::new(r"Merge [a-z0-9]{40} into [a-z0-9]{40}").unwrap();
 }
 
 #[derive(Debug, PartialEq)]
@@ -320,6 +322,13 @@ pub fn is_commit_ignored(commit: &Commit) -> bool {
         && message.contains("This reverts commit ")
     {
         debug!("Ignoring commit because it's a revert commit: {}", subject);
+        return true;
+    }
+    if SUBJECT_WITH_MERGE_ONLY.is_match(subject) {
+        debug!(
+            "Ignoring commit because it's a merge into commit: {}",
+            subject
+        );
         return true;
     }
 
@@ -764,6 +773,17 @@ mod tests {
         ));
 
         assert_commit_is_not_ignored(&result);
+    }
+
+    #[test]
+    fn test_parse_commit_merge_into_commit() {
+        let result = parse_commit(&commit_with_file_changes(
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\
+        test@example.com\n\
+        Merge 3af48fbbdf7c2bd77c35e829bc7561fb7c660b21 into 17e2def8fbb2a0d500bffb79c7fe85381f24d415",
+        ));
+
+        assert_commit_is_ignored(&result);
     }
 
     #[test]

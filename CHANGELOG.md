@@ -1,5 +1,12 @@
 # Lintje changelog
 
+## 0.11.2
+
+### Fixed
+
+- Ignore "Merge into" commits. GitHub Actions creates merge commits for Pull
+  Requests that do not need to be validated.
+
 ## 0.11.1
 
 ### Fixed
