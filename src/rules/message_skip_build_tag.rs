@@ -17,6 +17,8 @@ lazy_static! {
     };
 }
 
+static SKIP_TAGS: [&str; 4] = ["[skip ci]", "[ci skip]", "[no ci]", "***NO_CI***"];
+
 pub struct MessageSkipBuildTag {}
 
 impl MessageSkipBuildTag {
@@ -32,6 +34,11 @@ impl RuleValidator<Commit> for MessageSkipBuildTag {
         }
         if commit.has_issue(&Rule::SubjectBuildTag) {
             return None;
+        }
+        for tag in SKIP_TAGS {
+            if commit.message.contains(tag) {
+                return None;
+            }
         }
 
         let is_text_files = commit
@@ -176,5 +183,22 @@ mod tests {
         ));
         let issues = validate(&commit);
         assert_eq!(issues, None);
+    }
+
+    #[test]
+    fn with_skip_build_tag() {
+        for tag in SKIP_TAGS {
+            let commit = Commit::new(
+                Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string()),
+                Some("test@example.com".to_string()),
+                "Some subject",
+                format!("Some message {}", tag),
+                "".to_string(),
+                vec!["README.md".to_string()],
+            );
+
+            let issues = validate(&commit);
+            assert_eq!(issues, None);
+        }
     }
 }

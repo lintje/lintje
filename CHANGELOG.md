@@ -1,5 +1,12 @@
 # Lintje changelog
 
+## Next version
+
+### Fixed
+
+- Skip the MessageSkipBuildTag rule when the commit message body already
+  contains a skip CI tag: `[skip ci]`, `[ci skip]`, `[no ci]` or `***NO_CI***`.
+
 ## 0.11.2
 
 ### Fixed
