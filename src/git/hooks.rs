@@ -11,20 +11,18 @@ pub enum CommitHook {
 }
 
 impl CommitHook {
-    pub fn name(&self) -> String {
+    pub fn name(&self) -> &str {
         match self {
             CommitHook::CommitMsg => "commit-msg",
             CommitHook::PostCommit => "post-commit",
         }
-        .to_string()
     }
 
-    pub fn command(&self) -> String {
+    pub fn command(&self) -> &str {
         match self {
             CommitHook::CommitMsg => "\n\nlintje --hook-message-file=$1",
             CommitHook::PostCommit => "\n\nlintje",
         }
-        .to_string()
     }
 }
 
