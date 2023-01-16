@@ -257,7 +257,7 @@ fn parse_trailers_from_message(message: String) -> String {
 fn cleanup_line(line: &str, cleanup_mode: &CleanupMode, comment_char: &str) -> Option<String> {
     match cleanup_mode {
         CleanupMode::Default | CleanupMode::Strip => {
-            if line.starts_with(&comment_char) {
+            if line.starts_with(comment_char) {
                 return None;
             }
             Some(line.trim_end().to_string())

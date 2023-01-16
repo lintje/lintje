@@ -11,13 +11,13 @@ pub const TEST_DIR: &str = "tmp/tests/test_repo";
 
 pub fn prepare_test_dir(dir: &Path) {
     if Path::new(&dir).exists() {
-        fs::remove_dir_all(&dir).expect("Could not remove test repo dir");
+        fs::remove_dir_all(dir).expect("Could not remove test repo dir");
     }
-    fs::create_dir_all(&dir).expect("Could not create test repo dir");
+    fs::create_dir_all(dir).expect("Could not create test repo dir");
 }
 
 pub fn create_file(file_path: &Path, content: &[u8]) -> fs::File {
-    let mut file = match fs::File::create(&file_path) {
+    let mut file = match fs::File::create(file_path) {
         Ok(file) => file,
         Err(e) => panic!("Could not create file: {:?}: {}", file_path, e),
     };

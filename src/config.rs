@@ -185,7 +185,7 @@ fn file_options(env_path: Result<String, std::env::VarError>) -> Option<(PathBuf
         Ok(value) => {
             let path = Path::new(&value);
             if path.is_file() {
-                match fs::read_to_string(&path) {
+                match fs::read_to_string(path) {
                     Ok(contents) => Some((path.to_path_buf(), parse_options_file(&contents))),
                     Err(e) => {
                         eprintln!("ERROR: Lintje options file could not be read: {}", e);

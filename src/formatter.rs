@@ -202,7 +202,7 @@ pub fn formatted_context(out: &mut impl WriteColor, issue: &Issue) -> io::Result
         let content = &context.content;
         // Print tabs as 4 spaces because that will render more consistently than render the tab
         // character
-        let formatted_content = content.replace("\t", "    ");
+        let formatted_content = content.replace('\t', "    ");
         writeln!(out, "{}", formatted_content)?;
 
         // Add underline to the content if any

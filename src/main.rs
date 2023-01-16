@@ -300,8 +300,8 @@ mod tests {
     fn create_test_repo(dir: &Path) {
         prepare_test_dir(dir);
         let output = Command::new("git")
-            .args(&["init"])
-            .current_dir(&dir)
+            .args(["init"])
+            .current_dir(dir)
             .stdin(Stdio::null())
             .output()
             .expect("Could not init test repo!");
@@ -325,8 +325,8 @@ mod tests {
 
     fn checkout_branch(dir: &Path, name: &str) {
         let output = Command::new("git")
-            .args(&["checkout", "-b", name])
-            .current_dir(&dir)
+            .args(["checkout", "-b", name])
+            .current_dir(dir)
             .stdin(Stdio::null())
             .output()
             .unwrap_or_else(|_| panic!("Could not checkout branch: {}", name));
@@ -375,7 +375,7 @@ mod tests {
     }
 
     fn create_commit_with_file(dir: &Path, subject: &str, message: &str, filename: &str) {
-        create_dummy_file(&dir.join(&filename));
+        create_dummy_file(&dir.join(filename));
         stage_files(dir);
         create_commit(dir, subject, message);
     }
@@ -406,8 +406,8 @@ mod tests {
 
     fn configure_git_cleanup_mode(dir: &Path, mode: &str) {
         let output = Command::new("git")
-            .args(&["config", "commit.cleanup", mode])
-            .current_dir(&dir)
+            .args(["config", "commit.cleanup", mode])
+            .current_dir(dir)
             .stdin(Stdio::null())
             .output()
             .unwrap_or_else(|_| panic!("Failed to configure Git commit.cleanup: {}", mode));
@@ -426,8 +426,8 @@ mod tests {
 
     fn configure_git_comment_char(dir: &Path, character: &str) {
         let output = Command::new("git")
-            .args(&["config", "core.commentChar", character])
-            .current_dir(&dir)
+            .args(["config", "core.commentChar", character])
+            .current_dir(dir)
             .stdin(Stdio::null())
             .output()
             .unwrap_or_else(|_| panic!("Failed to configure Git core.commentChar: {}", character));
@@ -456,7 +456,7 @@ mod tests {
     fn compile_bin() {
         COMPILE_ONCE.call_once(|| {
             Command::new("cargo")
-                .args(&["build"])
+                .args(["build"])
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
@@ -473,7 +473,7 @@ mod tests {
 
         let mut cmd = assert_cmd::Command::cargo_bin("lintje").unwrap();
         let assert = cmd.arg("--version").current_dir(dir).assert().success();
-        assert.stdout(predicate::str::is_match("lintje \\d+\\.\\d+\\.\\d+".to_string()).unwrap());
+        assert.stdout(predicate::str::is_match("lintje \\d+\\.\\d+\\.\\d+").unwrap());
     }
 
     #[test]
@@ -483,7 +483,7 @@ mod tests {
         create_test_repo(&dir);
         create_commit_with_file(&dir, "Test commit", "", "file");
         let output = Command::new("git")
-            .args(&["log", "--pretty=%H", "-n 1"])
+            .args(["log", "--pretty=%H", "-n 1"])
             .current_dir(&dir)
             .output()
             .expect("Failed to fetch commit SHA.");
@@ -814,7 +814,7 @@ mod tests {
         create_test_repo(&dir);
         let filename = "commit_message_file";
         let commit_file = dir.join(filename);
-        let mut file = File::create(&commit_file).unwrap();
+        let mut file = File::create(commit_file).unwrap();
         file.write_all(b"added some code\n\nThis is a message.")
             .unwrap();
 
@@ -849,7 +849,7 @@ mod tests {
         stage_files(&dir);
         let filename = "commit_message_file";
         let commit_file = dir.join(filename);
-        let mut file = File::create(&commit_file).unwrap();
+        let mut file = File::create(commit_file).unwrap();
         file.write_all(b"Valid subject\n\nValid message body.")
             .unwrap();
 
@@ -872,7 +872,7 @@ mod tests {
         configure_git_cleanup_mode(&dir, "scissors");
         let filename = "commit_message_file";
         let commit_file = dir.join(filename);
-        let mut file = File::create(&commit_file).unwrap();
+        let mut file = File::create(commit_file).unwrap();
         file.write_all(
             b"This is a subject\n\n\
             # ------------------------ >8 ------------------------
@@ -900,7 +900,7 @@ mod tests {
         configure_git_comment_char(&dir, "-");
         let filename = "commit_message_file";
         let commit_file = dir.join(filename);
-        let mut file = File::create(&commit_file).unwrap();
+        let mut file = File::create(commit_file).unwrap();
         file.write_all(
             b"This is a subject\n\n\
             - ------------------------ >8 ------------------------
