@@ -66,6 +66,6 @@ fn set_file_permissions(path: &Path) -> std::io::Result<()> {
 }
 
 #[cfg(not(target_family = "unix"))]
-fn set_file_permissions(file: &Path) -> std::io::Result<()> {
+fn set_file_permissions(_file: &Path) -> std::io::Result<()> {
     Ok(())
 }
