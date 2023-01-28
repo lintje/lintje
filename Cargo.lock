@@ -185,7 +185,7 @@ checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 
 [[package]]
 name = "lintje"
-version = "0.11.2"
+version = "0.11.3"
 dependencies = [
  "assert_cmd",
  "clap",
