@@ -183,6 +183,7 @@ namespace :release do
 
   task :all => [:prepare, "build:all"] do
     version = fetch_package_version
+    prepare_docker_buildx
     release_docker_release_image(version)
     build_archives
     build_packages
