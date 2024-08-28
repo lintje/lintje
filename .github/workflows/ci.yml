@@ -24,11 +24,6 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-      - uses: helix-editor/rust-toolchain@v1
-        with:
-          target: x86_64-unknown-linux-gnu
-          override: true
-          components: rustfmt, clippy
       - name: Rust format
         run: cargo fmt --all -- --check
       - name: Rust clippy
@@ -54,10 +49,6 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-      - uses: helix-editor/rust-toolchain@v1
-        with:
-          target: x86_64-unknown-linux-gnu
-          override: true
       - name: Cargo test
         run: cargo test -- --show-output
   run:
@@ -79,9 +70,5 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-      - uses: helix-editor/rust-toolchain@v1
-        with:
-          target: x86_64-unknown-linux-gnu
-          override: true
       - name: Cargo run
         run: cargo run
