@@ -29,12 +29,7 @@ impl CommitHook {
 pub fn install_hook(hook: &CommitHook) -> Result<String, String> {
     let file_path = format!(".git/hooks/{}", hook.name());
     let hook_file = Path::new(&file_path);
-    match OpenOptions::new()
-        .write(true)
-        .create(true)
-        .append(true)
-        .open(hook_file)
-    {
+    match OpenOptions::new().create(true).append(true).open(hook_file) {
         Ok(mut file) => {
             if let Err(e) = set_file_permissions(hook_file) {
                 return Err(format!(

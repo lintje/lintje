@@ -39,7 +39,6 @@ pub fn formatted_context(issue: &Issue) -> String {
             String::from_utf8_lossy(out.as_slice())
                 .to_string()
                 .lines()
-                .into_iter()
                 .map(|v| v.strip_prefix("  ").unwrap_or(v))
                 .collect::<Vec<&str>>()
                 .join("\n")
