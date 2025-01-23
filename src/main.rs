@@ -1150,6 +1150,7 @@ mod tests {
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&hook_file)
             .expect("Could not open file");
         file.write_all(b"Other content")
