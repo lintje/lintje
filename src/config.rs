@@ -207,7 +207,6 @@ fn file_options(env_path: Result<String, std::env::VarError>) -> Option<(PathBuf
 fn parse_options_file(contents: &str) -> Vec<String> {
     contents
         .lines()
-        .into_iter()
         .filter(|line| !line.starts_with('#')) // Filter out comment lines
         .flat_map(|line| {
             // Split up words so multiple flags on one line work
