@@ -24,6 +24,8 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
+      - name: "Install rustfmt and clippy"
+        run: "rustup component add rustfmt clippy"
       - name: Rust format
         run: cargo fmt --all -- --check
       - name: Rust clippy
