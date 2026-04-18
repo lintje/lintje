@@ -133,6 +133,7 @@ mod tests {
         assert_message_valid("Fixes org/repo#123");
         assert_message_valid("Fixed org/repo!123");
         assert_message_valid("Fixes https://website.om/org/repo/issues/123");
+        assert_message_valid("Fixes ABC-123");
     }
 
     #[test]
@@ -143,6 +144,7 @@ mod tests {
         assert_message_valid("Part of https://website.om/org/repo/issues/123");
         assert_message_valid("Part of org/repo#123");
         assert_message_valid("Part of org/repo!123");
+        assert_message_valid("Part of ABC-123");
         assert_message_valid("related #123");
         assert_message_valid("Related #123");
         assert_message_valid("Related: #123");
@@ -156,10 +158,12 @@ mod tests {
             assert_message_valid(&format!("Part of {}: #123", reference_type));
             assert_message_valid(&format!("part of {}: !123", reference_type));
             assert_message_valid(&format!("Part of {}: !123", reference_type));
+            assert_message_valid(&format!("Part of {}: ABC-123", reference_type));
             assert_message_valid(&format!("part of {} #123", reference_type));
             assert_message_valid(&format!("Part of {} #123", reference_type));
             assert_message_valid(&format!("part of {} !123", reference_type));
             assert_message_valid(&format!("Part of {} !123", reference_type));
+            assert_message_valid(&format!("Part of {} ABC-123", reference_type));
         }
     }
 
