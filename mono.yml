@@ -1,0 +1,13 @@
+---
+language: "custom"
+repo: "https://github.com/lintje/lintje"
+build:
+  command: "echo 'Can only build from GitHub Actions'"
+publish:
+  command: "echo 'Can only publish from GitHub Actions'"
+test:
+  command: "cargo test"
+
+read_version: "script/read_version"
+write_version: "script/write_version"
+version_scheme: "semver"

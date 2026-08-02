@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -eu
+
+TARGET=$1
+
+BINARY_NAME="lintje"
+case "$TARGET" in
+  *-pc-windows-*)
+    BINARY_NAME="lintje.exe"
+    ;;
+esac
+
+mkdir release > /dev/null 2>&1 || true
+rm -rf target
+
+echo "Building for '$TARGET'..."
+echo
+
+cross build --release --target "$TARGET"
+tar -czvf "release/$TARGET.tar.gz" -C "target/$TARGET/release" "$BINARY_NAME"
+
+echo "Done! Built release at 'release/$TARGET.tar.gz'."
+echo

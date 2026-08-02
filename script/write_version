@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+VERSION = ARGV[0]
+
+File.write(
+  "Cargo.toml",
+  File.read("Cargo.toml").sub(/^version = ".*"$/, %(version = "#{VERSION}"))
+)
+
+# Keep the version of the `lintje` package in the `Cargo.lock` file in sync
+# with the version in `Cargo.toml`.
+File.write(
+  "Cargo.lock",
+  File.read("Cargo.lock").sub(
+    /^name = "lintje"\nversion = ".*"$/,
+    %(name = "lintje"\nversion = "#{VERSION}")
+  )
+)

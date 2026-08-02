@@ -1,0 +1,91 @@
+name: Publish a release
+on:
+  # Trigger this release via the GitHub Actions interface for this workflow
+  workflow_dispatch:
+
+env:
+  PUBLISH_GIT_USERNAME: "Lintje release bot"
+  PUBLISH_GIT_EMAIL: "support+lintje@tomdebruijn.com"
+
+jobs:
+  build_release:
+    name: "Build release artifacts"
+    uses: ./.github/workflows/build_release.yaml
+    with:
+      branch: "${{ github.ref_name }}"
+      upload_artifacts: true
+      run_versioning: true
+
+  publish:
+    name: "Publish the release"
+    needs:
+      - build_release
+    runs-on: ubuntu-22.04
+    steps:
+      - name: "Checkout the project"
+        uses: actions/checkout@v4
+        with:
+          ssh-key: "${{secrets.PUBLISH_DEPLOY_KEY}}"
+          path: "main"
+
+      - name: "Checkout Mono"
+        uses: actions/checkout@v4
+        with:
+          repository: "appsignal/mono"
+          path: "mono"
+
+      - name: "Configure Git"
+        run: |
+          export PUBLISH_GIT_SSH_PATH="$HOME/.ssh"
+          export PUBLISH_GIT_SIGN_KEY_PATH="$HOME/.ssh/sign_key"
+          mkdir -p "$PUBLISH_GIT_SSH_PATH"
+          echo "${{secrets.PUBLISH_GIT_SIGN_KEY}}" > "$PUBLISH_GIT_SIGN_KEY_PATH"
+          echo "${{secrets.PUBLISH_GIT_SIGN_PUBLIC_KEY}}" > "$PUBLISH_GIT_SIGN_KEY_PATH.pub"
+          chmod 600 "$PUBLISH_GIT_SIGN_KEY_PATH"
+          git config --global user.name "$PUBLISH_GIT_USERNAME (as ${{github.actor}})"
+          git config --global user.email "$PUBLISH_GIT_EMAIL"
+          git config --global gpg.format ssh
+          git config --global commit.gpgsign true
+          touch ~/.ssh/allowed_signers
+          echo "$(git config --get user.email) namespaces=\"git\" $(cat $PUBLISH_GIT_SIGN_KEY_PATH.pub)" >> ~/.ssh/allowed_signers
+          git config --global user.signingkey "$PUBLISH_GIT_SIGN_KEY_PATH"
+
+      - name: "Fetch build artifacts"
+        uses: actions/download-artifact@v4
+        with:
+          path: "main/release"
+
+      - name: "Push release tag"
+        id: version
+        working-directory: "./main"
+        run: |
+          ../mono/bin/mono publish --no-package-push --yes
+
+          export RELEASE_VERSION="$(script/read_version)"
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "TAG_NAME=v$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: "Generate checksum manifest"
+        working-directory: "./main"
+        run: |
+          sha256sum release/*/*.tar.gz | while read -r checksum file; do
+            printf '%s  %s\n' "$checksum" "$(basename "$file")"
+          done > SHA256SUMS
+
+      - name: "Create a release on the repository"
+        working-directory: "./main"
+        run: |
+          gh release create ${{steps.version.outputs.TAG_NAME}} \
+            --title "${{steps.version.outputs.RELEASE_VERSION}}" \
+            --notes-from-tag \
+            --verify-tag \
+            'release/x86_64-unknown-linux-gnu/x86_64-unknown-linux-gnu.tar.gz#Linux (x86_64)' \
+            'release/x86_64-unknown-linux-musl/x86_64-unknown-linux-musl.tar.gz#Linux (x86_64, musl)' \
+            'release/aarch64-unknown-linux-gnu/aarch64-unknown-linux-gnu.tar.gz#Linux (arm64)' \
+            'release/aarch64-unknown-linux-musl/aarch64-unknown-linux-musl.tar.gz#Linux (arm64, musl)' \
+            'release/x86_64-pc-windows-gnu/x86_64-pc-windows-gnu.tar.gz#Windows (x86_64)' \
+            'release/x86_64-apple-darwin/x86_64-apple-darwin.tar.gz#macOS (x86_64)' \
+            'release/aarch64-apple-darwin/aarch64-apple-darwin.tar.gz#macOS (arm64)' \
+            'SHA256SUMS#SHA256 checksums'
+        env:
+          GH_TOKEN: ${{github.token}}

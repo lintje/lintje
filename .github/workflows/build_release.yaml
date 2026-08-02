@@ -1,0 +1,83 @@
+name: "Build releases"
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        required: true
+        type: string
+      upload_artifacts:
+        required: false
+        default: true
+        type: boolean
+      run_versioning:
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build_release:
+    name: "Build release artifacts"
+    runs-on: ${{matrix.runner}}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: "x86_64-unknown-linux-gnu"
+          - runner: ubuntu-22.04
+            target: "x86_64-unknown-linux-musl"
+          - runner: ubuntu-22.04
+            target: "aarch64-unknown-linux-gnu"
+          - runner: ubuntu-22.04
+            target: "aarch64-unknown-linux-musl"
+          - runner: ubuntu-22.04
+            target: "x86_64-pc-windows-gnu"
+          - runner: macos-14
+            target: "x86_64-apple-darwin"
+          - runner: macos-14
+            target: "aarch64-apple-darwin"
+    steps:
+      - name: "Checkout the project"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{inputs.branch}}"
+          path: "main"
+
+      - name: "Checkout Mono"
+        uses: actions/checkout@v4
+        with:
+          repository: "appsignal/mono"
+          path: "mono"
+
+      - name: "Install Cross"
+        run: cargo install cross
+
+      # macOS targets do not build using a Cross image, so they may need to
+      # download the target for their architecture.
+      - name: "Install macOS architecture target"
+        if: matrix.runner == 'macos-14'
+        working-directory: "./main"
+        run: rustup target add "${{matrix.target}}"
+
+      # The version number needs to be written to the project's `Cargo.toml`
+      # file before building release artifacts for publishing.
+      - name: "Write new version number"
+        if: ${{ inputs.run_versioning }}
+        working-directory: "./main"
+        run: ../mono/bin/mono publish --no-git --no-package-push --yes
+
+      - name: "Build artifact"
+        working-directory: "./main"
+        run: script/build_artifact "${{matrix.target}}"
+
+      # Temporarily store the build artifact as a GitHub Action artifact to
+      # move it to the next job.
+      - name: "Store build artifact"
+        if: ${{ inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{matrix.target}}"
+          path: "main/release/${{matrix.target}}.tar.gz"
+          retention-days: 1
+          if-no-files-found: error
