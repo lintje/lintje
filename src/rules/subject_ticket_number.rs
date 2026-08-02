@@ -21,30 +21,45 @@ impl RuleValidator<Commit> for SubjectTicketNumber {
         let mut issues = vec![];
         let subject = &commit.subject.to_string();
 
-        if let Some(captures) = CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE.captures(subject) {
-            match captures.name("match") {
-                Some(capture) => {
-                    let keyword = if captures.name("keyword").is_none() {
-                        Some("Fix ")
-                    } else {
-                        None
-                    };
-
-                    issues.push(add_subject_ticket_number_error(commit, capture, keyword));
-                }
+        for captures in CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE.captures_iter(subject) {
+            let capture = match captures.name("match") {
+                Some(capture) => capture,
                 None => {
                     error!(
                         "SubjectTicketNumber: Unable to fetch ticket number match from subject."
                     );
+                    continue;
                 }
             };
+
+            if !is_standalone_ticket_reference(subject, capture.start()) {
+                continue;
+            }
+
+            let keyword = if captures.name("keyword").is_none() {
+                Some("Fix ")
+            } else {
+                None
+            };
+
+            issues.push(add_subject_ticket_number_error(commit, capture, keyword));
+            break;
         }
+
         if issues.is_empty() {
             None
         } else {
             Some(issues)
         }
     }
+}
+
+fn is_standalone_ticket_reference(subject: &str, start: usize) -> bool {
+    start == 0
+        || subject[..start]
+            .chars()
+            .next_back()
+            .is_some_and(|c| c.is_whitespace())
 }
 
 fn add_subject_ticket_number_error(
@@ -114,10 +129,16 @@ mod tests {
             "This is a normal commit",
             "Fix #", // Not really good subjects, but won't fail on this rule
             "Fix #a123",
+            "Fix ##123",
             "Fix !",
             "Fix !a123",
-            "Fix /123",     // No org/repo format
-            "Fix repo/123", // Missing org
+            "Fix !!123",
+            "Fix /123",                                   // No org/repo format
+            "Fix repo/123",                               // Missing org
+            "Fix repo#123",                               // Missing org
+            "Fix repo!123",                               // Missing org
+            "Fix https://website.om/org/repo/issues#123", // No full format with only slashes
+            "Fix https://website.om/org/repo/issues!123", // No full format with only slashes
             "Change A-1 config",
             "Change A-12 config",
             "Fix abc-123", // Lowercase Jira project keys are not valid, only uppercase
@@ -265,6 +286,38 @@ mod tests {
              3 | \n\
              4 | Fixes #123\n\
                | ++++++++++ Move the ticket number to the message body",
+        );
+    }
+
+    #[test]
+    fn ticket_number_without_keyword() {
+        let issue = first_issue(validate(&commit("#123: fix it for good", "")));
+        assert_eq!(issue.message, "The subject contains a ticket number");
+        assert_eq!(issue.position, subject_position(1));
+        assert_contains_issue_output(
+            &issue,
+            "1 | #123: fix it for good\n\
+               | ---- Remove the ticket number from the subject\n\
+              ~~~\n\
+             3 | \n\
+             4 | Fix #123\n\
+               | ++++++++ Move the ticket number to the message body",
+        );
+    }
+
+    #[test]
+    fn ticket_number_at_end() {
+        let issue = first_issue(validate(&commit("Something related to issue #123", "")));
+        assert_eq!(issue.message, "The subject contains a ticket number");
+        assert_eq!(issue.position, subject_position(28));
+        assert_contains_issue_output(
+            &issue,
+            "1 | Something related to issue #123\n\
+               |                            ---- Remove the ticket number from the subject\n\
+              ~~~\n\
+             3 | \n\
+             4 | Fix #123\n\
+               | ++++++++ Move the ticket number to the message body",
         );
     }
 
