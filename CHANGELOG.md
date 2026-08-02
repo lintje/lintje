@@ -1,11 +1,16 @@
 # Lintje changelog
 
-## 0.11.4
+## 0.12.0
 
 ### Fixed
 
 - Identify Jira tickets better in commit subjects and messages.
   PR #63 by @ig3io.
+
+### Changed
+
+- Allow quote characters at the end of the commit subject in the
+  SubjectPunctuation rule.
 
 ## 0.11.3
 

@@ -17,6 +17,12 @@ lazy_static! {
     static ref SUBJECT_STARTS_WITH_EMOJI: Regex = Regex::new(r"^[\p{Emoji}--\p{Ascii}]").unwrap();
 }
 
+// A closing quote character at the end of the subject is allowed, e.g. `Fix "test"` or
+// `Fix `test``.
+fn is_quote(character: char) -> bool {
+    character == '`' || character == '\'' || character == '"'
+}
+
 pub struct SubjectPunctuation {}
 
 impl SubjectPunctuation {
@@ -78,7 +84,7 @@ impl RuleValidator<Commit> for SubjectPunctuation {
 
         match commit.subject.chars().last() {
             Some(character) => {
-                if is_punctuation(character) {
+                if is_punctuation(character) && !is_quote(character) {
                     let subject_length = commit.subject.len();
                     let context = Context::subject_removal_suggestion(
                         commit.subject.to_string(),
@@ -162,8 +168,6 @@ mod tests {
             "Fix test!",
             "Fix test?",
             "Fix test:",
-            "Fix test\'",
-            "Fix test\"",
             "Fix test…",
             "Fix test⋯",
             ".Fix test",
@@ -221,6 +225,22 @@ mod tests {
             "1 | Fix test…\n\
                |         - Remove punctuation from the end of the subject",
         );
+    }
+
+    #[test]
+    fn valid_punctuation_at_end() {
+        let subjects = vec!["Fix `test`", "Fix 'test'", "Fix \"test\""];
+        for subject in subjects {
+            assert_subject_as_valid(subject);
+        }
+    }
+
+    #[test]
+    fn valid_punctuation_quote_at_end() {
+        let subjects = vec!["Fix test'", "Fix test\""];
+        for subject in subjects {
+            assert_subject_as_valid(subject);
+        }
     }
 
     #[test]
