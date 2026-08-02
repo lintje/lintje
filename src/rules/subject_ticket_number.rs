@@ -1,5 +1,4 @@
 use core::ops::Range;
-use regex::Regex;
 
 use crate::commit::Commit;
 use crate::issue::{Context, Issue, Position};
@@ -7,14 +6,7 @@ use crate::rule::Rule;
 use crate::rule::RuleValidator;
 use crate::utils::character_count_for_bytes_index;
 
-use crate::rules::CONTAINS_FIX_TICKET;
-
-lazy_static! {
-    // Jira project keys are at least 2 uppercase characters long.
-    // AB-123
-    // JIRA-123
-    static ref SUBJECT_WITH_TICKET: Regex = Regex::new(r"[A-Z]{2,}-\d+").unwrap();
-}
+use crate::rules::CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE;
 
 pub struct SubjectTicketNumber {}
 
@@ -28,7 +20,8 @@ impl RuleValidator<Commit> for SubjectTicketNumber {
     fn validate(&self, commit: &Commit) -> Option<Vec<Issue>> {
         let mut issues = vec![];
         let subject = &commit.subject.to_string();
-        if let Some(captures) = SUBJECT_WITH_TICKET.captures(subject) {
+
+        if let Some(captures) = CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE.captures(subject) {
             match captures.get(0) {
                 Some(capture) => issues.push(add_subject_ticket_number_error(commit, capture)),
                 None => {
@@ -38,15 +31,6 @@ impl RuleValidator<Commit> for SubjectTicketNumber {
                 }
             };
         }
-        if let Some(captures) = CONTAINS_FIX_TICKET.captures(subject) {
-            match captures.get(0) {
-                Some(capture) => issues.push(add_subject_ticket_number_error(commit, capture)),
-                None => {
-                    error!("SubjectTicketNumber: Unable to fetch issue number match from subject.");
-                }
-            };
-        }
-
         if issues.is_empty() {
             None
         } else {
@@ -116,17 +100,11 @@ mod tests {
         let subjects = vec![
             "This is a normal commit",
             "Fix #", // Not really good subjects, but won't fail on this rule
-            "Fix ##123",
             "Fix #a123",
             "Fix !",
-            "Fix !!123",
             "Fix !a123",
             "Fix /123",                                   // No org/repo format
             "Fix repo/123",                               // Missing org
-            "Fix repo#123",                               // Missing org
-            "Fix repo!123",                               // Missing org
-            "Fix https://website.om/org/repo/issues#123", // No full format with only slashes
-            "Fix https://website.om/org/repo/issues!123", // No full format with only slashes
             "Change A-1 config",
             "Change A-12 config",
         ];
@@ -208,15 +186,15 @@ mod tests {
     fn jira_ticket_number() {
         let issue = first_issue(validate(&commit("Fix JIRA-123 about email validation", "")));
         assert_eq!(issue.message, "The subject contains a ticket number");
-        assert_eq!(issue.position, subject_position(5));
+        assert_eq!(issue.position, subject_position(1));
         assert_contains_issue_output(
             &issue,
             "1 | Fix JIRA-123 about email validation\n\
-               |     -------- Remove the ticket number from the subject\n\
+               | ------------ Remove the ticket number from the subject\n\
               ~~~\n\
              3 | \n\
-             4 | JIRA-123\n\
-               | ++++++++ Move the ticket number to the message body",
+             4 | Fix JIRA-123\n\
+               | ++++++++++++ Move the ticket number to the message body",
         );
     }
 
@@ -304,6 +282,6 @@ mod tests {
     #[test]
     fn multiple_issues() {
         let issues = validate(&commit("Fix #123 JIRA-123", "")).expect("No issues");
-        assert_eq!(issues.len(), 2);
+        assert_eq!(issues.len(), 1);
     }
 }

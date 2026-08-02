@@ -52,17 +52,25 @@ pub static ISSUE_NUMBER_REFERENCE: &str = r"
     (
         https?://[^\s]+/| # Match entire URL
         [\w\-_\.]+/[\w\-_\.]+[\#!]| # Repo shorthand format: org/repo#123 or org/repo!123
-        [\#!] # Only an issue or PR symbol
+        [\#!]| # Only an issue or PR symbol
+        [A-Z]{2,}- # Jira project keys, at least 2 uppercase character, e.g. AB-123
     )
     \d+ # Ends in an issue/PR number
 ";
 
+// Match all GitHub and GitLab keywords
+pub static FIX_KEY_WORD_REFERENCE: &str = r"
+    (fix(es|ed|ing)?|clos(e|es|ed|ing)|resolv(e|es|ed|ing)|implement(s|ed|ing)?) # Includes keyword
+    :? # Optional colon
+";
+
 lazy_static! {
-    // Match all GitHub and GitLab keywords
     pub static ref CONTAINS_FIX_TICKET: Regex = Regex::new(&format!(r"(?xi)
-        (fix(es|ed|ing)?|clos(e|es|ed|ing)|resolv(e|es|ed|ing)|implement(s|ed|ing)?) # Includes keyword
-        :? # Optional colon
-        \s+
+        {FIX_KEY_WORD_REFERENCE}\s+{ISSUE_NUMBER_REFERENCE}
+    ")).unwrap();
+
+    pub static ref CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE: Regex = Regex::new(&format!(r"(?xi)
+        {FIX_KEY_WORD_REFERENCE}\s+{ISSUE_NUMBER_REFERENCE}|
         {ISSUE_NUMBER_REFERENCE}
     ")).unwrap();
 
