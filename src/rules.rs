@@ -65,15 +65,17 @@ pub static FIX_KEY_WORD_REFERENCE: &str = r"
 ";
 
 lazy_static! {
-    pub static ref CONTAINS_FIX_TICKET: Regex = Regex::new(&format!(r"(?xi)
+    pub static ref CONTAINS_FIX_TICKET: Regex = Regex::new(&format!(
+        r"(?xi)
         {FIX_KEY_WORD_REFERENCE}\s+{ISSUE_NUMBER_REFERENCE}
-    ")).unwrap();
-
-    pub static ref CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE: Regex = Regex::new(&format!(r"(?xi)
-        {FIX_KEY_WORD_REFERENCE}\s+{ISSUE_NUMBER_REFERENCE}|
-        {ISSUE_NUMBER_REFERENCE}
-    ")).unwrap();
-
+    "
+    ))
+    .unwrap();
+    pub static ref CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE: Regex = Regex::new(&format!(
+        r"(?xi)
+        (?P<match>(?P<keyword>{FIX_KEY_WORD_REFERENCE}\s+)?{ISSUE_NUMBER_REFERENCE})"
+    ))
+    .unwrap();
     pub static ref CO_AUTHOR_REFERENCE: Regex =
         Regex::new(r"(?im)^co-authored-by: [\w\s\-]+\s+<[^\s]+[@]+[^\s]+>").unwrap();
 }

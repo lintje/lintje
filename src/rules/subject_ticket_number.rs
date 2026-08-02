@@ -22,8 +22,16 @@ impl RuleValidator<Commit> for SubjectTicketNumber {
         let subject = &commit.subject.to_string();
 
         if let Some(captures) = CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE.captures(subject) {
-            match captures.get(0) {
-                Some(capture) => issues.push(add_subject_ticket_number_error(commit, capture)),
+            match captures.name("match") {
+                Some(capture) => {
+                    let keyword = if captures.name("keyword").is_none() {
+                        Some("Fix ")
+                    } else {
+                        None
+                    };
+
+                    issues.push(add_subject_ticket_number_error(commit, capture, keyword));
+                }
                 None => {
                     error!(
                         "SubjectTicketNumber: Unable to fetch ticket number match from subject."
@@ -39,10 +47,15 @@ impl RuleValidator<Commit> for SubjectTicketNumber {
     }
 }
 
-fn add_subject_ticket_number_error(commit: &Commit, capture: regex::Match) -> Issue {
+fn add_subject_ticket_number_error(
+    commit: &Commit,
+    capture: regex::Match,
+    keyword: Option<&str>,
+) -> Issue {
     let subject = commit.subject.to_string();
     let line_count = commit.message.lines().count();
     let base_line_count = if line_count == 0 { 3 } else { line_count + 2 };
+    let keyword_label = keyword.unwrap_or("");
     let context = vec![
         Context::subject_removal_suggestion(
             subject,
@@ -53,10 +66,10 @@ fn add_subject_ticket_number_error(commit: &Commit, capture: regex::Match) -> Is
         Context::message_line(base_line_count, "".to_string()),
         Context::message_line_addition(
             base_line_count + 1,
-            capture.as_str().to_string(),
+            format!("{}{}", keyword_label, capture.as_str()),
             Range {
                 start: 0,
-                end: capture.range().len(),
+                end: capture.range().len() + keyword_label.len(),
             },
             "Move the ticket number to the message body".to_string(),
         ),
@@ -103,8 +116,8 @@ mod tests {
             "Fix #a123",
             "Fix !",
             "Fix !a123",
-            "Fix /123",                                   // No org/repo format
-            "Fix repo/123",                               // Missing org
+            "Fix /123",     // No org/repo format
+            "Fix repo/123", // Missing org
             "Change A-1 config",
             "Change A-12 config",
         ];
@@ -209,10 +222,25 @@ mod tests {
             &issue,
             "1 | Fix ❤️ JIRA-123 about email validation\n\
                |       -------- Remove the ticket number from the subject\n\
-              ~~~\n\
-             3 | \n\
-             4 | JIRA-123\n\
-               | ++++++++ Move the ticket number to the message body",
+               ~~~\n\
+              3 | \n\
+              4 | Fix JIRA-123\n\
+               | ++++++++++++ Move the ticket number to the message body",
+        );
+    }
+
+    #[test]
+    fn jira_ticket_number_without_keyword() {
+        let issue = first_issue(validate(&commit("JIRA-123 about email validation", "")));
+        assert_eq!(issue.position, subject_position(1));
+        assert_contains_issue_output(
+            &issue,
+            "1 | JIRA-123 about email validation\n\
+               | -------- Remove the ticket number from the subject\n\
+               ~~~\n\
+              3 | \n\
+              4 | Fix JIRA-123\n\
+               | ++++++++++++ Move the ticket number to the message body",
         );
     }
 
