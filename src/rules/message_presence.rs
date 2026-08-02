@@ -178,7 +178,7 @@ fn issues_for_lines_with_only_ticket_numbers(message: &str) -> Option<Vec<Issue>
 
 // Helper function to cleanly return ticket number captures without having to do the debug logging
 // in the loop.
-fn scan_for_ticket_number(message: &str) -> Option<regex::Match> {
+fn scan_for_ticket_number(message: &str) -> Option<regex::Match<'_>> {
     if let Some(captures) = CONTAINS_FIX_TICKET.captures(message) {
         match captures.get(0) {
             Some(capture) => return Some(capture),
