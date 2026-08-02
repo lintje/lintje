@@ -18,6 +18,20 @@ Do you have a bug fix, improvement or other change to contribute, please [send i
 
 If the change is substantial and changes the behavior of Lintje, please [create an issue first][new issue]. We can discuss the impact of the change first and check if its fits into the [Lintje philosophy](https://lintje.dev/docs/philosophy/).
 
+## Add a changeset for your changes
+
+Lintje uses [changesets](https://github.com/appsignal/mono) to document changes
+for the next release. The changeset is used to update the `CHANGELOG.md` file
+and determine the next version number when a release is made.
+
+If your change is notable, add a changeset file to the `.changesets/`
+directory and commit it along with your change. Create one by running the
+following command from the root of the project:
+
+```
+mono changeset add
+```
+
 ## Follow the Code of Conduct
 
 Everyone participating in the Lintje project and its related repositories are expected to follow the [Lintje Code of Conduct](https://lintje.dev/code-of-conduct/).

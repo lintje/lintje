@@ -108,16 +108,19 @@ The build output can be found in the `dist/` directory.
 
 ### Releases
 
-Before release all the supported targets will be build. See
-[Building](#building) for more information about the build step.
+Lintje is released from the [Lintje repository](https://github.com/lintje/lintje)
+using GitHub Actions. Before release all the supported targets will be built.
+See [Building](#building) for more information about the build step.
 
-To release all different targets, run the release script:
+To release a new version, run the "Publish a release"
+[workflow](https://github.com/lintje/lintje/actions/workflows/publish_release.yaml)
+from the `main` branch. The workflow will bump the version, update the
+`CHANGELOG.md` file, push the release tag and create a GitHub release with the
+release archives for all supported targets.
 
-```
-rake release
-```
-
-The release will be pushed to GitHub.
+Make sure the changes for the release are described in a
+[changeset](https://github.com/appsignal/mono) file in the `.changesets/`
+directory before releasing.
 
 Finally update the
 [Lintje Homebrew tap](https://github.com/lintje/homebrew-lintje).

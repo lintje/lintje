@@ -74,3 +74,10 @@ jobs:
             target/
       - name: Cargo run
         run: cargo run
+  cross_compile:
+    name: "Cross compile"
+    uses: ./.github/workflows/build_release.yaml
+    with:
+      branch: "${{ github.head_ref || github.ref_name }}"
+      upload_artifacts: false
+      run_versioning: false
