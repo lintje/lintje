@@ -73,7 +73,7 @@ lazy_static! {
     .unwrap();
     pub static ref CONTAINS_FIX_TICKET_OR_TICKET_REFERENCE: Regex = Regex::new(&format!(
         r"(?xi)
-        (?<match>(?<keyword>{FIX_KEY_WORD_REFERENCE}\s+){ISSUE_NUMBER_REFERENCE}"
+        (?<match>(?<keyword>{FIX_KEY_WORD_REFERENCE}\s+){ISSUE_NUMBER_REFERENCE})"
     ))
     .unwrap();
     pub static ref CO_AUTHOR_REFERENCE: Regex =
