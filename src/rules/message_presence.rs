@@ -128,7 +128,8 @@ fn issues_for_lines_with_only_ticket_numbers(message: &str) -> Option<Vec<Issue>
             continue;
         }
 
-        if let Some(capture) = scan_for_ticket_number(line) {
+        {
+            let capture = scan_for_ticket_number(line)?;
             let line_label = line_number + 2;
             let capture_str = capture.as_str();
             let capture_len = capture_str.len();
@@ -155,10 +156,6 @@ fn issues_for_lines_with_only_ticket_numbers(message: &str) -> Option<Vec<Issue>
                 // present. Skip the rest of this check.
                 return None;
             }
-        } else {
-            // No ticket number found on line, skip the rest of this check. All lines need to
-            // match.
-            return None;
         }
     }
     if context.is_empty() {
@@ -178,7 +175,7 @@ fn issues_for_lines_with_only_ticket_numbers(message: &str) -> Option<Vec<Issue>
 
 // Helper function to cleanly return ticket number captures without having to do the debug logging
 // in the loop.
-fn scan_for_ticket_number(message: &str) -> Option<regex::Match> {
+fn scan_for_ticket_number(message: &str) -> Option<regex::Match<'_>> {
     if let Some(captures) = CONTAINS_FIX_TICKET.captures(message) {
         match captures.get(0) {
             Some(capture) => return Some(capture),
