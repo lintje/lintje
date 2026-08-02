@@ -203,7 +203,9 @@ namespace :release do
 
     puts "Release of version #{version} done!"
     puts "Please update the following:"
-    puts "- Homebrew tap next: https://github.com/lintje/homebrew-lintje"
+    puts "- Homebrew tap: run the 'Update lintje formula' workflow with " \
+      "version #{version}: " \
+      "https://github.com/lintje/homebrew-lintje/actions/workflows/update_formula.yml/dispatches"
     puts "- GitHub Action: https://github.com/lintje/action"
   end
 
