@@ -53,7 +53,7 @@ pub static ISSUE_NUMBER_REFERENCE: &str = r"
         https?://[^\s]+/| # Match entire URL
         [\w\-_\.]+/[\w\-_\.]+[\#!]| # Repo shorthand format: org/repo#123 or org/repo!123
         [\#!]| # Only an issue or PR symbol
-        [A-Z]{2,}- # Jira project keys, at least 2 uppercase character, e.g. AB-123
+        (?-i:[A-Z]{2,}-) # Jira project keys, at least 2 uppercase character, e.g. AB-123
     )
     \d+ # Ends in an issue/PR number
 ";

@@ -120,6 +120,11 @@ mod tests {
             "Fix repo/123", // Missing org
             "Change A-1 config",
             "Change A-12 config",
+            "Fix abc-123", // Lowercase Jira project keys are not valid, only uppercase
+            "Use utf-8 encoding",
+            "Add utf-16le support",
+            "Change abc-1234 config",
+            "foo-bar-99 baz",
         ];
         for subject in subjects {
             assert_subject_as_valid(subject);
