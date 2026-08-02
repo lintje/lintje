@@ -1,5 +1,12 @@
 # Lintje changelog
 
+## 0.11.4
+
+### Fixed
+
+- Identify Jira tickets better in commit subjects and messages.
+  PR #63 by @ig3io.
+
 ## 0.11.3
 
 ### Fixed
