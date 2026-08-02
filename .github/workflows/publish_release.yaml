@@ -5,7 +5,7 @@ on:
 
 env:
   PUBLISH_GIT_USERNAME: "Lintje release bot"
-  PUBLISH_GIT_EMAIL: "support+lintje@tomdebruijn.com"
+  PUBLISH_GIT_EMAIL: "lintje@tomdebruijn.com"
 
 jobs:
   build_release:
