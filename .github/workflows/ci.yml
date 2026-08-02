@@ -19,7 +19,7 @@ jobs:
     name: "Lintje (Git Linter)"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 100
       - uses: lintje/action@main
@@ -27,8 +27,8 @@ jobs:
     name: Rust lint and format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
         with:
           key: cargo-lint-${{ hashFiles('**/Cargo.lock') }}
           path: |
@@ -54,8 +54,8 @@ jobs:
         run: |
           git config --global user.email "test@test.com"
           git config --global user.name "My Test user"
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
         with:
           key: cargo-test-${{ hashFiles('**/Cargo.lock') }}
           path: |
@@ -73,10 +73,10 @@ jobs:
       # Set TERM so that the color specs detect a terminal that can print color
       TERM: xterm-256color
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
         with:
           Fetch-depth: 2 # Fetch enough commits to test on
-      - uses: actions/cache@v3
+      - uses: actions/cache@v6
         with:
           key: cargo-build-${{ hashFiles('**/Cargo.lock') }}
           path: |

@@ -39,13 +39,13 @@ jobs:
             target: "aarch64-apple-darwin"
     steps:
       - name: "Checkout the project"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{inputs.branch}}"
           path: "main"
 
       - name: "Checkout Mono"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: "appsignal/mono"
           path: "mono"
@@ -75,7 +75,7 @@ jobs:
       # move it to the next job.
       - name: "Store build artifact"
         if: ${{ inputs.upload_artifacts }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: "${{matrix.target}}"
           path: "main/release/${{matrix.target}}.tar.gz"

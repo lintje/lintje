@@ -23,13 +23,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: "Checkout the project"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ssh-key: "${{secrets.PUBLISH_DEPLOY_KEY}}"
           path: "main"
 
       - name: "Checkout Mono"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: "appsignal/mono"
           path: "mono"
@@ -51,7 +51,7 @@ jobs:
           git config --global user.signingkey "$PUBLISH_GIT_SIGN_KEY_PATH"
 
       - name: "Fetch build artifacts"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: "main/release"
 
