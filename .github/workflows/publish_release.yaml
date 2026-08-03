@@ -70,7 +70,7 @@ jobs:
         run: |
           sha256sum release/*/*.tar.gz | while read -r checksum file; do
             printf '%s  %s\n' "$checksum" "$(basename "$file")"
-          done > SHA256SUMS
+          done > checksums_256.txt
 
       - name: "Create a release on the repository"
         working-directory: "./main"
@@ -86,7 +86,7 @@ jobs:
             'release/x86_64-pc-windows-gnu/x86_64-pc-windows-gnu.tar.gz#Windows (x86_64)' \
             'release/x86_64-apple-darwin/x86_64-apple-darwin.tar.gz#macOS (x86_64)' \
             'release/aarch64-apple-darwin/aarch64-apple-darwin.tar.gz#macOS (arm64)' \
-            'SHA256SUMS#SHA256 checksums'
+            'checksums_256.txt#SHA256 checksums'
         env:
           GH_TOKEN: ${{github.token}}
 
