@@ -90,16 +90,18 @@ jobs:
         env:
           GH_TOKEN: ${{github.token}}
 
-      - name: "Add Homebrew update note to the workflow summary"
+      - name: "Add next steps to the workflow summary"
         run: |
           RELEASE_VERSION="${{steps.version.outputs.RELEASE_VERSION}}"
 
           {
-            echo "## Next step: update the Homebrew tap"
+            echo "## Next steps"
             echo ""
-            echo "Run the \"Update lintje formula\" workflow with version " \
-              "${RELEASE_VERSION} to update the " \
-              "[Lintje Homebrew tap](https://github.com/lintje/homebrew-lintje):"
+            echo "1. Update the [Lintje GitHub Action](https://github.com/lintje/action) by running the " \
+              "\"Update Lintje action\" workflow with version ${RELEASE_VERSION}:"
+            echo "   https://github.com/lintje/action/actions/workflows/update_action.yml"
             echo ""
-            echo "https://github.com/lintje/homebrew-lintje/actions/workflows/update_formula.yml"
+            echo "2. Update the [Lintje Homebrew tap](https://github.com/lintje/homebrew-lintje) by running the " \
+              "\"Update lintje formula\" workflow with version ${RELEASE_VERSION}:"
+            echo "   https://github.com/lintje/homebrew-lintje/actions/workflows/update_formula.yml"
           } >> "$GITHUB_STEP_SUMMARY"
