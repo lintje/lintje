@@ -3,6 +3,9 @@ on:
   # Trigger this release via the GitHub Actions interface for this workflow
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   PUBLISH_GIT_USERNAME: "Lintje release bot"
   PUBLISH_GIT_EMAIL: "lintje@tomdebruijn.com"
