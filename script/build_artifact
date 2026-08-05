@@ -11,6 +11,58 @@ case "$TARGET" in
     ;;
 esac
 
+BINARY_PATH="target/$TARGET/release/$BINARY_NAME"
+
+docker_platform() {
+  case "$TARGET" in
+    x86_64-*) echo "linux/amd64" ;;
+    aarch64-*) echo "linux/arm64/v8" ;;
+  esac
+}
+
+build_strip_image() {
+  docker build \
+    --platform "$(docker_platform)" \
+    --file "support/docker/Dockerfile.$TARGET" \
+    --tag "lintje/lintje-$TARGET:build" \
+    support/docker
+}
+
+strip_in_container() {
+  image="$1"
+  docker run \
+    --rm \
+    --volume "$PWD:/project" \
+    --workdir "/project" \
+    --platform "$(docker_platform)" \
+    "$image" \
+    strip "$BINARY_PATH"
+}
+
+strip_artifact() {
+  echo "Stripping the binary..."
+  case "$TARGET" in
+    *-apple-darwin)
+      strip "$BINARY_PATH"
+      ;;
+    *-pc-windows-gnu)
+      strip_in_container "rustembedded/cross:x86_64-pc-windows-gnu"
+      ;;
+    x86_64-unknown-linux-*)
+      build_strip_image
+      strip_in_container "lintje/lintje-$TARGET:build"
+      ;;
+    aarch64-unknown-linux-*)
+      build_strip_image
+      strip_in_container "lintje/lintje-$TARGET:build"
+      ;;
+    *)
+      echo "No strip method defined for: $TARGET" >&2
+      exit 1
+      ;;
+  esac
+}
+
 mkdir release > /dev/null 2>&1 || true
 rm -rf target
 
@@ -18,6 +70,8 @@ echo "Building for '$TARGET'..."
 echo
 
 cross build --release --target "$TARGET"
+strip_artifact
+
 tar -czvf "release/$TARGET.tar.gz" -C "target/$TARGET/release" "$BINARY_NAME"
 
 echo "Done! Built release at 'release/$TARGET.tar.gz'."

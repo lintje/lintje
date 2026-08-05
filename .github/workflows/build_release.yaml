@@ -53,6 +53,10 @@ jobs:
       - name: "Install Cross"
         run: cargo install cross
 
+      - name: "Set up Docker QEMU"
+        if: matrix.runner == 'ubuntu-22.04'
+        uses: docker/setup-qemu-action@v3
+
       # macOS targets do not build using a Cross image, so they may need to
       # download the target for their architecture.
       - name: "Install macOS architecture target"
